@@ -115,6 +115,7 @@
     <Compile Include="Common\Constants.cs" />
     <Compile Include="Common\Models\AgentStatus.cs" />
     <Compile Include="Common\Models\Error.cs" />
+    <Compile Include="Common\Models\Device.cs" />
     <Compile Include="Common\Models\ServerStatusInfo.cs" />
     <Compile Include="Common\Util\AppSettingsProvider.cs" />
     <Compile Include="Common\Util\ApiLogger.cs" />
@@ -126,6 +127,7 @@
     <Compile Include="Common\Util\Win32.cs" />
     <Compile Include="Server\Agents\AgentMonitorService.cs" />
     <Compile Include="Server\Controller\ApiController.cs" />
+    <Compile Include="Server\Devices\DeviceRegistry.cs" />
     <Compile Include="Server\EmbedIOServer.cs" />
     <Compile Include="Server\Socket\AgentMonitorModule.cs" />
     <Compile Include="Server\Socket\HostMonitorModule.cs" />
