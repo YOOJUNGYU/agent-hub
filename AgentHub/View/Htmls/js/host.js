@@ -45,6 +45,51 @@ function renderClients(list, count) {
     '</tbody></table>';
 }
 
+// ---- 등록 기기 관리 (WebSocket /ws/host: devices) ----
+const statusLabel = s => ({ pending: '대기', approved: '승인됨', revoked: '해제됨' }[s] || s);
+
+function deviceActions(d) {
+  const approve = `<button class="act approve" data-act="approve" data-id="${d.id}">승인</button>`;
+  const revoke  = `<button class="act revoke" data-act="revoke" data-id="${d.id}">해제</button>`;
+  const del     = `<button class="act delete" data-act="delete" data-id="${d.id}">삭제</button>`;
+  if (d.status === 'pending')  return approve + del;
+  if (d.status === 'approved') return revoke + del;
+  return approve + del; // revoked → 재승인 가능
+}
+
+function renderDevices(list) {
+  list = list || [];
+  $('#pendingCount').textContent = list.filter(d => d.status === 'pending').length;
+  $('#approvedCount').textContent = list.filter(d => d.status === 'approved').length;
+  if (!list.length) {
+    $('#deviceList').innerHTML = '<p class="hint">아직 인증을 요청한 기기가 없습니다.</p>';
+    return;
+  }
+  $('#deviceList').innerHTML =
+    '<table class="tbl"><thead><tr><th>이름</th><th>상태</th><th>IP</th><th>요청 시각</th><th>동작</th></tr></thead><tbody>' +
+    list.map(d => `<tr>
+      <td>${esc(d.name) || '<span class="hint">(이름 없음)</span>'}<div class="ua">${esc(d.userAgent)}</div></td>
+      <td><span class="pill ${d.status}">${statusLabel(d.status)}</span></td>
+      <td>${esc(d.ip)}</td>
+      <td>${fmtTime(d.requestedAt)}</td>
+      <td class="actions">${deviceActions(d)}</td>
+    </tr>`).join('') +
+    '</tbody></table>';
+}
+
+// 액션 버튼 (이벤트 위임)
+$('#deviceList').addEventListener('click', async e => {
+  const btn = e.target.closest('button.act');
+  if (!btn) return;
+  const { act, id } = btn.dataset;
+  btn.disabled = true;
+  try {
+    if (act === 'delete') await fetch('/api/devices/' + id, { method: 'DELETE' });
+    else await fetch('/api/devices/' + id + '/' + act, { method: 'POST' });
+    // 결과는 /ws/host의 devices broadcast로 자동 반영됨
+  } catch (err) { btn.disabled = false; }
+});
+
 let ws;
 function connect() {
   const url = (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host + '/ws/host';
@@ -55,6 +100,7 @@ function connect() {
     try {
       const m = JSON.parse(ev.data);
       if (m.type === 'clients') renderClients(m.clients, m.count);
+      else if (m.type === 'devices') renderDevices(m.devices);
     } catch (e) { /* ignore */ }
   };
 }

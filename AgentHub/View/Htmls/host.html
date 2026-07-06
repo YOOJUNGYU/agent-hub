@@ -16,12 +16,22 @@
     </div>
   </header>
   <nav class="tabs">
-    <button class="tab active" data-view="clients">연결된 기기</button>
+    <button class="tab active" data-view="devices">기기 관리</button>
+    <button class="tab" data-view="clients">연결된 기기</button>
     <button class="tab" data-view="logs">로그</button>
     <button class="tab" data-view="settings">설정</button>
   </nav>
   <main>
-    <section id="clients" class="view active">
+    <section id="devices" class="view active">
+      <div class="summary">
+        <div class="stat"><div class="n" id="pendingCount">0</div><div class="l">인증 대기</div></div>
+        <div class="stat"><div class="n" id="approvedCount">0</div><div class="l">승인된 기기</div></div>
+      </div>
+      <div id="deviceList">
+        <div class="loading"><span class="spinner"></span><span>기기 정보를 불러오는 중…</span></div>
+      </div>
+    </section>
+    <section id="clients" class="view">
       <div class="summary">
         <div class="stat"><div class="n" id="clientCount">0</div><div class="l">접속한 모바일 기기</div></div>
       </div>
