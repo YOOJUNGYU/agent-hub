@@ -163,7 +163,8 @@ namespace AgentHub.Server
             if (configured >= 1024 && configured <= 65535 && !active.Contains(configured))
                 return configured;
 
-            for (var port = 8000; port <= 9000; port++)
+            // 흔히 쓰이는 대역을 피해 조용한 47600번대에서 폴백 포트 선택.
+            for (var port = 47600; port <= 47700; port++)
                 if (!active.Contains(port)) return port;
 
             throw new Exception("사용 가능한 포트를 찾을 수 없습니다.");

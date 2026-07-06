@@ -3,143 +3,67 @@
 [![Downloads](https://img.shields.io/github/downloads/YOOJUNGYU/agent-hub/total)](https://github.com/YOOJUNGYU/agent-hub/releases)
 [![Latest Release](https://img.shields.io/github/v/release/YOOJUNGYU/agent-hub)](https://github.com/YOOJUNGYU/agent-hub/releases/latest)
 
-> 내 PC에서 동작하는 **AI 에이전트들의 작업 상황을 실시간으로 모니터링**하고,
-> 같은 네트워크(LAN)에 연결된 **모바일 기기에서 브라우저로 확인**할 수 있게 해 주는
-> Windows 트레이 애플리케이션입니다.
+**내 PC에서 돌아가는 AI 에이전트(예: Claude)의 작업 상황을, 컴퓨터에서도 휴대폰에서도 한눈에 볼 수 있게 해 주는 프로그램입니다.**
 
-## 설치 (Install)
-
-1. [최신 릴리스](https://github.com/YOOJUNGYU/agent-hub/releases/latest)에서 **`AgentHub-win-Setup.exe`**를 다운로드합니다.
-2. 실행하면 `%LocalAppData%\AgentHub`에 설치되고 트레이에 상주합니다(**관리자 권한 불필요**).
-3. 최초 실행 시 로컬 HTTPS용 자체서명 인증서 설치 동의창이 **한 번** 표시됩니다.
-4. 이후 새 버전은 실행 중 자동으로 다운로드되어 **재시작 시 적용**됩니다. (트레이 우클릭 → "지금 업데이트 후 재시작"으로 즉시 적용도 가능)
-
-> ⚠️ 코드 서명이 없어 다운로드·최초 실행 시 SmartScreen "알 수 없는 게시자" 경고가 보일 수 있습니다. **추가 정보 → 실행**으로 진행하세요.
-
-C#(.NET Framework 4.8, WinForms)로 작성된 호스트 프로그램이 내장 웹서버([EmbedIO](https://github.com/unosquare/embedio))를
-띄우고, HTML + **바닐라 JavaScript**로 만든 프런트엔드 화면을 제공합니다.
-데스크톱에서는 WebView2로, 모바일에서는 같은 네트워크의 브라우저로 동일한 화면에 접속합니다.
+회사·집에서 내 PC가 AI 작업을 하고 있을 때, 자리를 비워도 **같은 와이파이에 연결된 휴대폰**으로 진행 상황을 확인할 수 있습니다.
 
 ---
 
-## 목적 (Purpose)
+## 다운로드 & 설치
 
-- **AI 에이전트 모니터링** — 내 PC에 설치/실행 중인 AI 에이전트들의 작업 진행 상황, 로그, 상태를 한곳에서 수집·표시합니다.
-- **웹 기반 FE 화면** — EmbedIO가 정적 HTML/CSS/JS와 REST API·WebSocket을 서빙하여 실시간 대시보드를 제공합니다.
-- **모바일 모니터링** — 별도 앱 설치 없이, 같은 공유기(동일 네트워크망)에 연결된 스마트폰 브라우저로 PC의 에이전트 작업 현황을 확인합니다.
+1. **[👉 최신 버전 다운로드](https://github.com/YOOJUNGYU/agent-hub/releases/latest)** 페이지에서 **`AgentHub-win-Setup.exe`**를 받습니다.
+2. 받은 파일을 **더블클릭**해 설치합니다. (관리자 권한 필요 없음)
+3. 처음 실행할 때 "이 인증서를 설치하시겠습니까?" 창이 **한 번** 뜨면 **예**를 눌러 주세요. (내 PC와 휴대폰이 안전하게 연결되기 위한 과정입니다.)
 
-> 이 저장소는 이전에 작성했던 데스크톱 에이전트 프로젝트의 기본 골격(WinForms 호스트 + EmbedIO + WebView2 + WebSocket)을
-> 그대로 복사하여 시작했으며, AI 에이전트 모니터링 목적에 맞게 재구성해 나갈 예정입니다.
-> (기존 프로젝트에 남아 있던 특정 회사·제품 브랜딩과 네임스페이스는 모두 `AgentHub` 기준으로 정리되었습니다.)
+> 💡 다운로드하거나 처음 실행할 때 파란 화면으로 **"Windows의 PC 보호"** 경고가 뜰 수 있어요. 서명되지 않은 프로그램이라 나타나는 안내이며, **추가 정보 → 실행**을 누르면 됩니다.
 
----
-
-## 아키텍처 (Architecture)
-
-```
-                            ┌─────────────────────────────────────────────┐
-                            │            내 PC (Windows Host)              │
-                            │                                             │
-   AI Agents ──작업/로그──▶ │  AgentHub.exe (WinForms 트레이 앱)           │
-                            │   ├─ EmbedIO 내장 웹서버 (HTTPS)             │
-                            │   │    ├─ /api/       REST API (ApiController)│
-                            │   │    ├─ /terminal   WebSocket (실시간 로그) │
-                            │   │    └─ /printer    WebSocket               │
-                            │   ├─ 정적 자산 서빙 (HTML / CSS / Vanilla JS) │
-                            │   └─ WebView2 (데스크톱 내장 브라우저 화면)   │
-                            └──────────────┬──────────────────────────────┘
-                                           │ 동일 네트워크망 (LAN / Wi-Fi)
-                        ┌──────────────────┴───────────────────┐
-                        │                                       │
-                 ┌──────────────┐                       ┌──────────────┐
-                 │  데스크톱     │                       │   모바일      │
-                 │  (WebView2)  │                       │  (브라우저)   │
-                 └──────────────┘                       └──────────────┘
-```
-
-- **호스트**: `AgentHub.exe` — 트레이에 상주하며 서버 수명주기를 관리하는 WinForms 앱.
-- **웹서버**: EmbedIO 기반 HTTPS 서버. 자체 서명 인증서를 런타임에 생성하여 사용합니다.
-  - `DEBUG` 빌드는 `8000` 포트 고정, `RELEASE` 빌드는 `8000~9000` 범위에서 사용 가능한 포트를 자동 선택합니다.
-- **프런트엔드**: `View/Htmls`의 HTML + CSS + 바닐라 JS. 빌드 도구(번들러) 없이 그대로 서빙합니다.
-- **실시간 통신**: WebSocket 모듈(`/terminal`, `/printer`)로 로그/이벤트를 스트리밍합니다.
+설치가 끝나면 프로그램이 화면 오른쪽 아래 **작업 표시줄 트레이**에 아이콘으로 상주합니다.
 
 ---
 
-## 기술 스택 (Tech Stack)
+## 사용법
 
-| 구분 | 사용 기술 |
-|------|-----------|
-| 언어 / 런타임 | C# 8, .NET Framework 4.8 |
-| UI 호스트 | Windows Forms, WebView2 |
-| 내장 웹서버 | EmbedIO (WebApi, WebSockets, IP Banning, Session) |
-| 프런트엔드 | HTML5, CSS3, Vanilla JavaScript |
-| 직렬화 | Newtonsoft.Json |
-| 로깅 | NLog, Serilog |
-| 설치 배포 | Inno Setup (`install/Installer.iss`) |
+### 컴퓨터에서 보기
+- 트레이의 Agent Hub 아이콘을 **더블클릭**하면 콘솔 창이 열립니다.
+- 창에서 서버 상태(🟢 활성), 접속 주소, 연결된 휴대폰 목록, 로그를 볼 수 있습니다.
 
----
+### 휴대폰에서 보기 (같은 와이파이)
+1. 컴퓨터 콘솔 창 **상단에 표시된 주소**(예: `https://192.168.0.10:47600`)를 확인합니다.
+2. 휴대폰 브라우저 주소창에 그 주소를 입력하면 **에이전트 모니터 화면**이 열립니다.
+3. 보안 경고가 나오면 "계속" / "고급 → 이동"으로 진행하세요. (내 PC의 자체 인증서라 나타나는 안내입니다.)
 
-## 프로젝트 구조 (Project Structure)
+> 📱 처음엔 휴대폰에서 접속이 안 될 수 있어요. 그럴 땐 PC의 **Windows 방화벽에서 해당 포트의 수신(인바운드) 허용**이 필요합니다. (준비되면 이 과정을 더 쉽게 만들 예정입니다.)
 
-```
-agent-hub/
-├─ AgentHub.sln                     # 솔루션
-├─ AgentHub/                        # 메인 애플리케이션 프로젝트 (namespace: AgentHub)
-│  ├─ Program.cs                    # 진입점 (트레이 앱 시작, 중복 실행 방지)
-│  ├─ App.config
-│  ├─ Common/
-│  │  ├─ Constants.cs               # 앱 상수 (이름, URI, 메시지, 인증서 설정)
-│  │  ├─ Enums.cs / EnumDescriptions.cs
-│  │  ├─ Helper/                    # 도메인 헬퍼
-│  │  ├─ Models/                    # 데이터 모델
-│  │  └─ Util/                      # 로깅·설정·Win32 등 유틸리티
-│  ├─ Server/
-│  │  ├─ EmbedIOServer.cs           # EmbedIO 서버 구성·시작, 자체 서명 인증서 발급
-│  │  ├─ Controller/ApiController.cs# REST API (/api/)
-│  │  └─ Socket/                    # WebSocket 모듈 (/terminal, /printer)
-│  ├─ View/
-│  │  ├─ Forms/                     # WinForms 창 (FormMain, FormPrint, FormToast)
-│  │  ├─ bridges/                   # WebView2 ↔ C# 브릿지
-│  │  ├─ Htmls/                     # 프런트엔드 (HTML / CSS / Vanilla JS / 폰트)
-│  │  └─ Prints/                    # 인쇄용 템플릿
-│  ├─ Properties/                   # AssemblyInfo, Settings, Resources
-│  └─ Resources/                    # 아이콘·이미지
-├─ EmbedIO/                         # 내장 웹서버 라이브러리(서드파티, 원본 유지)
-├─ install/
-│  └─ Installer.iss                 # Inno Setup 설치 스크립트 (빌드 산출물은 git 제외)
-├─ .gitignore
-└─ README.md
----
-
-## 빌드 및 실행 (Build & Run)
-
-### 요구 사항
-- Windows 10/11
-- Visual Studio 2019 이상 (.NET Framework 4.8 개발 도구 포함)
-- [WebView2 런타임](https://developer.microsoft.com/microsoft-edge/webview2/)
-
-### 빌드
-```powershell
-# NuGet 복원 후 빌드
-msbuild AgentHub.sln /t:Restore
-msbuild AgentHub.sln /t:Build /p:Configuration=Debug /p:Platform="Any CPU"
-```
-Visual Studio에서는 `AgentHub.sln`을 열고 시작 프로젝트를 `AgentHub`로 설정한 뒤 F5로 실행합니다.
-
-### 실행
-- 빌드 산출물: `install/Debug/AgentHub.exe` (또는 `install/Release/`).
-- 실행 시 트레이에 상주하며, 내장 웹서버가 자동으로 시작됩니다.
-- 데스크톱 화면은 WebView2로 표시됩니다.
+### 트레이 아이콘 우클릭 메뉴
+- **열기** — 콘솔 창을 엽니다.
+- **지금 업데이트 후 재시작** — 준비된 새 버전을 바로 적용합니다.
+- **완전 종료** — 프로그램을 완전히 끕니다. (창의 닫기[X]는 트레이로 숨기기만 합니다.)
 
 ---
 
-## 로드맵 / 참고 (Roadmap & Notes)
+## 주요 기능
 
-- [ ] **LAN·모바일 접속 활성화** — 현재 서버는 `https://127.0.0.1:{port}`(로컬호스트)로 바인딩되어 있어
-      같은 네트워크의 모바일에서는 접속되지 않습니다. 모바일 모니터링을 위해서는
-      바인딩 주소를 `0.0.0.0` 또는 PC의 LAN IP로 변경하고, 자체 서명 인증서의 SAN에
-      PC IP를 추가하며, Windows 방화벽에서 해당 포트를 허용해야 합니다.
-- [ ] AI 에이전트 상태/작업 수집 파이프라인 정의 및 API·WebSocket 스키마 설계.
-- [ ] 모바일 화면 반응형 UI 정리.
+- **실시간 모니터링** — AI 에이전트의 상태(작업 중/대기/오류), 현재 작업, 진행률을 실시간으로 표시합니다.
+- **모바일 확인** — 같은 네트워크의 휴대폰 브라우저로 어디서든 진행 상황을 봅니다.
+- **접속 주소 안내** — 콘솔에 휴대폰으로 접속할 주소를 링크로 보여 줍니다.
+- **연결 기기 확인** — 어떤 휴대폰이 언제 접속했는지 콘솔에서 볼 수 있습니다.
+- **트레이 상주** — 평소엔 조용히 트레이에 있고, 필요할 때만 창을 엽니다.
+- **자동 업데이트** — 새 버전이 나오면 자동으로 내려받아 다음 실행 때 적용됩니다.
 
-> ⚠️ 인증서 비밀번호 등 민감 값이 소스에 포함되어 있던 부분은 향후 설정/시크릿으로 분리 예정입니다.
+---
+
+## 설정
+
+콘솔 창의 **설정** 탭에서 서버 **포트 번호**를 바꿀 수 있습니다. (기본값 `47600` — 다른 프로그램과 겹치면 여기서 변경) 저장하면 서버가 새 주소로 다시 시작됩니다.
+
+---
+
+## 업데이트
+
+새 버전이 배포되면, 프로그램 실행 중 자동으로 내려받아 **"새 버전이 준비되었습니다. 재시작 시 적용됩니다."** 라는 알림이 트레이에 표시됩니다. 프로그램을 다시 켜면 최신 버전으로 실행됩니다. (트레이 우클릭 → *지금 업데이트 후 재시작*으로 즉시 적용도 가능합니다.)
+
+---
+
+## 문의
+
+문제가 있거나 제안할 내용이 있으면 [이슈](https://github.com/YOOJUNGYU/agent-hub/issues)로 남겨 주세요.

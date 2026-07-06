@@ -73,7 +73,7 @@ namespace AgentHub.Properties {
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("8080")]
+        [global::System.Configuration.DefaultSettingValueAttribute("47600")]
         public int ServerPort {
             get {
                 return ((int)(this["ServerPort"]));
