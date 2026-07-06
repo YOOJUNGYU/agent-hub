@@ -9,6 +9,8 @@ using Microsoft.Web.WebView2.Core;
 using Newtonsoft.Json;
 using Swan.Logging;
 using AgentHub.Server;
+using AgentHub.Common.Models;
+using AgentHub.Server.Devices;
 using static AgentHub.Common.Constants;
 
 namespace AgentHub.View.Forms
@@ -81,6 +83,16 @@ namespace AgentHub.View.Forms
 
             // EmbedIO 서버를 먼저 시작한 뒤 호스트 콘솔(/host)을 로드한다.
             EmbedIOServer.StartServer();
+            DeviceRegistry.StatusChanged += (hash, status) =>
+            {
+                if (status != DeviceStatus.Pending || IsDisposed) return;
+                try
+                {
+                    BeginInvoke((Action)(() => _notify?.ShowBalloonTip(
+                        5000, "Agent Hub", "새 기기 인증 요청이 도착했습니다.", ToolTipIcon.Info)));
+                }
+                catch (Exception ex) { LogService.Instance.Error(ex); }
+            };
             _stopwatch.Start();
             _timer.Tick += Timer_Tick;
             _timer.Start();
@@ -112,14 +124,14 @@ namespace AgentHub.View.Forms
                     BeginInvoke((Action)(() =>
                     {
                         ShowLoading("서버 재시작 중…");
-                        webViewServer.CoreWebView2?.Navigate($"{EmbedIOServer.CurrentUrl}/host");
+                        webViewServer.CoreWebView2?.Navigate($"{EmbedIOServer.LocalUrl}/host");
                     }));
                 }
                 catch (Exception ex) { LogService.Instance.Error(ex); }
             };
 
             ShowLoading("화면 불러오는 중…");
-            core.Navigate($"{EmbedIOServer.CurrentUrl}/host");
+            core.Navigate($"{EmbedIOServer.LocalUrl}/host");
 
             // 백그라운드 자동 업데이트 확인(설치본에서만) → 준비되면 트레이 알림
             _ = UpdateService.CheckAndDownloadAsync().ContinueWith(t =>
