@@ -92,3 +92,44 @@ main{padding:1rem 1.2rem; max-width:1100px; margin:0 auto}
   .tab{flex:1 1 0; text-align:center}
   .tbl td.ua{max-width:none}
 }
+
+/* ---- 기기 인증 화면 ---- */
+.screen[hidden] { display: none; }
+.auth-card {
+  max-width: 420px;
+  margin: 12vh auto 0;
+  padding: 28px 24px;
+  background: #20243a;
+  border: 1px solid #2c3150;
+  border-radius: 14px;
+  text-align: center;
+}
+.auth-card h2 { margin: 8px 0 12px; font-size: 1.2rem; color: #e6e9f2; }
+.auth-card .hint { color: #9aa3c0; font-size: .9rem; line-height: 1.5; }
+.auth-card input[type="text"] {
+  width: 100%; box-sizing: border-box; margin: 16px 0 12px;
+  padding: 12px 14px; font-size: 1rem;
+  background: #171a2b; color: #e6e9f2;
+  border: 1px solid #2c3150; border-radius: 10px;
+}
+.auth-card button {
+  width: 100%; padding: 12px; font-size: 1rem; font-weight: 600;
+  color: #fff; background: #4f6ccf;
+  border: 0; border-radius: 10px; cursor: pointer;
+}
+.auth-card button:hover { background: #5b78d8; }
+.auth-card .loading { justify-content: center; margin-bottom: 4px; }
+
+/* ---- 기기 관리 액션/상태 ---- */
+.tbl td.actions { white-space: nowrap; }
+.act {
+  margin: 0 2px; padding: 5px 10px; font-size: .82rem; font-weight: 600;
+  border: 0; border-radius: 7px; cursor: pointer; color: #fff;
+}
+.act:disabled { opacity: .5; cursor: default; }
+.act.approve { background: #2e9e5b; }
+.act.revoke  { background: #b7861f; }
+.act.delete  { background: #b3423a; }
+.pill.pending  { background: #3a3550; color: #d9c98a; }
+.pill.approved { background: #1f4a34; color: #7fe0a6; }
+.pill.revoked  { background: #4a2320; color: #e0908a; }
