@@ -1,0 +1,43 @@
+name: release
+
+# 태그(vX.Y.Z) 푸시 시 Release 빌드 → Velopack 패키징 → GitHub Release 자동 게시
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup NuGet
+        uses: nuget/setup-nuget@v2
+
+      - name: Restore NuGet packages
+        run: nuget restore AgentHub.sln
+
+      - name: Build (Release)
+        run: msbuild AgentHub.sln /p:Configuration=Release /p:Platform="Any CPU"
+
+      - name: Install Velopack CLI (vpk)
+        run: dotnet tool install -g vpk
+
+      - name: Derive version from tag
+        id: ver
+        shell: pwsh
+        run: echo "version=$($env:GITHUB_REF_NAME -replace '^v','')" >> $env:GITHUB_OUTPUT
+
+      - name: Pack (Velopack)
+        run: vpk pack -u AgentHub -v ${{ steps.ver.outputs.version }} -p install\Release -e AgentHub.exe --framework net48,webview2
+
+      - name: Upload to GitHub Release
+        run: vpk upload github --repoUrl https://github.com/YOOJUNGYU/agent-hub --token ${{ secrets.GITHUB_TOKEN }} --publish --releaseName "Agent Hub ${{ steps.ver.outputs.version }}" --tag ${{ github.ref_name }}

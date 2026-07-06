@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#181c2a" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <link rel="icon" href="/icons/icon-192.png" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <title>Agent Hub — 모니터</title>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand"><span class="logo">◈</span> Agent Hub</div>
+    <div class="server-status">
+      <span class="badge" id="wsBadge"><span class="spinner"></span>연결 중…</span>
+    </div>
+  </header>
+  <main>
+    <div class="summary" id="summary"></div>
+    <div class="agent-grid" id="agentGrid">
+      <div class="loading"><span class="spinner"></span><span>에이전트 정보를 불러오는 중…</span></div>
+    </div>
+  </main>
+  <script src="/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#181c2a" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <title>Agent Hub — 콘솔</title>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand"><span class="logo">◈</span> Agent Hub 콘솔</div>
+    <div class="server-status">
+      <span class="badge" id="statusBadge"><span class="spinner"></span>확인 중…</span>
+      <a class="server-url" id="serverUrl" target="_blank" rel="noopener"></a>
+    </div>
+  </header>
+  <nav class="tabs">
+    <button class="tab active" data-view="clients">연결된 기기</button>
+    <button class="tab" data-view="logs">로그</button>
+    <button class="tab" data-view="settings">설정</button>
+  </nav>
+  <main>
+    <section id="clients" class="view active">
+      <div class="summary">
+        <div class="stat"><div class="n" id="clientCount">0</div><div class="l">접속한 모바일 기기</div></div>
+      </div>
+      <div id="clientList">
+        <div class="loading"><span class="spinner"></span><span>접속 기기 정보를 불러오는 중…</span></div>
+      </div>
+    </section>
+    <section id="logs" class="view">
+      <div class="log-list" id="logList"></div>
+    </section>
+    <section id="settings" class="view">
+      <form id="settingsForm" class="settings-form">
+        <label for="portInput">서버 포트 (1024–65535)</label>
+        <input type="number" id="portInput" min="1024" max="65535" required />
+        <button type="submit">저장 후 재시작</button>
+        <p class="hint" id="settingsHint">포트를 바꾸면 서버가 재시작되고 접속 주소가 변경됩니다.</p>
+      </form>
+    </section>
+  </main>
+  <script src="/js/host.js"></script>
+</body>
+</html>

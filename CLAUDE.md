@@ -1,0 +1,83 @@
+# CLAUDE.md
+
+Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+
+> 출처: [andrej-karpathy-skills](https://github.com/multica-ai/andrej-karpathy-skills) — Andrej Karpathy의 LLM 코딩 관찰에 기반한 4대 원칙.
+
+**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+
+## 1. Think Before Coding
+
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+
+Before implementing:
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
+
+## 2. Simplicity First
+
+**Minimum code that solves the problem. Nothing speculative.**
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
+
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+## 3. Surgical Changes
+
+**Touch only what you must. Clean up only your own mess.**
+
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
+
+When your changes create orphans:
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+The test: Every changed line should trace directly to the user's request.
+
+## 4. Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+```
+
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+---
+
+**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+
+---
+
+## Project-specific (Agent Hub)
+
+프로젝트 개요는 [README.md](./README.md)를 참고. 이 저장소에서 위 원칙을 적용할 때 특히 유의할 점:
+
+- **네임스페이스**: 자체 코드의 루트 네임스페이스는 `AgentHub`. 새 코드도 `AgentHub.*`를 따른다.
+- **서드파티 코드**: `EmbedIO/`는 서드파티 라이브러리다. 내부 `EmbedIO` 네임스페이스와 소스는 **수정하지 않는다**(원칙 3: Surgical Changes).
+- **인코딩 주의**: C# 소스와 리소스에 **한글(UTF-8)** 문자열이 포함되어 있다. 문자열 일괄 치환 시 인코딩을 훼손하지 않는 방식(Edit 도구 또는 바이트 단위 처리)을 사용한다. 텍스트를 다른 코드페이지로 재인코딩해 저장하지 말 것.
+- **빌드/검증** (원칙 4): 변경 후 아래로 빌드가 통과하는지 확인한다.
+  ```powershell
+  msbuild AgentHub.sln /t:Restore
+  msbuild AgentHub.sln /t:Build /p:Configuration=Debug /p:Platform="Any CPU"
+  ```
+  산출물: `install/Debug/AgentHub.exe`.
