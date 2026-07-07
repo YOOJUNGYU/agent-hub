@@ -132,6 +132,7 @@
     <Compile Include="Common\Util\ViewUtil.cs" />
     <Compile Include="Common\Util\Win32.cs" />
     <Compile Include="Server\Agents\AgentMonitorService.cs" />
+    <Compile Include="Server\Agents\ClaudeSessionReader.cs" />
     <Compile Include="Server\Agents\TranscriptParser.cs" />
     <Compile Include="Server\Controller\ApiController.cs" />
     <Compile Include="Server\Devices\DeviceRegistry.cs" />
