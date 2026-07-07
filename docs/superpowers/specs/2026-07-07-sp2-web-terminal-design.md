@@ -17,6 +17,7 @@
 - **셸/시작 폴더**: **PC(exe)에서 설정**하고, 모바일은 그 설정대로 실행된 셸에 접속만 한다.
 - **터미널 화면 위치**: **모바일 PWA에만**. PC 콘솔은 토글/설정만 담당(PC엔 이미 실제 cmd가 있음).
 - **PTY 백엔드**: **ConPTY (P/Invoke)** — 외부/네이티브 의존성 0, Win10 1809+/Win11 보장.
+- **EmbedIO 샘플 참고 + ConPTY 결합 (확정)**: EmbedIO 공식 샘플 [`WebSocketTerminalModule.cs`](https://github.com/unosquare/embedio/blob/master/src/EmbedIO.Samples/WebSocketTerminalModule.cs)의 **WebSocketModule 구조**(연결별 프로세스 딕셔너리, connect/disconnect/message 핸들러, kill·dispose)를 참고한다. 단, 샘플은 `System.Diagnostics.Process`의 **stdin/stdout 파이프 리다이렉트**(줄 단위·비-TTY)라 claude의 인터랙티브 TUI(Ink/React, `stdout.isTTY` 요구)가 제대로 동작하지 않는다. 따라서 **프로세스 백엔드만 `ConPtySession`(ConPTY)로 교체**해 실제 콘솔을 제공한다.
 - **xterm.js**: dist를 로컬 벤더링(CDN 금지, CSP 안전). 외부 다운로드는 `curl --ssl-no-revoke`로 가능(이 환경은 schannel 폐기검사만 이슈).
 
 ## 3. 보안 모델 (핵심)
@@ -46,6 +47,8 @@ Windows Pseudo Console(ConPTY)를 P/Invoke로 감싼다. 표준 MS ConPTY 샘플
 - 순수 Windows interop; EmbedIO/WinForms 비의존(로깅은 `LogService` 허용).
 
 ### 4.2 `TerminalModule : WebSocketModule` (신규, `AgentHub.Server.Socket`, route `/ws/term`)
+
+> 구조는 EmbedIO 샘플 `WebSocketTerminalModule`을 따른다: `ConcurrentDictionary<IWebSocketContext, ConPtySession>` 연결별 매핑, `OnClientConnectedAsync`에서 spawn, `OnClientDisconnectedAsync`에서 kill+dispose, `OnMessageReceivedAsync`에서 입력 전달. 샘플과 달리 (1) `Process` 대신 `ConPtySession`, (2) 줄 단위 텍스트 대신 raw 바이트 스트리밍, (3) 접속 전 **게이트(토글+승인)** 를 추가한다.
 
 - `OnClientConnectedAsync`: 토큰 파싱(?token=) → 게이트 확인.
   - 불충족 → `{type:"denied", reason:"disabled"|"unauthorized"}` 전송 후 close.
