@@ -50,9 +50,6 @@ namespace AgentHub.View.Forms
         private bool _resizeBottom;
         #endregion
 
-        private readonly Timer _timer = new Timer { Interval = 100 };
-        private readonly Stopwatch _stopwatch = new Stopwatch();
-
         private NotifyIcon _notify;
         private bool _isExiting;
         private bool _updateReady;
@@ -90,9 +87,6 @@ namespace AgentHub.View.Forms
                 }
                 catch (Exception ex) { LogService.Instance.Error(ex); }
             };
-            _stopwatch.Start();
-            _timer.Tick += Timer_Tick;
-            _timer.Start();
 
             await webViewServer.EnsureCoreWebView2Async();
             var core = webViewServer.CoreWebView2;
@@ -162,7 +156,7 @@ namespace AgentHub.View.Forms
                 {
                     Dock = DockStyle.Fill,
                     ForeColor = Color.FromArgb(230, 233, 242),
-                    Font = new Font("맑은 고딕", 12F, FontStyle.Bold),
+                    Font = new Font("맑은 고딕", 12F, FontStyle.Regular),
                     TextAlign = ContentAlignment.MiddleCenter
                 };
                 _loadingOverlay.Controls.Add(_loadingLabel);
@@ -247,12 +241,6 @@ namespace AgentHub.View.Forms
             Win32.ShowWindow(process.MainWindowHandle, isShow ? 1 : 0);
             SavePosition();
             if (isShow) WindowState = FormWindowState.Normal;
-        }
-
-        private void Timer_Tick(object sender, EventArgs e)
-        {
-            var elapsed = _stopwatch.Elapsed;
-            lblServerInfo.Text = $@"사용시간: {elapsed.Hours:00}:{elapsed.Minutes:00}:{elapsed.Seconds:00}";
         }
 
         private void FormMain_Load(object sender, EventArgs e)

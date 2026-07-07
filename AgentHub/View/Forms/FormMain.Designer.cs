@@ -41,7 +41,6 @@ partial class FormMain
             this.pnlTitleBar = new System.Windows.Forms.Panel();
             this.flpTitle = new System.Windows.Forms.FlowLayoutPanel();
             this.lblVersionInfo = new System.Windows.Forms.Label();
-            this.lblServerInfo = new System.Windows.Forms.Label();
             this.lblTitle = new System.Windows.Forms.Label();
             this.btnWindowMinimize = new System.Windows.Forms.Button();
             this.btnWindowClose = new System.Windows.Forms.Button();
@@ -60,7 +59,7 @@ partial class FormMain
             this.pnlResizeBorderTop.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
             this.pnlResizeBorderTop.Dock = System.Windows.Forms.DockStyle.Top;
             this.pnlResizeBorderTop.Location = new System.Drawing.Point(0, 0);
-            this.pnlResizeBorderTop.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.pnlResizeBorderTop.Margin = new System.Windows.Forms.Padding(4);
             this.pnlResizeBorderTop.Name = "pnlResizeBorderTop";
             this.pnlResizeBorderTop.Size = new System.Drawing.Size(1429, 4);
             this.pnlResizeBorderTop.TabIndex = 0;
@@ -75,7 +74,7 @@ partial class FormMain
             this.pnlResizeBorderBottom.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
             this.pnlResizeBorderBottom.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.pnlResizeBorderBottom.Location = new System.Drawing.Point(0, 1196);
-            this.pnlResizeBorderBottom.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.pnlResizeBorderBottom.Margin = new System.Windows.Forms.Padding(4);
             this.pnlResizeBorderBottom.Name = "pnlResizeBorderBottom";
             this.pnlResizeBorderBottom.Size = new System.Drawing.Size(1429, 4);
             this.pnlResizeBorderBottom.TabIndex = 1;
@@ -90,7 +89,7 @@ partial class FormMain
             this.pnlResizeBorderLeft.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
             this.pnlResizeBorderLeft.Dock = System.Windows.Forms.DockStyle.Left;
             this.pnlResizeBorderLeft.Location = new System.Drawing.Point(0, 4);
-            this.pnlResizeBorderLeft.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.pnlResizeBorderLeft.Margin = new System.Windows.Forms.Padding(4);
             this.pnlResizeBorderLeft.Name = "pnlResizeBorderLeft";
             this.pnlResizeBorderLeft.Size = new System.Drawing.Size(4, 1192);
             this.pnlResizeBorderLeft.TabIndex = 1;
@@ -105,7 +104,7 @@ partial class FormMain
             this.pnlResizeBorderRight.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
             this.pnlResizeBorderRight.Dock = System.Windows.Forms.DockStyle.Right;
             this.pnlResizeBorderRight.Location = new System.Drawing.Point(1425, 4);
-            this.pnlResizeBorderRight.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.pnlResizeBorderRight.Margin = new System.Windows.Forms.Padding(4);
             this.pnlResizeBorderRight.Name = "pnlResizeBorderRight";
             this.pnlResizeBorderRight.Size = new System.Drawing.Size(4, 1192);
             this.pnlResizeBorderRight.TabIndex = 1;
@@ -121,7 +120,7 @@ partial class FormMain
             this.pnlCenter.Controls.Add(this.pnlTitleBar);
             this.pnlCenter.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pnlCenter.Location = new System.Drawing.Point(4, 4);
-            this.pnlCenter.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.pnlCenter.Margin = new System.Windows.Forms.Padding(4);
             this.pnlCenter.Name = "pnlCenter";
             this.pnlCenter.Size = new System.Drawing.Size(1421, 1192);
             this.pnlCenter.TabIndex = 2;
@@ -132,7 +131,7 @@ partial class FormMain
             this.pnlMain.Controls.Add(this.pnlMainCenter);
             this.pnlMain.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pnlMain.Location = new System.Drawing.Point(0, 48);
-            this.pnlMain.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.pnlMain.Margin = new System.Windows.Forms.Padding(4);
             this.pnlMain.Name = "pnlMain";
             this.pnlMain.Size = new System.Drawing.Size(1421, 1144);
             this.pnlMain.TabIndex = 1;
@@ -142,7 +141,7 @@ partial class FormMain
             this.pnlMainCenter.Controls.Add(this.webViewServer);
             this.pnlMainCenter.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pnlMainCenter.Location = new System.Drawing.Point(0, 0);
-            this.pnlMainCenter.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.pnlMainCenter.Margin = new System.Windows.Forms.Padding(4);
             this.pnlMainCenter.Name = "pnlMainCenter";
             this.pnlMainCenter.Size = new System.Drawing.Size(1421, 1144);
             this.pnlMainCenter.TabIndex = 2;
@@ -155,7 +154,7 @@ partial class FormMain
             this.webViewServer.DefaultBackgroundColor = System.Drawing.Color.White;
             this.webViewServer.Dock = System.Windows.Forms.DockStyle.Fill;
             this.webViewServer.Location = new System.Drawing.Point(0, 0);
-            this.webViewServer.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.webViewServer.Margin = new System.Windows.Forms.Padding(4);
             this.webViewServer.Name = "webViewServer";
             this.webViewServer.Size = new System.Drawing.Size(1421, 1144);
             this.webViewServer.TabIndex = 1;
@@ -172,7 +171,7 @@ partial class FormMain
             this.pnlTitleBar.Controls.Add(this.btnWindowRestore);
             this.pnlTitleBar.Dock = System.Windows.Forms.DockStyle.Top;
             this.pnlTitleBar.Location = new System.Drawing.Point(0, 0);
-            this.pnlTitleBar.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.pnlTitleBar.Margin = new System.Windows.Forms.Padding(4);
             this.pnlTitleBar.Name = "pnlTitleBar";
             this.pnlTitleBar.Size = new System.Drawing.Size(1421, 48);
             this.pnlTitleBar.TabIndex = 0;
@@ -183,9 +182,8 @@ partial class FormMain
             this.flpTitle.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
             this.flpTitle.BackColor = System.Drawing.Color.Transparent;
             this.flpTitle.Controls.Add(this.lblVersionInfo);
-            this.flpTitle.Controls.Add(this.lblServerInfo);
             this.flpTitle.Location = new System.Drawing.Point(137, 0);
-            this.flpTitle.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.flpTitle.Margin = new System.Windows.Forms.Padding(4);
             this.flpTitle.Name = "flpTitle";
             this.flpTitle.Padding = new System.Windows.Forms.Padding(0, 12, 0, 12);
             this.flpTitle.Size = new System.Drawing.Size(1091, 48);
@@ -200,23 +198,10 @@ partial class FormMain
             this.lblVersionInfo.Location = new System.Drawing.Point(0, 12);
             this.lblVersionInfo.Margin = new System.Windows.Forms.Padding(0, 0, 7, 0);
             this.lblVersionInfo.Name = "lblVersionInfo";
-            this.lblVersionInfo.Size = new System.Drawing.Size(84, 25);
+            this.lblVersionInfo.Size = new System.Drawing.Size(70, 25);
             this.lblVersionInfo.TabIndex = 10;
-            this.lblVersionInfo.Text = "버전정보";
+            this.lblVersionInfo.Text = "version";
             this.lblVersionInfo.MouseDown += new System.Windows.Forms.MouseEventHandler(this.pnlTitleBar_MouseDown);
-            // 
-            // lblServerInfo
-            // 
-            this.lblServerInfo.AutoSize = true;
-            this.lblServerInfo.Font = new System.Drawing.Font("맑은 고딕", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
-            this.lblServerInfo.ForeColor = System.Drawing.Color.SandyBrown;
-            this.lblServerInfo.Location = new System.Drawing.Point(91, 12);
-            this.lblServerInfo.Margin = new System.Windows.Forms.Padding(0, 0, 7, 0);
-            this.lblServerInfo.Name = "lblServerInfo";
-            this.lblServerInfo.Size = new System.Drawing.Size(84, 25);
-            this.lblServerInfo.TabIndex = 9;
-            this.lblServerInfo.Text = "서버정보";
-            this.lblServerInfo.MouseDown += new System.Windows.Forms.MouseEventHandler(this.pnlTitleBar_MouseDown);
             // 
             // lblTitle
             // 
@@ -226,9 +211,9 @@ partial class FormMain
             this.lblTitle.Location = new System.Drawing.Point(11, 12);
             this.lblTitle.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.lblTitle.Name = "lblTitle";
-            this.lblTitle.Size = new System.Drawing.Size(126, 25);
+            this.lblTitle.Size = new System.Drawing.Size(106, 25);
             this.lblTitle.TabIndex = 8;
-            this.lblTitle.Text = "에이전트 허브";
+            this.lblTitle.Text = "Agent Hub";
             this.lblTitle.MouseDown += new System.Windows.Forms.MouseEventHandler(this.pnlTitleBar_MouseDown);
             // 
             // btnWindowMinimize
@@ -318,7 +303,7 @@ partial class FormMain
             this.DoubleBuffered = true;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.Margin = new System.Windows.Forms.Padding(4);
             this.MinimumSize = new System.Drawing.Size(1429, 1200);
             this.Name = "FormMain";
             this.Opacity = 0D;
@@ -352,7 +337,6 @@ partial class FormMain
         private System.Windows.Forms.Button btnWindowRestore;
         private System.Windows.Forms.Panel pnlMain;
         private System.Windows.Forms.Label lblTitle;
-        private System.Windows.Forms.Label lblServerInfo;
         private System.Windows.Forms.FlowLayoutPanel flpTitle;
         private System.Windows.Forms.Label lblVersionInfo;
         private System.Windows.Forms.Panel pnlMainCenter;

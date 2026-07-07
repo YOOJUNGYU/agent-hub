@@ -118,7 +118,16 @@ function openDetail(id) {
   $('#activityFeed').innerHTML =
     '<div class="loading"><span class="spinner"></span></div>';
   showScreen('detail');
+  // 히스토리 항목 추가 → 기기 뒤로가기가 앱 종료 대신 popstate로 목록 복귀
+  history.pushState({ screen: 'detail', id }, '');
   send({ type: 'watch', sessionId: id });
+}
+
+// 상세 → 목록 복귀 (기기 back / 화면 버튼 공통 경로)
+function backToList() {
+  send({ type: 'unwatch' });
+  currentSessionId = null;
+  showScreen('monitor');
 }
 
 function renderActivity(sessionId, events) {
@@ -153,8 +162,14 @@ document.addEventListener('i18n:changed', () => {
   setBadge(wsConnected);
 });
 
+// 화면 "← 목록" 버튼: 히스토리를 되돌려(popstate) 기기 back과 동일 경로로 처리
 document.getElementById('backBtn').addEventListener('click', () => {
-  send({ type: 'unwatch' }); currentSessionId = null; showScreen('monitor');
+  if (currentSessionId !== null) history.back();
+});
+
+// 기기 뒤로가기(popstate): 상세 화면이면 목록으로 복귀(앱 종료 방지)
+window.addEventListener('popstate', () => {
+  if (currentSessionId !== null) backToList();
 });
 
 showScreen('authPending'); // 최초: WS 응답 전까지 대기 표시
