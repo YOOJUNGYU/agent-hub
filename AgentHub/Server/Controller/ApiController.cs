@@ -36,7 +36,7 @@ namespace AgentHub.Server.Controller
                 HttpContext.Response.StatusCode = 401;
                 return SendJsonAsync(Json.Serialize(new { ok = false, status }));
             }
-            return SendJsonAsync(AgentMonitorService.CurrentAgentsSnapshot());
+            return SendJsonAsync(AgentMonitorService.CurrentSessionsSnapshot());
         }
 
         // ---- 기기 인증 (모바일) ----
