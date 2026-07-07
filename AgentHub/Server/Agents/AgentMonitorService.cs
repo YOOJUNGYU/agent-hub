@@ -40,14 +40,21 @@ namespace AgentHub.Server.Agents
             _module = null;
         }
 
-        private static void OnChanged()
+        private static readonly System.Threading.SemaphoreSlim _sendGate = new System.Threading.SemaphoreSlim(1, 1);
+
+        private static async void OnChanged()
         {
+            await _sendGate.WaitAsync();
             try
             {
-                _module?.BroadcastMessageAsync(CurrentSessionsMessage());
-                _module?.PushActivityToWatchers();
+                if (_module != null)
+                {
+                    await _module.BroadcastMessageAsync(CurrentSessionsMessage());
+                    await _module.PushActivityToWatchers();
+                }
             }
             catch (Exception ex) { LogService.Instance.Error(ex); }
+            finally { _sendGate.Release(); }
         }
     }
 }

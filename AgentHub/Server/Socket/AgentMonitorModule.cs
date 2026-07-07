@@ -75,7 +75,7 @@ namespace AgentHub.Server.Socket
         }
 
         /// <summary>변경 발생 시 각 구독 소켓에 해당 세션 활동을 push.</summary>
-        public async void PushActivityToWatchers()
+        public async Task PushActivityToWatchers()
         {
             foreach (var ctx in ActiveContexts)
             {

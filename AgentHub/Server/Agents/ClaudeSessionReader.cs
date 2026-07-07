@@ -22,6 +22,7 @@ namespace AgentHub.Server.Agents
         private static Action _onChanged;
         private static Timer _debounce;
         private static readonly object _debounceLock = new object();
+        private static Timer _poll;
 
         // sessionId -> 파일 경로 (최근 스캔 캐시)
         private static readonly ConcurrentDictionary<string, string> _paths =
@@ -127,6 +128,26 @@ namespace AgentHub.Server.Agents
                 _watcher.Changed += OnFsEvent;
                 _watcher.Created += OnFsEvent;
                 _watcher.Renamed += OnFsEvent;
+                _watcher.Error += OnWatcherError;
+
+                // watcher 이벤트 유실 대비 저빈도 폴링 폴백(5초)
+                _poll = new Timer(_ =>
+                {
+                    try { _onChanged?.Invoke(); }
+                    catch (Exception ex) { LogService.Instance.Error(ex); }
+                }, null, 5000, 5000);
+            }
+            catch (Exception ex) { LogService.Instance.Error(ex); }
+        }
+
+        // watcher가 죽거나 버퍼 오버플로 시 재무장.
+        private static void OnWatcherError(object sender, ErrorEventArgs e)
+        {
+            try
+            {
+                LogService.Instance.Error(e.GetException());
+                var cb = _onChanged;
+                if (cb != null) Start(cb);
             }
             catch (Exception ex) { LogService.Instance.Error(ex); }
         }
@@ -154,6 +175,7 @@ namespace AgentHub.Server.Agents
                 {
                     _debounce?.Dispose(); _debounce = null;
                 }
+                _poll?.Dispose(); _poll = null;
                 _onChanged = null;
             }
             catch (Exception ex) { LogService.Instance.Error(ex); }
