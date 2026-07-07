@@ -127,6 +127,12 @@ window.addLog = function (evt) {
 async function loadSettings() {
   try { const s = await (await fetch('/api/settings')).json(); $('#portInput').value = s.port; }
   catch (e) { /* ignore */ }
+  try {
+    const c = await (await fetch('/api/terminal/config')).json();
+    $('#termEnabled').checked = !!c.enabled;
+    $('#termShell').value = c.shell || '';
+    $('#termCwd').value = c.workingDir || '';
+  } catch (e) { /* noop */ }
 }
 $('#settingsForm').addEventListener('submit', async e => {
   e.preventDefault();
@@ -144,6 +150,17 @@ $('#settingsForm').addEventListener('submit', async e => {
   } catch (err) {
     hint.textContent = t('settings.reqFail') + err.message;
   }
+});
+$('#termSaveBtn').addEventListener('click', async () => {
+  const hint = $('#termHint');
+  hint.textContent = t('settings.saving');
+  try {
+    const res = await (await fetch('/api/terminal/config', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled: $('#termEnabled').checked, shell: $('#termShell').value, workingDir: $('#termCwd').value })
+    })).json();
+    hint.textContent = res.ok ? t('settings.saved').replace('{url}', '') : (t('settings.error'));
+  } catch (e) { hint.textContent = t('settings.reqFail') + e.message; }
 });
 
 // ---- 언어 변경 시 동적 콘텐츠 재렌더 ----

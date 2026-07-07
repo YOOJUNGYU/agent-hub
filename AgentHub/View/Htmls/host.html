@@ -58,6 +58,15 @@
         <input type="number" id="portInput" min="1024" max="65535" required />
         <button type="submit" data-i18n="settings.save">저장 후 재시작</button>
         <p class="hint" id="settingsHint" data-i18n="settings.hint">포트를 바꾸면 서버가 재시작되고 접속 주소가 변경됩니다.</p>
+        <hr />
+        <label class="chk"><input type="checkbox" id="termEnabled" /> <span data-i18n="settings.termEnable">웹 터미널 허용(모바일에서 PC 명령 실행)</span></label>
+        <p class="hint" data-i18n="settings.termWarn">승인된 기기가 이 PC에서 명령을 실행할 수 있게 됩니다. 필요할 때만 켜세요.</p>
+        <label for="termShell" data-i18n="settings.termShell">기본 셸</label>
+        <input type="text" id="termShell" placeholder="cmd.exe" />
+        <label for="termCwd" data-i18n="settings.termCwd">시작 폴더 (비우면 사용자 홈)</label>
+        <input type="text" id="termCwd" placeholder="%USERPROFILE%" />
+        <button type="button" id="termSaveBtn" data-i18n="settings.termSave">터미널 설정 저장</button>
+        <p class="hint" id="termHint"></p>
       </form>
     </section>
   </main>

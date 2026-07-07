@@ -8,6 +8,7 @@
   <link rel="apple-touch-icon" href="/icons/icon-192.png" />
   <link rel="icon" href="/icons/icon-192.png" />
   <link rel="stylesheet" href="/css/app.css" />
+  <link rel="stylesheet" href="/css/xterm.css" />
   <title>Agent Hub — 모니터</title>
 </head>
 <body>
@@ -46,6 +47,7 @@
 
     <!-- 모니터: 세션 리스트 -->
     <section id="monitor" class="screen" hidden>
+      <button id="termBtn" class="term-btn" hidden data-i18n="term.open">⌨ 터미널</button>
       <div class="summary" id="summary"></div>
       <div class="session-list" id="sessionList">
         <div class="loading"><span class="spinner"></span><span data-i18n="monitor.loading">세션 정보를 불러오는 중…</span></div>
@@ -60,6 +62,16 @@
       </div>
       <div class="activity-feed" id="activityFeed"></div>
     </section>
+
+    <!-- 모바일 웹 터미널 (xterm.js ⇄ /ws/term) -->
+    <section id="terminal" class="screen" hidden>
+      <div class="detail-head">
+        <button id="termBack" class="back-btn" data-i18n="detail.back">← 목록</button>
+        <div class="detail-title" data-i18n="term.title">터미널</div>
+      </div>
+      <p class="term-warn" data-i18n="term.warn">이 터미널은 PC에서 실제 명령을 실행합니다.</p>
+      <div id="termView"></div>
+    </section>
   </main>
   <footer class="cert-help-wrap">
     <details class="cert-help">
@@ -72,7 +84,10 @@
       </div>
     </details>
   </footer>
+  <script src="/js/xterm.js"></script>
+  <script src="/js/addon-fit.js"></script>
   <script src="/js/i18n.js"></script>
   <script src="/js/app.js"></script>
+  <script src="/js/term.js"></script>
 </body>
 </html>

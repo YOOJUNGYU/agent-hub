@@ -139,6 +139,10 @@
     <Compile Include="Server\Socket\AgentMonitorModule.cs" />
     <Compile Include="Server\Socket\HostMonitorModule.cs" />
     <Compile Include="Server\Socket\MonitorClientRegistry.cs" />
+    <Compile Include="Server\Socket\TerminalModule.cs" />
+    <Compile Include="Server\Terminal\ConPtyInterop.cs" />
+    <Compile Include="Server\Terminal\ConPtySession.cs" />
+    <Compile Include="Server\Terminal\TerminalGate.cs" />
     <Compile Include="View\Forms\FormToast.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -265,6 +269,18 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="View\Htmls\icons\icon-512.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="View\Htmls\js\xterm.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="View\Htmls\js\addon-fit.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="View\Htmls\css\xterm.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="View\Htmls\js\term.js">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
