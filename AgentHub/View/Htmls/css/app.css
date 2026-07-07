@@ -148,3 +148,28 @@ main{padding:1rem 1.2rem}
 }
 .lang-select option { background: var(--panel); color: var(--fore); }
 .settings-form .lang-select { align-self: flex-start; min-width: 160px; margin-bottom: .3rem; }
+
+/* ---- 세션 리스트 / 활동 피드 ---- */
+.session-list { display: flex; flex-direction: column; gap: 10px; }
+.session-card { background: #1b2030; border: 1px solid #2a3145; border-radius: 12px; padding: 12px 14px; cursor: pointer; }
+.session-card:active { background: #222941; }
+.card-top { display: flex; align-items: center; gap: 8px; }
+.card-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card-meta { color: #8b93a7; font-size: 12px; margin-top: 4px; }
+.card-task { color: #c9d1e4; font-size: 13px; margin-top: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card-time { color: #6b7280; font-size: 11px; margin-top: 6px; text-align: right; }
+.badge-status { font-size: 11px; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; }
+.badge-status.active { background: #14532d; color: #4ade80; }
+.badge-status.idle { background: #3f3f16; color: #fde047; }
+.badge-status.ended { background: #3a2030; color: #9ca3af; }
+.detail-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.back-btn { background: none; border: none; color: #7aa2ff; font-size: 15px; cursor: pointer; }
+.detail-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.activity-feed { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
+.ev { background: #171b28; border-left: 3px solid #2a3145; border-radius: 8px; padding: 8px 10px; }
+.ev-tool_use { border-left-color: #7aa2ff; }
+.ev-tool_result { border-left-color: #4ade80; }
+.ev-user_prompt { border-left-color: #fbbf24; }
+.ev-head { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+.ev-text { color: #aab3c5; font-size: 12px; margin-top: 4px; white-space: pre-wrap; word-break: break-word; max-height: 8em; overflow: hidden; }
+.empty { color: #6b7280; text-align: center; padding: 24px; }
