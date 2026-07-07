@@ -139,6 +139,7 @@
     <Compile Include="Server\Socket\AgentMonitorModule.cs" />
     <Compile Include="Server\Socket\HostMonitorModule.cs" />
     <Compile Include="Server\Socket\MonitorClientRegistry.cs" />
+    <Compile Include="Server\Socket\TerminalModule.cs" />
     <Compile Include="Server\Terminal\ConPtyInterop.cs" />
     <Compile Include="Server\Terminal\ConPtySession.cs" />
     <Compile Include="Server\Terminal\TerminalGate.cs" />
