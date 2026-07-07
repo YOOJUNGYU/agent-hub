@@ -40,14 +40,21 @@ namespace AgentHub.Server.Agents
             int msgCount = 0;
             JObject lastAssistant = null;
 
+            // 제목 후보들: 루프 단일 패스로 수집, 우선순위는 루프 후 해결
+            string aiTitleCandidate = null;
+            string slugCandidate = null;
+            string firstUserTextCandidate = null;
+
             foreach (var line in lines)
             {
                 var o = TryParse(line);
                 if (o == null) continue;
 
                 var title = Str(o["aiTitle"]);
-                if (!string.IsNullOrWhiteSpace(title)) s.Title = title;
-                if (s.Title == null) { var slug = Str(o["slug"]); if (!string.IsNullOrWhiteSpace(slug)) s.Title = slug; }
+                if (!string.IsNullOrWhiteSpace(title)) aiTitleCandidate = title;
+
+                var slug = Str(o["slug"]);
+                if (!string.IsNullOrWhiteSpace(slug)) slugCandidate = slug;
 
                 var cwd = Str(o["cwd"]);
                 if (!string.IsNullOrWhiteSpace(cwd)) { s.Cwd = cwd; s.Project = LastSegment(cwd); }
@@ -61,13 +68,16 @@ namespace AgentHub.Server.Agents
                 if (type == "assistant" || type == "user") msgCount++;
                 if (type == "assistant") lastAssistant = o;
 
-                // 제목 폴백: 첫 사용자 텍스트
-                if (s.Title == null && type == "user")
+                // 첫 사용자 텍스트 (한 번만)
+                if (firstUserTextCandidate == null && type == "user")
                 {
                     var utext = FirstUserText(o);
-                    if (!string.IsNullOrWhiteSpace(utext)) s.Title = Truncate(utext, 60);
+                    if (!string.IsNullOrWhiteSpace(utext)) firstUserTextCandidate = Truncate(utext, 60);
                 }
             }
+
+            // 제목 우선순위 해결: aiTitle > slug > firstUserText
+            s.Title = aiTitleCandidate ?? slugCandidate ?? firstUserTextCandidate;
 
             s.MessageCount = msgCount;
             s.LastActivityAt = lastTs;

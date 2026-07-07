@@ -43,5 +43,34 @@ namespace AgentHub.Tests
             Assert.Equal(2, s.MessageCount); // user + assistant
             Assert.Equal("2026-07-07T10:00:20Z", s.LastActivityAt);
         }
+
+        [Fact]
+        public void Summarize_respects_title_priority_order_independent()
+        {
+            // user event with text BEFORE event with slug, no aiTitle
+            // slug should win over user text regardless of order in transcript
+            var lines = new List<string>
+            {
+                "{\"type\":\"user\",\"timestamp\":\"2026-07-07T10:00:05Z\",\"message\":{\"role\":\"user\",\"content\":\"This is user text\"}}",
+                "{\"type\":\"metadata\",\"slug\":\"preferred-slug-title\",\"timestamp\":\"2026-07-07T10:00:10Z\"}"
+            };
+
+            var s = TranscriptParser.Summarize("sess-1", lines, Now);
+            Assert.Equal("preferred-slug-title", s.Title);
+        }
+
+        [Fact]
+        public void Summarize_aiTitle_wins_over_slug()
+        {
+            // aiTitle should win over slug even if slug appears earlier
+            var lines = new List<string>
+            {
+                "{\"type\":\"metadata\",\"slug\":\"slug-title\",\"timestamp\":\"2026-07-07T10:00:05Z\"}",
+                "{\"type\":\"ai-title\",\"aiTitle\":\"ai-title-wins\",\"timestamp\":\"2026-07-07T10:00:10Z\"}"
+            };
+
+            var s = TranscriptParser.Summarize("sess-1", lines, Now);
+            Assert.Equal("ai-title-wins", s.Title);
+        }
     }
 }
