@@ -152,21 +152,21 @@ namespace AgentHub.Server.Socket
 
         private void RemoveSendLock(string id)
         {
-            if (_sendLocks.TryRemove(id, out var g)) { try { g.Dispose(); } catch { } }
+            _sendLocks.TryRemove(id, out _);
         }
 
         private async Task SendTextSafe(IWebSocketContext ctx, string s)
         {
             var g = SendLock(ctx.Id);
             await g.WaitAsync();
-            try { await SendAsync(ctx, s); } catch { } finally { g.Release(); }
+            try { await SendAsync(ctx, s); } catch { } finally { try { g.Release(); } catch { } }
         }
 
         private async Task SendBytesSafe(IWebSocketContext ctx, byte[] b)
         {
             var g = SendLock(ctx.Id);
             await g.WaitAsync();
-            try { await SendAsync(ctx, b); } catch { } finally { g.Release(); }
+            try { await SendAsync(ctx, b); } catch { } finally { try { g.Release(); } catch { } }
         }
 
         private static string GetToken(IWebSocketContext ctx)
