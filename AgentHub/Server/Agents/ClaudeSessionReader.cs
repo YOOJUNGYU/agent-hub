@@ -21,6 +21,7 @@ namespace AgentHub.Server.Agents
         private static FileSystemWatcher _watcher;
         private static Action _onChanged;
         private static Timer _debounce;
+        private static readonly object _debounceLock = new object();
 
         // sessionId -> 파일 경로 (최근 스캔 캐시)
         private static readonly ConcurrentDictionary<string, string> _paths =
@@ -111,6 +112,7 @@ namespace AgentHub.Server.Agents
 
         public static void Start(Action onChanged)
         {
+            Stop(); // 재호출 시 기존 watcher/timer 누수 방지
             _onChanged = onChanged;
             var root = ProjectsRoot;
             try
@@ -132,12 +134,15 @@ namespace AgentHub.Server.Agents
         private static void OnFsEvent(object sender, FileSystemEventArgs e)
         {
             // 300ms 디바운스 — 연속 쓰기 폭주 완화
-            _debounce?.Dispose();
-            _debounce = new Timer(_ =>
+            lock (_debounceLock)
             {
-                try { _onChanged?.Invoke(); }
-                catch (Exception ex) { LogService.Instance.Error(ex); }
-            }, null, 300, Timeout.Infinite);
+                _debounce?.Dispose();
+                _debounce = new Timer(_ =>
+                {
+                    try { _onChanged?.Invoke(); }
+                    catch (Exception ex) { LogService.Instance.Error(ex); }
+                }, null, 300, Timeout.Infinite);
+            }
         }
 
         public static void Stop()
@@ -145,7 +150,10 @@ namespace AgentHub.Server.Agents
             try
             {
                 if (_watcher != null) { _watcher.EnableRaisingEvents = false; _watcher.Dispose(); _watcher = null; }
-                _debounce?.Dispose(); _debounce = null;
+                lock (_debounceLock)
+                {
+                    _debounce?.Dispose(); _debounce = null;
+                }
                 _onChanged = null;
             }
             catch (Exception ex) { LogService.Instance.Error(ex); }
