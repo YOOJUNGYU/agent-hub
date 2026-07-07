@@ -16,5 +16,6 @@
     <Compile Include="..\AgentHub\Server\Agents\TranscriptParser.cs" Link="Linked\TranscriptParser.cs" />
     <Compile Include="..\AgentHub\Common\Models\SessionSummary.cs" Link="Linked\SessionSummary.cs" />
     <Compile Include="..\AgentHub\Common\Models\ActivityEvent.cs" Link="Linked\ActivityEvent.cs" />
+    <Compile Include="..\AgentHub\Server\Terminal\TerminalGate.cs" Link="Linked\TerminalGate.cs" />
   </ItemGroup>
 </Project>
