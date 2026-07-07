@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>8</LangVersion>
+    <IsPackable>false</IsPackable>
+    <AssemblyName>AgentHub.Tests</AssemblyName>
+    <RootNamespace>AgentHub.Tests</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.3" />
+    <PackageReference Include="xunit" Version="2.4.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\AgentHub\Server\Agents\TranscriptParser.cs" Link="Linked\TranscriptParser.cs" />
+    <Compile Include="..\AgentHub\Common\Models\SessionSummary.cs" Link="Linked\SessionSummary.cs" />
+    <Compile Include="..\AgentHub\Common\Models\ActivityEvent.cs" Link="Linked\ActivityEvent.cs" />
+  </ItemGroup>
+</Project>
