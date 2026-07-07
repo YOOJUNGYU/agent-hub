@@ -75,7 +75,7 @@ function connect() {
     try {
       const m = JSON.parse(ev.data);
       if (m.type === 'auth') applyAuth(m.status);
-      else if (m.type === 'sessions') { showScreen('monitor'); renderSessions(m.sessions); }
+      else if (m.type === 'sessions') { renderSessions(m.sessions); if (currentSessionId === null) showScreen('monitor'); }
       else if (m.type === 'activity') { renderActivity(m.sessionId, m.events); }
     } catch (e) { /* ignore malformed */ }
   };
@@ -83,6 +83,7 @@ function connect() {
 
 // ---- 세션 리스트 / 상세 활동 피드 ----
 let currentSessionId = null;
+let sessionsById = {};
 
 function renderSessions(sessions) {
   const list = $('#sessionList');
@@ -93,6 +94,7 @@ function renderSessions(sessions) {
     if (window.I18n) I18n.apply();
     return;
   }
+  sessionsById = {}; (sessions || []).forEach(s => { sessionsById[s.id] = s; });
   const active = sessions.filter(s => s.status === 'active').length;
   sum.textContent = t('summary.count') + ': ' + sessions.length + ' · active ' + active;
   list.innerHTML = sessions.map(cardHtml).join('');
@@ -101,7 +103,7 @@ function renderSessions(sessions) {
 }
 
 function cardHtml(s) {
-  const badge = '<span class="badge-status ' + s.status + '">' + s.status + '</span>';
+  const badge = '<span class="badge-status ' + esc(s.status) + '">' + esc(s.status) + '</span>';
   return '<div class="session-card" data-id="' + esc(s.id) + '">'
     + '<div class="card-top">' + badge + '<span class="card-title">' + esc(s.title) + '</span></div>'
     + '<div class="card-meta">' + esc(s.project || '') + (s.gitBranch ? ' · ' + esc(s.gitBranch) : '') + '</div>'
@@ -112,6 +114,7 @@ function cardHtml(s) {
 
 function openDetail(id) {
   currentSessionId = id;
+  document.getElementById('detailTitle').textContent = (sessionsById[id] && sessionsById[id].title) || '';
   $('#activityFeed').innerHTML =
     '<div class="loading"><span class="spinner"></span></div>';
   showScreen('detail');
@@ -130,7 +133,7 @@ function evHtml(e) {
   const icon = ({message:'💬', thinking:'💭', tool_use:'🔧', tool_result:'↩︎', user_prompt:'🧑', mode_change:'⚙︎'})[e.kind] || '•';
   const body = e.text && e.kind !== 'thinking'
     ? '<div class="ev-text">' + esc(e.text) + '</div>' : '';
-  return '<div class="ev ev-' + e.kind + '">'
+  return '<div class="ev ev-' + esc(e.kind) + '">'
     + '<div class="ev-head"><span class="ev-icon">' + icon + '</span>'
     + '<span class="ev-summary">' + esc(e.summary || e.toolName || e.kind) + '</span></div>'
     + body + '</div>';
