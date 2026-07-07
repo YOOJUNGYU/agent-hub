@@ -45,6 +45,9 @@
   <PropertyGroup>
     <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>trayicon_32x32.ico</ApplicationIcon>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="Microsoft.Web.WebView2.Core, Version=1.0.3179.45, Culture=neutral, PublicKeyToken=2a8ab48044d2601e, processorArchitecture=MSIL">
@@ -229,6 +232,7 @@
     <None Include="Resources\main_icon.png" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="trayicon_32x32.ico" />
     <Content Include="View\Htmls\index.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
