@@ -7,7 +7,9 @@ using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using EmbedIO;
 using EmbedIO.Files;
@@ -17,6 +19,7 @@ using Swan.Logging;
 using AgentHub.Common.Util;
 using AgentHub.Server.Agents;
 using AgentHub.Server.Controller;
+using AgentHub.Server.Devices;
 using AgentHub.Server.Socket;
 using static AgentHub.Common.Constants;
 
@@ -34,6 +37,9 @@ namespace AgentHub.Server
         public static string CurrentHost { get; private set; } = "127.0.0.1";
 
         public static string CurrentUrl => $"https://{CurrentHost}:{CurrentPort}";
+
+        /// <summary>PC(호스트 콘솔) 전용 loopback URL. WebView2가 이 주소로 /host를 로드한다.</summary>
+        public static string LocalUrl => $"https://127.0.0.1:{CurrentPort}";
 
         /// <summary>서버 재시작(포트 변경 등) 완료 후 발생. 구독자는 새 <see cref="CurrentUrl"/>로 재이동할 수 있다.</summary>
         public static event Action Restarted;
@@ -174,6 +180,7 @@ namespace AgentHub.Server
         {
             try
             {
+                DeviceRegistry.Load();
                 CurrentPort = ResolvePort();
 
                 var privateIps = GetPrivateIPv4List();
@@ -201,6 +208,9 @@ namespace AgentHub.Server
                     .WithWebApi("/api", m => m.WithController<ApiController>())
                     .WithModule(agentModule)
                     .WithModule(new HostMonitorModule("/ws/host"))
+                    // /host, /host.html 는 PC(loopback)에서만 접근 허용. 그 외는 정적 폴더로 통과.
+                    .WithAction("/host", HttpVerbs.Any, GuardHostAsync)
+                    .WithAction("/host.html", HttpVerbs.Any, GuardHostAsync)
                     // 정적 SPA (반드시 마지막 — "/"는 catch-all). "/" -> index.html, "/host" -> host.html
                     .WithStaticFolder("/", htmlPath, false, m =>
                     {
@@ -218,6 +228,15 @@ namespace AgentHub.Server
                 LogService.Instance.Error(ex);
                 throw;
             }
+        }
+
+        /// <summary>loopback이면 정적 폴더로 통과, 아니면 403.</summary>
+        private static Task GuardHostAsync(EmbedIO.IHttpContext ctx)
+        {
+            if (IPAddress.IsLoopback(ctx.Request.RemoteEndPoint.Address))
+                throw RequestHandler.PassThrough();
+            ctx.Response.StatusCode = 403;
+            return ctx.SendStringAsync("Forbidden", "text/plain", Encoding.UTF8);
         }
 
         public static void StopServer()
