@@ -1,5 +1,4 @@
 using System;
-using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using EmbedIO;
@@ -136,7 +135,7 @@ namespace AgentHub.Server.Controller
         private string DeviceToken() => HttpContext.Request.Headers["X-Device-Token"];
 
         private bool IsLoopback()
-            => IPAddress.IsLoopback(HttpContext.Request.RemoteEndPoint.Address);
+            => NetUtil.IsLoopback(HttpContext.Request.RemoteEndPoint?.Address);
 
         private Task Forbidden()
         {

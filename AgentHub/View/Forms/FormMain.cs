@@ -75,11 +75,8 @@ namespace AgentHub.View.Forms
 
             // 로딩 표시를 먼저 띄운다(검은 화면 방지).
             ShowLoading("서버 시작 중…");
-#if DEBUG
+            // 실행 시 창을 보여준다(트레이로 바로 숨지 않음 — 실행 확인 편의).
             SetShowWindow(true);
-#else
-            SetShowWindow(false);
-#endif
 
             // EmbedIO 서버를 먼저 시작한 뒤 호스트 콘솔(/host)을 로드한다.
             EmbedIOServer.StartServer();
@@ -388,6 +385,7 @@ namespace AgentHub.View.Forms
             {
                 e.Cancel = true;
                 SetShowWindow(false);
+                _notify?.ShowBalloonTip(3000, ProgramInfo.Name, Messages.TrayProgram, ToolTipIcon.Info);
             }
             base.OnClosing(e);
         }

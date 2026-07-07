@@ -124,6 +124,7 @@
     <Compile Include="Common\Util\ApiLogger.cs" />
     <Compile Include="Common\Util\EtcUtil.cs" />
     <Compile Include="Common\Util\Json.cs" />
+    <Compile Include="Common\Util\NetUtil.cs" />
     <Compile Include="Common\Util\LogService.cs" />
     <Compile Include="Common\Util\UpdateService.cs" />
     <Compile Include="Common\Util\ViewUtil.cs" />
