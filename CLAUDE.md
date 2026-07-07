@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+> **응답 언어(최우선 규칙):** 사용자에게 보내는 모든 응답은 **무조건 항상 한글**로 작성한다. 예외 없음. (코드·명령어·경로·식별자는 원문 유지 가능하나 설명 문장은 한글.)
+
 Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
 
 > 출처: [andrej-karpathy-skills](https://github.com/multica-ai/andrej-karpathy-skills) — Andrej Karpathy의 LLM 코딩 관찰에 기반한 4대 원칙.

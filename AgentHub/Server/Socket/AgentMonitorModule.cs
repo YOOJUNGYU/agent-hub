@@ -20,6 +20,10 @@ namespace AgentHub.Server.Socket
         private readonly ConcurrentDictionary<string, string> _tokens =
             new ConcurrentDictionary<string, string>();
 
+        // contextId -> 구독 중인 sessionId
+        private readonly ConcurrentDictionary<string, string> _watching =
+            new ConcurrentDictionary<string, string>();
+
         public AgentMonitorModule(string urlPath) : base(urlPath, true)
         {
             DeviceRegistry.StatusChanged += OnDeviceStatusChanged;
@@ -41,12 +45,46 @@ namespace AgentHub.Server.Socket
         protected override Task OnClientDisconnectedAsync(IWebSocketContext context)
         {
             _tokens.TryRemove(context.Id, out _);
+            _watching.TryRemove(context.Id, out _);
             MonitorClientRegistry.Remove(context.Id);
             return Task.CompletedTask;
         }
 
-        protected override Task OnMessageReceivedAsync(IWebSocketContext context, byte[] buffer, IWebSocketReceiveResult result)
-            => Task.CompletedTask; // 조회 전용
+        protected override async Task OnMessageReceivedAsync(IWebSocketContext context, byte[] buffer, IWebSocketReceiveResult result)
+        {
+            try
+            {
+                if (!_tokens.TryGetValue(context.Id, out var h)
+                    || DeviceRegistry.StatusByHash(h) != DeviceStatus.Approved) return;
+
+                var text = System.Text.Encoding.UTF8.GetString(buffer, 0, result.Count);
+                var msg = Json.Deserialize<WatchMessage>(text);
+                if (msg == null) return;
+
+                if (msg.Type == "watch" && !string.IsNullOrEmpty(msg.SessionId))
+                {
+                    _watching[context.Id] = msg.SessionId;
+                    await SendAsync(context, AgentMonitorService.ActivityMessage(msg.SessionId));
+                }
+                else if (msg.Type == "unwatch")
+                {
+                    _watching.TryRemove(context.Id, out _);
+                }
+            }
+            catch (Exception ex) { LogService.Instance.Error(ex); }
+        }
+
+        /// <summary>변경 발생 시 각 구독 소켓에 해당 세션 활동을 push.</summary>
+        public async Task PushActivityToWatchers()
+        {
+            foreach (var ctx in ActiveContexts)
+            {
+                if (!_watching.TryGetValue(ctx.Id, out var sid) || string.IsNullOrEmpty(sid)) continue;
+                if (!_tokens.TryGetValue(ctx.Id, out var h) || DeviceRegistry.StatusByHash(h) != DeviceStatus.Approved) continue;
+                try { await SendAsync(ctx, AgentMonitorService.ActivityMessage(sid)); }
+                catch { /* per-socket 실패 무시 */ }
+            }
+        }
 
         /// <summary>서비스에서 호출 — 승인된 소켓에만 broadcast.</summary>
         public Task BroadcastMessageAsync(string message)
@@ -77,7 +115,7 @@ namespace AgentHub.Server.Socket
             var ip = context.RemoteEndPoint?.Address?.ToString() ?? "unknown";
             var ua = context.Headers?["User-Agent"] ?? "unknown";
             MonitorClientRegistry.Add(context.Id, ip, ua);
-            await SendAsync(context, AgentMonitorService.CurrentAgentsMessage());
+            await SendAsync(context, AgentMonitorService.CurrentSessionsMessage());
         }
 
         private static string GetToken(IWebSocketContext ctx)
@@ -101,5 +139,11 @@ namespace AgentHub.Server.Socket
             if (disposing) DeviceRegistry.StatusChanged -= OnDeviceStatusChanged;
             base.Dispose(disposing);
         }
+    }
+
+    internal class WatchMessage
+    {
+        public string Type { get; set; }
+        public string SessionId { get; set; }
     }
 }

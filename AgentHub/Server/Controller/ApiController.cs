@@ -27,8 +27,8 @@ namespace AgentHub.Server.Controller
         }
 
         // 실시간은 WebSocket(/ws/agents). 이 엔드포인트는 승인된 기기용 스냅샷 폴백.
-        [Route(HttpVerbs.Get, "/agents")]
-        public Task Agents()
+        [Route(HttpVerbs.Get, "/sessions")]
+        public Task Sessions()
         {
             var status = DeviceRegistry.StatusOf(DeviceToken());
             if (status != DeviceStatus.Approved)
@@ -36,7 +36,19 @@ namespace AgentHub.Server.Controller
                 HttpContext.Response.StatusCode = 401;
                 return SendJsonAsync(Json.Serialize(new { ok = false, status }));
             }
-            return SendJsonAsync(AgentMonitorService.CurrentAgentsSnapshot());
+            return SendJsonAsync(AgentMonitorService.CurrentSessionsSnapshot());
+        }
+
+        [Route(HttpVerbs.Get, "/sessions/{id}")]
+        public Task SessionActivity(string id)
+        {
+            var status = DeviceRegistry.StatusOf(DeviceToken());
+            if (status != DeviceStatus.Approved)
+            {
+                HttpContext.Response.StatusCode = 401;
+                return SendJsonAsync(Json.Serialize(new { ok = false, status }));
+            }
+            return SendJsonAsync(Json.Serialize(new { sessionId = id, events = AgentMonitorService.Activity(id) }));
         }
 
         // ---- 기기 인증 (모바일) ----

@@ -116,10 +116,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Common\Constants.cs" />
-    <Compile Include="Common\Models\AgentStatus.cs" />
     <Compile Include="Common\Models\Error.cs" />
     <Compile Include="Common\Models\Device.cs" />
     <Compile Include="Common\Models\ServerStatusInfo.cs" />
+    <Compile Include="Common\Models\SessionSummary.cs" />
+    <Compile Include="Common\Models\ActivityEvent.cs" />
     <Compile Include="Common\Util\AppSettingsProvider.cs" />
     <Compile Include="Common\Util\ApiLogger.cs" />
     <Compile Include="Common\Util\EtcUtil.cs" />
@@ -130,6 +131,8 @@
     <Compile Include="Common\Util\ViewUtil.cs" />
     <Compile Include="Common\Util\Win32.cs" />
     <Compile Include="Server\Agents\AgentMonitorService.cs" />
+    <Compile Include="Server\Agents\ClaudeSessionReader.cs" />
+    <Compile Include="Server\Agents\TranscriptParser.cs" />
     <Compile Include="Server\Controller\ApiController.cs" />
     <Compile Include="Server\Devices\DeviceRegistry.cs" />
     <Compile Include="Server\EmbedIOServer.cs" />
