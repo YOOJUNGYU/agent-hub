@@ -22,7 +22,7 @@ const token = getToken();
 
 // ---- 화면 전환 ----
 function showScreen(name) {
-  ['authRequest', 'authPending', 'monitor', 'detail'].forEach(id => {
+  ['authRequest', 'authPending', 'monitor', 'detail', 'terminal'].forEach(id => {
     $('#' + id).hidden = (id !== name);
   });
 }
@@ -75,7 +75,7 @@ function connect() {
     try {
       const m = JSON.parse(ev.data);
       if (m.type === 'auth') applyAuth(m.status);
-      else if (m.type === 'sessions') { renderSessions(m.sessions); if (currentSessionId === null) showScreen('monitor'); }
+      else if (m.type === 'sessions') { renderSessions(m.sessions); if (currentSessionId === null) { showScreen('monitor'); if (window.refreshTermButton) window.refreshTermButton(); } }
       else if (m.type === 'activity') { renderActivity(m.sessionId, m.events); }
     } catch (e) { /* ignore malformed */ }
   };

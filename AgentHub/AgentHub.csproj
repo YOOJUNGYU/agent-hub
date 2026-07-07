@@ -280,6 +280,9 @@
     <Content Include="View\Htmls\css\xterm.css">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="View\Htmls\js\term.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\EmbedIO\EmbedIO.csproj">
