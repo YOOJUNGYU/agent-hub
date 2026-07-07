@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Concurrent;
-using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using EmbedIO.WebSockets;
+using AgentHub.Common.Models;
 using AgentHub.Common.Util;
 using AgentHub.Server.Devices;
 using AgentHub.Server.Terminal;
@@ -18,10 +19,15 @@ namespace AgentHub.Server.Socket
     {
         private static readonly ConcurrentDictionary<string, TerminalModule> Instances = new ConcurrentDictionary<string, TerminalModule>();
         private readonly ConcurrentDictionary<string, ConPtySession> _sessions = new ConcurrentDictionary<string, ConPtySession>();
+        // contextId -> tokenHash (승인 취소 실시간 감지용)
+        private readonly ConcurrentDictionary<string, string> _tokens = new ConcurrentDictionary<string, string>();
+        // contextId -> 전송 직렬화 락 (동시 SendAsync 방지)
+        private readonly ConcurrentDictionary<string, SemaphoreSlim> _sendLocks = new ConcurrentDictionary<string, SemaphoreSlim>();
 
         public TerminalModule(string urlPath) : base(urlPath, true)
         {
             Instances[urlPath] = this;
+            DeviceRegistry.StatusChanged += OnDeviceStatusChanged;
         }
 
         /// <summary>토글 OFF 등에서 호출 — 모든 활성 세션 종료.</summary>
@@ -36,6 +42,8 @@ namespace AgentHub.Server.Socket
             {
                 try { kv.Value.Dispose(); } catch { }
                 try { var ctx = FindContext(kv.Key); if (ctx != null) _ = CloseAsync(ctx); } catch { }
+                RemoveSendLock(kv.Key);
+                _tokens.TryRemove(kv.Key, out _);
             }
             _sessions.Clear();
         }
@@ -49,7 +57,7 @@ namespace AgentHub.Server.Socket
                 var enabled = Properties.Settings.Default.TerminalEnabled;
                 if (!TerminalGate.IsAllowed(enabled, status))
                 {
-                    await SendAsync(context, Json.Serialize(new { type = "denied", reason = enabled ? "unauthorized" : "disabled" }));
+                    await SendTextSafe(context, Json.Serialize(new { type = "denied", reason = enabled ? "unauthorized" : "disabled" }));
                     await CloseAsync(context);
                     return;
                 }
@@ -59,14 +67,15 @@ namespace AgentHub.Server.Socket
                 if (string.IsNullOrWhiteSpace(cwd)) cwd = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
                 var id = context.Id;
+                if (!string.IsNullOrEmpty(token)) _tokens[id] = DeviceRegistry.HashToken(token);
                 var session = new ConPtySession(shell, cwd, 80, 24, (buf, n) => OnPtyOutput(id, buf, n));
                 session.Exited += async () =>
                 {
                     var ctx = FindContext(id);
-                    if (ctx != null) { try { await SendAsync(ctx, Json.Serialize(new { type = "exit" })); await CloseAsync(ctx); } catch { } }
+                    if (ctx != null) { try { await SendTextSafe(ctx, Json.Serialize(new { type = "exit" })); await CloseAsync(ctx); } catch { } }
                 };
                 _sessions[id] = session;
-                await SendAsync(context, Json.Serialize(new { type = "ready" }));
+                await SendTextSafe(context, Json.Serialize(new { type = "ready" }));
             }
             catch (Exception ex)
             {
@@ -88,7 +97,23 @@ namespace AgentHub.Server.Socket
             }
             var slice = new byte[n];
             Buffer.BlockCopy(buf, 0, slice, 0, n);
-            try { await SendAsync(ctx, slice); } catch { } // binary 프레임
+            await SendBytesSafe(ctx, slice); // binary 프레임
+        }
+
+        /// <summary>기기 승인 취소/삭제 시 해당 토큰의 활성 세션을 즉시 종료.</summary>
+        private void OnDeviceStatusChanged(string hash, string status)
+        {
+            if (status == DeviceStatus.Approved) return;
+            foreach (var kv in _tokens)
+            {
+                if (kv.Value != hash) continue;
+                var id = kv.Key;
+                if (_sessions.TryRemove(id, out var session)) { try { session.Dispose(); } catch { } }
+                var ctx = FindContext(id);
+                if (ctx != null) { try { _ = CloseAsync(ctx); } catch { } }
+                RemoveSendLock(id);
+                _tokens.TryRemove(id, out _);
+            }
         }
 
         protected override Task OnMessageReceivedAsync(IWebSocketContext context, byte[] buffer, IWebSocketReceiveResult result)
@@ -112,6 +137,8 @@ namespace AgentHub.Server.Socket
             {
                 try { session.Dispose(); } catch { }
             }
+            _tokens.TryRemove(context.Id, out _);
+            RemoveSendLock(context.Id);
             return Task.CompletedTask;
         }
 
@@ -119,6 +146,27 @@ namespace AgentHub.Server.Socket
         {
             foreach (var c in ActiveContexts) if (c.Id == id) return c;
             return null;
+        }
+
+        private SemaphoreSlim SendLock(string id) => _sendLocks.GetOrAdd(id, _ => new SemaphoreSlim(1, 1));
+
+        private void RemoveSendLock(string id)
+        {
+            if (_sendLocks.TryRemove(id, out var g)) { try { g.Dispose(); } catch { } }
+        }
+
+        private async Task SendTextSafe(IWebSocketContext ctx, string s)
+        {
+            var g = SendLock(ctx.Id);
+            await g.WaitAsync();
+            try { await SendAsync(ctx, s); } catch { } finally { g.Release(); }
+        }
+
+        private async Task SendBytesSafe(IWebSocketContext ctx, byte[] b)
+        {
+            var g = SendLock(ctx.Id);
+            await g.WaitAsync();
+            try { await SendAsync(ctx, b); } catch { } finally { g.Release(); }
         }
 
         private static string GetToken(IWebSocketContext ctx)
@@ -135,7 +183,11 @@ namespace AgentHub.Server.Socket
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing) DisableAll();
+            if (disposing)
+            {
+                DeviceRegistry.StatusChanged -= OnDeviceStatusChanged;
+                DisableAll();
+            }
             base.Dispose(disposing);
         }
 
