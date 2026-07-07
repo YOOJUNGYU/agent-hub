@@ -33,6 +33,7 @@
 
   window.openTerminal = function () {
     ensureTerm();
+    if (tws) { try { tws.close(); } catch (_) {} tws = null; }
     term.reset();
     showScreen('terminal');
     history.pushState({ screen: 'terminal' }, '');

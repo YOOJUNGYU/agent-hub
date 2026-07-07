@@ -75,7 +75,7 @@ function connect() {
     try {
       const m = JSON.parse(ev.data);
       if (m.type === 'auth') applyAuth(m.status);
-      else if (m.type === 'sessions') { renderSessions(m.sessions); if (currentSessionId === null) { showScreen('monitor'); if (window.refreshTermButton) window.refreshTermButton(); } }
+      else if (m.type === 'sessions') { renderSessions(m.sessions); if (currentSessionId === null && document.getElementById('terminal').hidden) { showScreen('monitor'); if (window.refreshTermButton) window.refreshTermButton(); } }
       else if (m.type === 'activity') { renderActivity(m.sessionId, m.events); }
     } catch (e) { /* ignore malformed */ }
   };
