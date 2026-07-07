@@ -105,6 +105,63 @@ namespace AgentHub.Server.Agents
             return "ended";
         }
 
+        public static List<ActivityEvent> ParseEvents(IReadOnlyList<string> lines, int max)
+        {
+            var all = new List<ActivityEvent>();
+            foreach (var line in lines)
+            {
+                var o = TryParse(line);
+                if (o == null) continue;
+                var type = Str(o["type"]);
+                var ts = Str(o["timestamp"]);
+
+                if (type == "mode" || type == "permission-mode")
+                {
+                    var mode = Str(o["mode"]) ?? Str(o["permissionMode"]);
+                    if (!string.IsNullOrWhiteSpace(mode))
+                        all.Add(new ActivityEvent { Kind = "mode_change", Ts = ts, Summary = mode });
+                    continue;
+                }
+
+                var content = o["message"]?["content"];
+                if (content == null) continue;
+
+                if (content.Type == JTokenType.String)
+                {
+                    if (type == "user")
+                        all.Add(new ActivityEvent { Kind = "user_prompt", Ts = ts, Text = content.Value<string>(), Summary = Truncate(content.Value<string>(), 80) });
+                    continue;
+                }
+
+                if (content is JArray arr)
+                {
+                    foreach (var b in arr.OfType<JObject>())
+                    {
+                        var bt = Str(b["type"]);
+                        switch (bt)
+                        {
+                            case "text":
+                                all.Add(new ActivityEvent { Kind = "message", Ts = ts, Text = Str(b["text"]), Summary = Truncate(Str(b["text"]), 80) });
+                                break;
+                            case "thinking":
+                                all.Add(new ActivityEvent { Kind = "thinking", Ts = ts, Text = Str(b["thinking"]), Summary = "(사고)" });
+                                break;
+                            case "tool_use":
+                                var name = Str(b["name"]);
+                                all.Add(new ActivityEvent { Kind = "tool_use", Ts = ts, ToolName = name, Summary = SummarizeToolUse(name, b["input"] as JObject) });
+                                break;
+                            case "tool_result":
+                                var txt = b["content"]?.ToString();
+                                all.Add(new ActivityEvent { Kind = "tool_result", Ts = ts, Summary = Truncate(FirstLine(txt), 80), Text = Truncate(txt, 2000) });
+                                break;
+                        }
+                    }
+                }
+            }
+            if (all.Count > max) all = all.GetRange(all.Count - max, max);
+            return all;
+        }
+
         public static string SummarizeToolUse(string name, JObject input)
         {
             if (input == null) return name;
