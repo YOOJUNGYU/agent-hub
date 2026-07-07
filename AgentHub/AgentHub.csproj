@@ -249,6 +249,9 @@
     <Content Include="View\Htmls\js\host.js">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="View\Htmls\js\i18n.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="View\Htmls\manifest.webmanifest">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

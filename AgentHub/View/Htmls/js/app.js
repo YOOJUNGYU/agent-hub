@@ -1,5 +1,6 @@
-// 모바일 모니터 — 기기 인증(토큰) + WebSocket(/ws/agents) 실시간
+// 모바일 모니터 — 기기 인증(토큰) + WebSocket(/ws/agents) 실시간 + 언어(i18n)
 const $ = (s, r = document) => r.querySelector(s);
+const t = (k, v) => window.I18n.t(k, v);
 
 // ---- 기기 토큰 ----
 const TOKEN_KEY = 'agenthub.deviceToken';
@@ -27,17 +28,21 @@ function showScreen(name) {
 }
 
 // ---- 렌더 ----
-const label = s => ({ working: '작업 중', idle: '대기', error: '오류' }[s] || s);
+const label = s => ({ working: t('agent.working'), idle: t('agent.idle'), error: t('agent.error') }[s] || s);
 const esc = s => (s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+let lastAgents = null; // 언어 변경 시 재렌더용
+let wsConnected = false;
+
 function render(list) {
+  lastAgents = list;
   list = list || [];
   const working = list.filter(a => a.status === 'working').length;
   const error = list.filter(a => a.status === 'error').length;
   $('#summary').innerHTML =
-    `<div class="stat"><div class="n">${list.length}</div><div class="l">전체 에이전트</div></div>` +
-    `<div class="stat"><div class="n">${working}</div><div class="l">작업 중</div></div>` +
-    `<div class="stat"><div class="n">${error}</div><div class="l">오류</div></div>`;
+    `<div class="stat"><div class="n">${list.length}</div><div class="l">${t('summary.total')}</div></div>` +
+    `<div class="stat"><div class="n">${working}</div><div class="l">${t('summary.working')}</div></div>` +
+    `<div class="stat"><div class="n">${error}</div><div class="l">${t('summary.error')}</div></div>`;
   $('#agentGrid').innerHTML = list.map(a => `
     <div class="card">
       <div class="top"><span class="name">${esc(a.name)}</span><span class="pill ${a.status}">${label(a.status)}</span></div>
@@ -47,8 +52,9 @@ function render(list) {
 }
 
 function setBadge(on) {
+  wsConnected = on;
   const b = $('#wsBadge');
-  b.textContent = on ? '🟢 실시간 연결됨' : '🔴 연결 끊김';
+  b.textContent = on ? t('ws.connected') : t('ws.disconnected');
   b.className = 'badge ' + (on ? 'on' : 'off');
 }
 
@@ -63,7 +69,7 @@ function applyAuth(status) {
 $('#requestBtn').addEventListener('click', async () => {
   const name = $('#deviceName').value.trim();
   const hint = $('#requestHint');
-  hint.textContent = '요청 전송 중…';
+  hint.textContent = t('auth.sending');
   try {
     const res = await (await fetch('/api/devices/request', {
       method: 'POST',
@@ -71,9 +77,9 @@ $('#requestBtn').addEventListener('click', async () => {
       body: JSON.stringify({ name })
     })).json();
     if (res.ok) { applyAuth(res.status); hint.textContent = ''; }
-    else hint.textContent = '요청 실패: ' + (res.message || '오류');
+    else hint.textContent = t('auth.reqFail') + (res.message || t('auth.reqErr'));
   } catch (e) {
-    hint.textContent = '요청 실패: ' + e.message;
+    hint.textContent = t('auth.reqFail') + e.message;
   }
 });
 
@@ -94,6 +100,12 @@ function connect() {
     } catch (e) { /* ignore malformed */ }
   };
 }
+
+// ---- 언어 변경 시 동적 콘텐츠 재렌더 ----
+document.addEventListener('i18n:changed', () => {
+  setBadge(wsConnected);
+  if (lastAgents !== null) render(lastAgents);
+});
 
 showScreen('authPending'); // 최초: WS 응답 전까지 대기 표시
 connect();

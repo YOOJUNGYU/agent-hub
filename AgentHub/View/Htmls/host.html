@@ -9,34 +9,39 @@
 </head>
 <body>
   <header class="app-header">
-    <div class="brand"><span class="logo">◈</span> Agent Hub 콘솔</div>
     <div class="server-status">
-      <span class="badge" id="statusBadge"><span class="spinner"></span>확인 중…</span>
+      <span class="badge" id="statusBadge"><span class="spinner"></span><span data-i18n="server.checking">확인 중…</span></span>
       <a class="server-url" id="serverUrl" target="_blank" rel="noopener"></a>
+      <label class="lang-switch"><span aria-hidden="true">🌐</span>
+        <select class="lang-select" data-lang-select aria-label="Language / 언어">
+          <option value="ko">한국어</option>
+          <option value="en">English</option>
+        </select>
+      </label>
     </div>
   </header>
   <nav class="tabs">
-    <button class="tab active" data-view="devices">기기 관리</button>
-    <button class="tab" data-view="clients">연결된 기기</button>
-    <button class="tab" data-view="logs">로그</button>
-    <button class="tab" data-view="settings">설정</button>
+    <button class="tab active" data-view="devices" data-i18n="tab.devices">기기 관리</button>
+    <button class="tab" data-view="clients" data-i18n="tab.clients">연결된 기기</button>
+    <button class="tab" data-view="logs" data-i18n="tab.logs">로그</button>
+    <button class="tab" data-view="settings" data-i18n="tab.settings">설정</button>
   </nav>
   <main>
     <section id="devices" class="view active">
       <div class="summary">
-        <div class="stat"><div class="n" id="pendingCount">0</div><div class="l">인증 대기</div></div>
-        <div class="stat"><div class="n" id="approvedCount">0</div><div class="l">승인된 기기</div></div>
+        <div class="stat"><div class="n" id="pendingCount">0</div><div class="l" data-i18n="devices.pending">인증 대기</div></div>
+        <div class="stat"><div class="n" id="approvedCount">0</div><div class="l" data-i18n="devices.approved">승인된 기기</div></div>
       </div>
       <div id="deviceList">
-        <div class="loading"><span class="spinner"></span><span>기기 정보를 불러오는 중…</span></div>
+        <div class="loading"><span class="spinner"></span><span data-i18n="devices.loading">기기 정보를 불러오는 중…</span></div>
       </div>
     </section>
     <section id="clients" class="view">
       <div class="summary">
-        <div class="stat"><div class="n" id="clientCount">0</div><div class="l">접속한 모바일 기기</div></div>
+        <div class="stat"><div class="n" id="clientCount">0</div><div class="l" data-i18n="clients.count">접속한 모바일 기기</div></div>
       </div>
       <div id="clientList">
-        <div class="loading"><span class="spinner"></span><span>접속 기기 정보를 불러오는 중…</span></div>
+        <div class="loading"><span class="spinner"></span><span data-i18n="clients.loading">접속 기기 정보를 불러오는 중…</span></div>
       </div>
     </section>
     <section id="logs" class="view">
@@ -44,13 +49,19 @@
     </section>
     <section id="settings" class="view">
       <form id="settingsForm" class="settings-form">
-        <label for="portInput">서버 포트 (1024–65535)</label>
+        <label data-i18n="settings.lang">언어 (Language)</label>
+        <select class="lang-select" data-lang-select aria-label="Language / 언어">
+          <option value="ko">한국어</option>
+          <option value="en">English</option>
+        </select>
+        <label for="portInput" data-i18n="settings.portLabel">서버 포트 (1024–65535)</label>
         <input type="number" id="portInput" min="1024" max="65535" required />
-        <button type="submit">저장 후 재시작</button>
-        <p class="hint" id="settingsHint">포트를 바꾸면 서버가 재시작되고 접속 주소가 변경됩니다.</p>
+        <button type="submit" data-i18n="settings.save">저장 후 재시작</button>
+        <p class="hint" id="settingsHint" data-i18n="settings.hint">포트를 바꾸면 서버가 재시작되고 접속 주소가 변경됩니다.</p>
       </form>
     </section>
   </main>
+  <script src="/js/i18n.js"></script>
   <script src="/js/host.js"></script>
 </body>
 </html>

@@ -5,6 +5,14 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0}
+
+/* ===== Scrollbars (slim, theme-matched) — 전역 통일 ===== */
+*{scrollbar-width:thin; scrollbar-color:var(--border) transparent}
+*::-webkit-scrollbar{width:8px; height:8px}
+*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-thumb{background:var(--border); border-radius:999px}
+*::-webkit-scrollbar-thumb:hover{background:var(--panel2)}
+*::-webkit-scrollbar-corner{background:transparent}
 body{
   font-family:'Malgun Gothic','맑은 고딕','Segoe UI',system-ui,sans-serif;
   background:var(--bg); color:var(--fore); -webkit-text-size-adjust:100%;
@@ -12,12 +20,10 @@ body{
 
 /* ===== Header ===== */
 .app-header{
-  display:flex; flex-wrap:wrap; gap:.5rem 1rem; align-items:center; justify-content:space-between;
+  display:flex; flex-wrap:wrap; gap:.5rem 1rem; align-items:center; justify-content:start;
   padding:.9rem 1.2rem; background:linear-gradient(90deg,#181c2a,#22284a);
   border-bottom:1px solid var(--border); position:sticky; top:0; z-index:3;
 }
-.brand{font-weight:700; font-size:1.15rem; letter-spacing:.02em}
-.brand .logo{color:var(--accent); margin-right:.15rem}
 .server-status{display:flex; align-items:center; gap:.6rem; flex-wrap:wrap}
 .badge{padding:.28rem .7rem; border-radius:999px; font-size:.85rem; background:var(--panel2); border:1px solid var(--border); white-space:nowrap}
 .badge.on{color:#0c1020; background:var(--ok); border-color:transparent}
@@ -30,7 +36,7 @@ body{
 .tab{flex:0 0 auto; background:transparent; border:none; color:var(--muted); padding:.6rem 1rem; border-radius:10px; font-size:1rem; cursor:pointer}
 .tab.active{color:var(--fore); background:var(--panel2)}
 
-main{padding:1rem 1.2rem; max-width:1100px; margin:0 auto}
+main{padding:1rem 1.2rem}
 .view{display:none}
 .view.active{display:block}
 
@@ -133,3 +139,12 @@ main{padding:1rem 1.2rem; max-width:1100px; margin:0 auto}
 .pill.pending  { background: #3a3550; color: #d9c98a; }
 .pill.approved { background: #1f4a34; color: #7fe0a6; }
 .pill.revoked  { background: #4a2320; color: #e0908a; }
+
+/* ---- 언어 선택 ---- */
+.lang-switch { display:inline-flex; align-items:center; gap:.3rem; font-size:.9rem }
+.lang-select {
+  background: var(--panel2); color: var(--fore); border: 1px solid var(--border);
+  border-radius: 8px; padding: .28rem .5rem; font-size: .85rem; cursor: pointer;
+}
+.lang-select option { background: var(--panel); color: var(--fore); }
+.settings-form .lang-select { align-self: flex-start; min-width: 160px; margin-bottom: .3rem; }

@@ -1,9 +1,13 @@
-// 호스트 콘솔(/host) — 서버 상태/URL, 접속 기기(/ws/host), 로그(C# push), 포트 설정
+// 호스트 콘솔(/host) — 서버 상태/URL, 접속 기기(/ws/host), 로그(C# push), 포트 설정, 언어
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const t = (k, v) => window.I18n.t(k, v);
 
 const esc = s => (s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const fmtTime = iso => { try { return new Date(iso).toLocaleString(); } catch (e) { return iso; } };
+
+// 마지막 데이터(언어 변경 시 재렌더용)
+let lastClients = null, lastClientCount = null, lastDevices = null;
 
 // ---- 탭 ----
 $$('.tab').forEach(btn => btn.addEventListener('click', () => {
@@ -19,12 +23,12 @@ async function refreshStatus() {
     const s = await (await fetch('/api/server/status')).json();
     const badge = $('#statusBadge'), url = $('#serverUrl');
     if (s.active) {
-      badge.textContent = '🟢 서버 활성';
+      badge.textContent = t('server.active');
       badge.className = 'badge on';
       url.textContent = s.url;
       url.href = s.url;
     } else {
-      badge.textContent = '🔴 중지';
+      badge.textContent = t('server.stopped');
       badge.className = 'badge off';
       url.textContent = '';
       url.removeAttribute('href');
@@ -34,41 +38,43 @@ async function refreshStatus() {
 
 // ---- 접속한 모바일 기기 (WebSocket /ws/host) ----
 function renderClients(list, count) {
+  lastClients = list; lastClientCount = count;
   $('#clientCount').textContent = count != null ? count : (list ? list.length : 0);
   if (!list || !list.length) {
-    $('#clientList').innerHTML = '<p class="hint">아직 접속한 모바일 기기가 없습니다. 접속 URL을 모바일에서 열어보세요.</p>';
+    $('#clientList').innerHTML = `<p class="hint">${t('clients.empty')}</p>`;
     return;
   }
   $('#clientList').innerHTML =
-    '<table class="tbl"><thead><tr><th>IP</th><th>기기 (User-Agent)</th><th>접속 시각</th></tr></thead><tbody>' +
+    `<table class="tbl"><thead><tr><th>${t('clients.col.ip')}</th><th>${t('clients.col.device')}</th><th>${t('clients.col.connected')}</th></tr></thead><tbody>` +
     list.map(c => `<tr><td>${esc(c.ip)}</td><td class="ua">${esc(c.userAgent)}</td><td>${fmtTime(c.connectedAt)}</td></tr>`).join('') +
     '</tbody></table>';
 }
 
 // ---- 등록 기기 관리 (WebSocket /ws/host: devices) ----
-const statusLabel = s => ({ pending: '대기', approved: '승인됨', revoked: '해제됨' }[s] || s);
+const statusLabel = s => t('status.' + s);
 
 function deviceActions(d) {
-  const approve = `<button class="act approve" data-act="approve" data-id="${d.id}">승인</button>`;
-  const revoke  = `<button class="act revoke" data-act="revoke" data-id="${d.id}">해제</button>`;
-  const del     = `<button class="act delete" data-act="delete" data-id="${d.id}">삭제</button>`;
+  const approve = `<button class="act approve" data-act="approve" data-id="${d.id}">${t('act.approve')}</button>`;
+  const revoke  = `<button class="act revoke" data-act="revoke" data-id="${d.id}">${t('act.revoke')}</button>`;
+  const del     = `<button class="act delete" data-act="delete" data-id="${d.id}">${t('act.delete')}</button>`;
   if (d.status === 'pending')  return approve + del;
   if (d.status === 'approved') return revoke + del;
   return approve + del; // revoked → 재승인 가능
 }
 
 function renderDevices(list) {
+  lastDevices = list;
   list = list || [];
   $('#pendingCount').textContent = list.filter(d => d.status === 'pending').length;
   $('#approvedCount').textContent = list.filter(d => d.status === 'approved').length;
   if (!list.length) {
-    $('#deviceList').innerHTML = '<p class="hint">아직 인증을 요청한 기기가 없습니다.</p>';
+    $('#deviceList').innerHTML = `<p class="hint">${t('devices.empty')}</p>`;
     return;
   }
   $('#deviceList').innerHTML =
-    '<table class="tbl"><thead><tr><th>이름</th><th>상태</th><th>IP</th><th>요청 시각</th><th>동작</th></tr></thead><tbody>' +
+    `<table class="tbl"><thead><tr><th>${t('devices.col.name')}</th><th>${t('devices.col.status')}</th><th>${t('devices.col.ip')}</th><th>${t('devices.col.requested')}</th><th>${t('devices.col.actions')}</th></tr></thead><tbody>` +
     list.map(d => `<tr>
-      <td>${esc(d.name) || '<span class="hint">(이름 없음)</span>'}<div class="ua">${esc(d.userAgent)}</div></td>
+      <td>${esc(d.name) || `<span class="hint">${t('devices.noname')}</span>`}<div class="ua">${esc(d.userAgent)}</div></td>
       <td><span class="pill ${d.status}">${statusLabel(d.status)}</span></td>
       <td>${esc(d.ip)}</td>
       <td>${fmtTime(d.requestedAt)}</td>
@@ -126,18 +132,25 @@ $('#settingsForm').addEventListener('submit', async e => {
   e.preventDefault();
   const port = parseInt($('#portInput').value, 10);
   const hint = $('#settingsHint');
-  hint.innerHTML = '<span class="spinner"></span>저장 중…';
+  hint.innerHTML = `<span class="spinner"></span>${t('settings.saving')}`;
   try {
     const res = await (await fetch('/api/settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ port })
     })).json();
-    if (res.ok) hint.textContent = `저장됨. 서버가 새 주소(${res.url})로 재시작됩니다…`;
-    else hint.textContent = '오류: ' + (res.message || '실패');
+    if (res.ok) hint.textContent = t('settings.saved', { url: res.url });
+    else hint.textContent = t('settings.error') + (res.message || '');
   } catch (err) {
-    hint.textContent = '요청 실패: ' + err.message;
+    hint.textContent = t('settings.reqFail') + err.message;
   }
+});
+
+// ---- 언어 변경 시 동적 콘텐츠 재렌더 ----
+document.addEventListener('i18n:changed', () => {
+  refreshStatus();
+  if (lastClients !== null) renderClients(lastClients, lastClientCount);
+  if (lastDevices !== null) renderDevices(lastDevices);
 });
 
 refreshStatus();
