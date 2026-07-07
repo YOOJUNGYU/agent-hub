@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using EmbedIO;
@@ -8,6 +9,7 @@ using AgentHub.Common.Models;
 using AgentHub.Common.Util;
 using AgentHub.Server.Agents;
 using AgentHub.Server.Devices;
+using static AgentHub.Common.Constants;
 
 namespace AgentHub.Server.Controller
 {
@@ -24,6 +26,26 @@ namespace AgentHub.Server.Controller
                 Url = EmbedIOServer.CurrentUrl
             };
             return SendJsonAsync(Json.Serialize(info));
+        }
+
+        // 자체 서명 CA 인증서(.crt) 다운로드 — 모바일 신뢰 설치용.
+        // 인증 게이트 없음: 인증서는 기기 등록 이전에 필요하고, 공개 키라 민감정보가 아니다.
+        [Route(HttpVerbs.Get, "/cert")]
+        public async Task DownloadCert()
+        {
+            var path = Path.Combine(SelfSigned.CertFilePath, SelfSigned.CrtFileName);
+            if (!File.Exists(path))
+            {
+                HttpContext.Response.StatusCode = 404;
+                await SendJsonAsync(Json.Serialize(new { ok = false, message = "인증서 파일을 찾을 수 없습니다." }));
+                return;
+            }
+
+            var bytes = File.ReadAllBytes(path);
+            HttpContext.Response.ContentType = "application/x-x509-ca-cert"; // Android/iOS 인증서 설치 유도
+            HttpContext.Response.ContentLength64 = bytes.Length;
+            HttpContext.Response.Headers.Add(HttpHeaderNames.ContentDisposition, "attachment; filename=\"AgentHub.crt\"");
+            await HttpContext.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
         }
 
         // 실시간은 WebSocket(/ws/agents). 이 엔드포인트는 승인된 기기용 스냅샷 폴백.

@@ -1,4 +1,4 @@
-const CACHE = 'agent-hub-v2';
+const CACHE = 'agent-hub-v3';
 const ASSETS = ['/', '/index.html', '/css/app.css', '/js/app.js', '/icons/icon-192.png', '/icons/icon-512.png', '/manifest.webmanifest'];
 
 self.addEventListener('install', e => {
