@@ -94,5 +94,41 @@ namespace AgentHub.Properties {
                 this["ServerCertPassword"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool TerminalEnabled {
+            get {
+                return ((bool)(this["TerminalEnabled"]));
+            }
+            set {
+                this["TerminalEnabled"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("cmd.exe")]
+        public string TerminalShell {
+            get {
+                return ((string)(this["TerminalShell"]));
+            }
+            set {
+                this["TerminalShell"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string TerminalWorkingDir {
+            get {
+                return ((string)(this["TerminalWorkingDir"]));
+            }
+            set {
+                this["TerminalWorkingDir"] = value;
+            }
+        }
     }
 }
