@@ -1,4 +1,3 @@
-using System.Net;
 using System.Threading.Tasks;
 using EmbedIO.WebSockets;
 using AgentHub.Common.Util;
@@ -21,8 +20,7 @@ namespace AgentHub.Server.Socket
         protected override async Task OnClientConnectedAsync(IWebSocketContext context)
         {
             // 호스트 콘솔은 PC(loopback) 전용 — LAN 클라이언트의 직접 접속 차단.
-            var addr = context.RemoteEndPoint?.Address;
-            if (addr == null || !IPAddress.IsLoopback(addr))
+            if (!NetUtil.IsLoopback(context.RemoteEndPoint?.Address))
             {
                 await CloseAsync(context);
                 return;
@@ -48,10 +46,7 @@ namespace AgentHub.Server.Socket
         }
 
         private static bool IsLoopback(IWebSocketContext ctx)
-        {
-            var a = ctx.RemoteEndPoint?.Address;
-            return a != null && IPAddress.IsLoopback(a);
-        }
+            => NetUtil.IsLoopback(ctx.RemoteEndPoint?.Address);
 
         private static string ClientsMessage() => Json.Serialize(new
         {

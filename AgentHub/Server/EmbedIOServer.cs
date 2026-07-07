@@ -233,7 +233,7 @@ namespace AgentHub.Server
         /// <summary>loopback이면 정적 폴더로 통과, 아니면 403.</summary>
         private static Task GuardHostAsync(EmbedIO.IHttpContext ctx)
         {
-            if (IPAddress.IsLoopback(ctx.Request.RemoteEndPoint.Address))
+            if (NetUtil.IsLoopback(ctx.Request.RemoteEndPoint?.Address))
                 throw RequestHandler.PassThrough();
             ctx.Response.StatusCode = 403;
             return ctx.SendStringAsync("Forbidden", "text/plain", Encoding.UTF8);
