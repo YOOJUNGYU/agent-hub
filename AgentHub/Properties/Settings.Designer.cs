@@ -97,13 +97,25 @@ namespace AgentHub.Properties {
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
         public bool TerminalEnabled {
             get {
                 return ((bool)(this["TerminalEnabled"]));
             }
             set {
                 this["TerminalEnabled"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool HookAutoInstalled {
+            get {
+                return ((bool)(this["HookAutoInstalled"]));
+            }
+            set {
+                this["HookAutoInstalled"] = value;
             }
         }
 

@@ -34,7 +34,7 @@ body.host-shell{
 
 /* ===== Header ===== */
 .app-header{
-  display:flex; flex-wrap:wrap; gap:.5rem 1rem; align-items:center; justify-content:start;
+  display:flex; flex-wrap:wrap; gap:.5rem 1rem; align-items:center; justify-content:space-between;
   padding:.9rem 1.2rem; background:linear-gradient(90deg,#181c2a,#22284a);
   border-bottom:1px solid var(--border); flex:0 0 auto; z-index:3;
 }
@@ -89,7 +89,12 @@ body.host-shell #logs.view.active{display:flex; flex-direction:column; overflow:
 .log-line{min-height:1.45em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 
 /* ===== Settings form ===== */
-.settings-form{display:flex; flex-direction:column; gap:.7rem; max-width:420px}
+.settings-form{display:grid; grid-template-columns:1fr 1fr; gap:1rem 2.5rem; align-items:start; max-width:960px}
+.settings-col{display:flex; flex-direction:column; gap:.7rem; min-width:0}
+.settings-h{margin:0 0 .2rem; font-size:1rem; color:var(--accent)}
+@media (max-width:760px){ .settings-form{grid-template-columns:1fr} }
+.hdr-right{display:flex; align-items:center; gap:.6rem; flex-wrap:wrap}
+.app-header .guide-link{margin:0}
 .settings-form label{color:var(--muted); font-size:.9rem}
 .settings-form input{background:var(--panel); border:1px solid var(--border); color:var(--fore); padding:.7rem; border-radius:10px; font-size:1rem}
 .settings-form button{background:var(--accent); color:#0c1020; border:none; padding:.8rem; border-radius:10px; font-weight:700; font-size:1rem; cursor:pointer}

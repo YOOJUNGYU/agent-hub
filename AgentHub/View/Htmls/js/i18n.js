@@ -41,7 +41,7 @@
       'clients.col.device': '기기 (User-Agent)',
       'clients.col.connected': '접속 시각',
       // 설정
-      'settings.lang': '언어 (Language)',
+      'settings.general': '일반', 'settings.terminalGroup': '터미널 · 알림', 'settings.lang': '언어 (Language)',
       'settings.portLabel': '서버 포트 (1024–65535)',
       'settings.save': '저장 후 재시작',
       'settings.hint': '포트를 바꾸면 서버가 재시작되고 접속 주소가 변경됩니다.',
@@ -134,7 +134,7 @@
       'clients.col.device': 'Device (User-Agent)',
       'clients.col.connected': 'Connected',
       'settings.lang': '언어 (Language)',
-      'settings.portLabel': 'Server port (1024–65535)',
+      'settings.general': 'General', 'settings.terminalGroup': 'Terminal · Alerts', 'settings.portLabel': 'Server port (1024–65535)',
       'settings.save': 'Save & restart',
       'settings.hint': 'Changing the port restarts the server and changes the access URL.',
       'settings.saving': 'Saving…',
