@@ -175,7 +175,15 @@ let lastAsk = null;
 function handleAsk(m) {
   lastAsk = m;
   if (('Notification' in window) && Notification.permission === 'granted') {
-    try { new Notification(t('ask.title'), { body: (m.project ? '[' + m.project + '] ' : '') + (m.message || ''), tag: m.sessionId || 'ask' }); } catch (_) {}
+    var title = t('ask.title');
+    var opts = { body: (m.project ? '[' + m.project + '] ' : '') + (m.message || ''), tag: m.sessionId || 'ask' };
+    if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+      navigator.serviceWorker.ready
+        .then(function (reg) { return reg.showNotification(title, opts); })
+        .catch(function () { try { new Notification(title, opts); } catch (e) {} });
+    } else {
+      try { new Notification(title, opts); } catch (e) {}
+    }
   }
   const banner = document.getElementById('askBanner');
   document.getElementById('askProject').textContent = m.project || '';
