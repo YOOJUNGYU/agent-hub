@@ -27,6 +27,11 @@ namespace AgentHub.Server.Hook
         {
             try
             {
+                // 읽기 → 병합 → 쓰기 사이에 외부 프로세스(예: clawd-on-desk)가 settings.json을
+                // 동시에 수정하면 나중에 쓰는 쪽이 이겨 그 변경이 유실될 수 있다(lost update).
+                // 수동 설치 동작이라 best-effort로 감수한다(락 없음).
+                var existing = ReadSettings();
+                if (!IsWritable(existing)) return false;
                 var entry = new JObject
                 {
                     ["matcher"] = "",
@@ -39,7 +44,7 @@ namespace AgentHub.Server.Hook
                         ["timeout"] = 5
                     }}
                 };
-                var merged = HookConfigMerger.AddNotificationHook(ReadSettings(), entry, Marker);
+                var merged = HookConfigMerger.AddNotificationHook(existing, entry, Marker);
                 WriteSettingsWithBackup(merged);
                 return true;
             }
@@ -50,7 +55,10 @@ namespace AgentHub.Server.Hook
         {
             try
             {
-                var removed = HookConfigMerger.RemoveNotificationHook(ReadSettings(), Marker);
+                // Install()과 동일한 lost-update 가능성에 대한 주의 사항 참고.
+                var existing = ReadSettings();
+                if (!IsWritable(existing)) return false;
+                var removed = HookConfigMerger.RemoveNotificationHook(existing, Marker);
                 WriteSettingsWithBackup(removed);
                 return true;
             }
@@ -60,16 +68,42 @@ namespace AgentHub.Server.Hook
         private static string ReadSettings()
             => File.Exists(SettingsPath) ? File.ReadAllText(SettingsPath) : "{}";
 
+        /// <summary>내용이 비어있지 않은데 JSON으로 파싱되지 않으면 쓰기를 중단시킨다(데이터 유실 방지).</summary>
+        private static bool IsWritable(string content)
+        {
+            if (string.IsNullOrWhiteSpace(content)) return true;
+            try
+            {
+                JObject.Parse(content);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                LogService.Instance.Error("settings.json 파싱 실패 — 훅 설치/제거 중단(파일 미변경)", ex);
+                return false;
+            }
+        }
+
         private static void WriteSettingsWithBackup(string content)
         {
             var dir = Path.GetDirectoryName(SettingsPath);
             if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-            if (File.Exists(SettingsPath))
-                File.Copy(SettingsPath, SettingsPath + ".agenthub.bak", true);
             var tmp = SettingsPath + ".agenthub.tmp";
             File.WriteAllText(tmp, content);
-            if (File.Exists(SettingsPath)) File.Delete(SettingsPath);
-            File.Move(tmp, SettingsPath);
+            try
+            {
+                if (File.Exists(SettingsPath))
+                    // File.Replace: tmp를 SettingsPath로 원자적으로 교체하고, 기존 파일은 .bak으로 이동.
+                    // 삭제 후 이동 방식과 달리 중간에 크래시가 나도 settings.json이 사라지지 않는다.
+                    File.Replace(tmp, SettingsPath, SettingsPath + ".agenthub.bak");
+                else
+                    File.Move(tmp, SettingsPath);
+            }
+            catch
+            {
+                try { if (File.Exists(tmp)) File.Delete(tmp); } catch { /* best-effort */ }
+                throw;
+            }
         }
 
         private static string ResolveNode()
