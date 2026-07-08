@@ -13,7 +13,8 @@ namespace AgentHub.Server.Terminal
     {
         private class Entry { public ConPtySession Pty; public string Cwd; public EngineSpec Engine; public volatile string SessionId; }
         private static readonly ConcurrentDictionary<string, Entry> ById = new ConcurrentDictionary<string, Entry>();
-        private static readonly ConcurrentBag<Entry> Pending = new ConcurrentBag<Entry>();
+        // 상관 완료 여부와 무관하게 생성된 모든 Entry를 추적한다(DisposeAll이 미상관 세션도 정리하도록).
+        private static readonly ConcurrentDictionary<Entry, byte> _all = new ConcurrentDictionary<Entry, byte>();
 
         public static bool IsManaged(string sessionId)
             => !string.IsNullOrEmpty(sessionId) && ById.ContainsKey(sessionId);
@@ -26,7 +27,7 @@ namespace AgentHub.Server.Terminal
             var launchedAt = DateTime.UtcNow;
             var e = new Entry { Cwd = cwd, Engine = engine };
             e.Pty = new ConPtySession(engine.LaunchCommand(), cwd, (short)120, (short)40, (buf, n) => { /* 출력은 트랜스크립트 tail로 표시 */ });
-            Pending.Add(e);
+            _all[e] = 0;
             // 상관: 새 트랜스크립트의 sessionId 확정 (백그라운드, 최대 ~30초로 제한)
             var t = new Thread(() => Correlate(e, launchedAt)) { IsBackground = true, Name = "ManagedSession-correlate" };
             t.Start();
@@ -67,10 +68,7 @@ namespace AgentHub.Server.Terminal
             if (!ById.TryGetValue(sessionId, out var e)) return false;
             try
             {
-                // EngineSpec.AnswerKeystrokes는 ESC(0x1B) 없이 "[B"(Down)만 반환한다.
-                // 실제 터미널 이스케이프 시퀀스(ESC [ B = Down 방향키)로 변환해 전송한다.
-                var body = EngineSpec.AnswerKeystrokes(optionIndex).Replace("[B", "\x1b[B");
-                e.Pty.Write(Encoding.UTF8.GetBytes(body));
+                e.Pty.Write(Encoding.UTF8.GetBytes(EngineSpec.AnswerKeystrokes(optionIndex)));
                 return true;
             }
             catch (Exception ex) { LogService.Instance.Error(ex); return false; }
@@ -78,7 +76,8 @@ namespace AgentHub.Server.Terminal
 
         public static void DisposeAll()
         {
-            foreach (var kv in ById) { try { kv.Value.Pty.Dispose(); } catch { } }
+            foreach (var kv in _all) { try { kv.Key.Pty.Dispose(); } catch { } }
+            _all.Clear();
             ById.Clear();
         }
     }

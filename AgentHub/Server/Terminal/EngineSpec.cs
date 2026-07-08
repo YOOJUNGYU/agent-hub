@@ -11,8 +11,9 @@ namespace AgentHub.Server.Terminal
         public abstract string ProjectDir(string cwd);
 
         // AskUserQuestion 메뉴 선택(커서 최상단 가정): Down×i + Enter. best-effort.
+        // ESC [ B = Down 방향키의 실제 터미널 이스케이프 시퀀스.
         public static string AnswerKeystrokes(int optionIndex)
-            => string.Concat(Enumerable.Repeat("[B", Math.Max(0, optionIndex))) + "\r";
+            => string.Concat(Enumerable.Repeat("\x1b[B", Math.Max(0, optionIndex))) + "\r";
 
         public static EngineSpec For(string key)
         {
