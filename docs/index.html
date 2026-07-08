@@ -184,8 +184,8 @@
       <h1><span class="ko">내 PC의 AI 에이전트를<br><span class="grad">휴대폰에서</span> 지켜보세요</span>
           <span class="en">Watch your PC's AI agent<br><span class="grad">from your phone</span></span></h1>
       <p class="lead">
-        <span class="ko">같은 와이파이의 휴대폰으로 Claude가 지금 무엇을 하는지 실시간으로 보고, 질문에 답하고, 명령까지 보낼 수 있습니다. 아래 5분이면 준비 끝.</span>
-        <span class="en">On a phone connected to the same Wi‑Fi, see what Claude is doing in real time, answer its questions, and even send commands. Setup takes about five minutes.</span>
+        <span class="ko">같은 네트워크에 연결된 휴대폰으로 Claude가 지금 무엇을 하는지 실시간으로 보고, 질문에 답하고, 명령까지 보낼 수 있습니다. 아래 5분이면 준비 끝.</span>
+        <span class="en">On a phone connected to the same network, see what Claude is doing in real time, answer its questions, and even send commands. Setup takes about five minutes.</span>
       </p>
       <div class="herobtns">
         <a class="dl" href="https://github.com/YOOJUNGYU/agent-hub/releases/latest" target="_blank" rel="noopener">
@@ -218,9 +218,9 @@
   <div class="wrap">
     <div class="txt">
       <div class="stepno">STEP 01</div>
-      <h2><span class="ko">같은 와이파이로 접속</span><span class="en">Connect on the same Wi‑Fi</span></h2>
-      <p><span class="ko">PC에서 Agent Hub를 실행하면 콘솔 상단에 접속 주소가 나옵니다. 휴대폰을 <b>같은 와이파이</b>에 연결하고 그 주소를 브라우저에 입력하세요.</span>
-         <span class="en">Run Agent Hub on your PC — the console shows an access address at the top. Put your phone on the <b>same Wi‑Fi</b> and open that address in its browser.</span></p>
+      <h2><span class="ko">같은 네트워크로 접속</span><span class="en">Connect on the same network</span></h2>
+      <p><span class="ko">PC에서 Agent Hub를 실행하면 콘솔 상단에 접속 주소가 나옵니다. 휴대폰을 PC와 <b>같은 네트워크</b>(같은 공유기·랜, 유선/무선 무관)에 두고 그 주소를 브라우저에 입력하세요.</span>
+         <span class="en">Run Agent Hub on your PC — the console shows an access address at the top. Put your phone on the <b>same network</b> as the PC (same router/LAN, wired or wireless) and open that address in its browser.</span></p>
       <ol class="ck">
         <li><span class="ko">PC 콘솔의 주소 확인 — 예: <b>https://192.168.0.10:47600</b></span><span class="en">Find the address in the PC console — e.g. <b>https://192.168.0.10:47600</b></span></li>
         <li><span class="ko">휴대폰 브라우저 주소창에 입력</span><span class="en">Type it into your phone's browser</span></li>
@@ -265,9 +265,9 @@
               <div class="osbar">⚙️ <span id="os-title">설정</span></div>
               <!-- Android frames -->
               <div class="frame and on" data-g="and" data-i="0">
-                <div class="osrow"><span class="ic">🔒</span><span class="ko">보안 및 개인정보</span><span class="en">Security &amp; privacy</span><span class="arw">›</span></div>
-                <div class="osrow sel"><span class="ic">📁</span><span class="ko">기타 보안 설정 › 기기 저장공간에서 설치</span><span class="en">More settings › Install from storage</span><span class="arw">›</span></div>
-                <div class="osrow"><span class="ic">🔑</span><span class="ko">신뢰할 수 있는 자격증명</span><span class="en">Trusted credentials</span><span class="arw">›</span></div>
+                <div class="osrow" style="background:#0d0f17;box-shadow:inset 0 0 0 1px var(--border)"><span class="ic">🔍</span><span class="ko">기기에 저장된 인증서 설치</span><span class="en">Install stored certificate</span></div>
+                <div class="meta" style="font-size:11px;margin:8px 2px"><span class="ko">설정 검색창에 위 문구를 입력해 찾으세요.</span><span class="en">Search Settings for the text above.</span></div>
+                <div class="osrow sel"><span class="ic">📁</span><span class="ko">기기에 저장된 인증서 설치</span><span class="en">Install stored certificate</span><span class="arw">›</span></div>
               </div>
               <div class="frame and" data-g="and" data-i="1">
                 <div class="meta" style="font-size:12px;margin-bottom:8px"><span class="ko">인증서 종류 선택</span><span class="en">Choose type</span></div>
@@ -318,13 +318,13 @@
           <div id="cert-steps-and">
             <ol class="ck">
               <li><span class="ko">위 <b>인증서 다운로드</b> → 다운로드 폴더에 <b>AgentHub.crt</b> 저장</span><span class="en">Tap <b>Download certificate</b> → saved to Downloads as <b>AgentHub.crt</b></span></li>
-              <li><span class="ko">설정 → 보안 → <b>기기 저장공간에서 설치</b>(또는 인증서 설치)</span><span class="en">Settings → Security → <b>Install from device storage</b></span></li>
-              <li><span class="ko"><b>CA 인증서</b> 선택 <i>(VPN·앱 아님)</i></span><span class="en">Choose <b>CA certificate</b> <i>(not VPN &amp; app)</i></span></li>
-              <li><span class="ko">경고 화면에서 <b>계속/설치</b></span><span class="en"><b>Install anyway</b> on the warning</span></li>
-              <li><span class="ko">다운로드 폴더의 <b>AgentHub.crt</b> 선택 → 완료</span><span class="en">Pick <b>AgentHub.crt</b> from Downloads → done</span></li>
+              <li><span class="ko">설정 검색에 <b>기기에 저장된 인증서 설치</b> 입력 → 실행</span><span class="en">Search Settings for <b>Install stored certificate</b> → open it</span></li>
+              <li><span class="ko"><b>CA 인증서</b> 메뉴 선택 <i>(VPN·앱 아님)</i></span><span class="en">Choose <b>CA certificate</b> <i>(not VPN &amp; app)</i></span></li>
+              <li><span class="ko">경고 화면에서 <b>계속 설치</b></span><span class="en"><b>Install anyway</b> on the warning</span></li>
+              <li><span class="ko">다운로드한 <b>AgentHub.crt</b> 파일 선택 → 완료</span><span class="en">Pick the downloaded <b>AgentHub.crt</b> → done</span></li>
             </ol>
-            <div class="note"><span class="ko">⚠️ 다운로드한 파일을 <b>그냥 탭하면</b> “신뢰할 수 있는 기관…” 오류가 납니다. 반드시 위 <b>설정</b> 경로로 설치하세요. (삼성: 설정 → 보안 및 개인정보 → 기타 보안 설정 → 기기 저장공간에서 설치)</span>
-              <span class="en">⚠️ Tapping the file directly shows a "trusted authority" error. You <b>must</b> install via Settings. (Samsung: Settings → Security → More settings → Install from storage)</span></div>
+            <div class="note"><span class="ko">⚠️ 다운로드한 파일을 <b>그냥 탭하면</b> “신뢰할 수 있는 기관…” 오류가 납니다. 반드시 위 <b>설정</b> 경로로 설치하세요. (삼성 기준: 설정 검색 → <b>기기에 저장된 인증서 설치</b> → CA 인증서 → 계속 설치 → 파일 선택. 기종에 따라 “보안 → 기타 보안 설정”에 있을 수도 있어요.)</span>
+              <span class="en">⚠️ Tapping the file directly shows a "trusted authority" error. You <b>must</b> install via Settings. (Samsung: search Settings for <b>Install stored certificate</b> → CA certificate → Install anyway → pick the file. On some models it lives under Security → More security settings.)</span></div>
           </div>
           <div id="cert-steps-ios" style="display:none">
             <ol class="ck">
@@ -460,9 +460,9 @@
   // 인증서 재생기
   var caps={
     and:[
-      {ko:'설정 → 보안에서 “기기 저장공간에서 설치”를 엽니다.',en:'Settings → Security → "Install from device storage".'},
+      {ko:'설정 검색에 “기기에 저장된 인증서 설치”를 입력해 엽니다.',en:'Search Settings for "Install stored certificate".'},
       {ko:'인증서 종류에서 반드시 CA 인증서를 고릅니다.',en:'Choose CA certificate — this is the key step.'},
-      {ko:'“개인정보 보호 안 됨” 경고에서 계속/설치를 누릅니다.',en:'Tap Install anyway on the privacy warning.'},
+      {ko:'“개인정보 보호 안 됨” 경고에서 계속 설치를 누릅니다.',en:'Tap Install anyway on the privacy warning.'},
       {ko:'다운로드한 AgentHub.crt를 선택하면 설치 완료.',en:'Pick AgentHub.crt from Downloads — installed.'}
     ],
     ios:[
