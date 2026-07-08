@@ -85,6 +85,7 @@ function connect() {
 // ---- 세션 리스트 / 상세 활동 피드 ----
 let currentSessionId = null;
 let sessionsById = {};
+let firstActivityRender = false; // 상세 진입 직후 첫 렌더는 무조건 최하단
 
 function renderSessions(sessions) {
   const list = $('#sessionList');
@@ -115,6 +116,7 @@ function cardHtml(s) {
 
 function openDetail(id) {
   currentSessionId = id;
+  firstActivityRender = true;
   document.getElementById('detailTitle').textContent = (sessionsById[id] && sessionsById[id].title) || '';
   $('#activityFeed').innerHTML =
     '<div class="loading"><span class="spinner"></span></div>';
@@ -135,8 +137,14 @@ function renderActivity(sessionId, events) {
   if (sessionId !== currentSessionId) return;
   const feed = $('#activityFeed');
   if (!events || events.length === 0) { feed.innerHTML = '<div class="empty">—</div>'; return; }
+  // 재렌더 전 스크롤 상태 캡처: 최하단 근처(40px 이내)를 보고 있었는지.
+  // 이벤트는 시간순 append라 위쪽 콘텐츠 오프셋은 유지되므로, 위를 보고 있으면 prevTop 복원으로 위치 유지.
+  const atBottom = (feed.scrollHeight - feed.scrollTop - feed.clientHeight) < 40;
+  const prevTop = feed.scrollTop;
   feed.innerHTML = events.map(evHtml).join('');
-  feed.scrollTop = feed.scrollHeight;
+  if (firstActivityRender || atBottom) feed.scrollTop = feed.scrollHeight; // 첫 진입/최하단 → 자동 최하단
+  else feed.scrollTop = prevTop;                                          // 과거 보는 중 → 위치 유지
+  firstActivityRender = false;
 }
 
 function evHtml(e) {
