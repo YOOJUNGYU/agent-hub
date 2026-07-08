@@ -182,7 +182,7 @@ main{padding:1rem 1.2rem}
 .cert-body { padding: 2px 0 12px; }
 .cert-dl { display: inline-block; margin: 4px 0 10px; padding: 9px 16px; background: #7aa2ff; color: #0b0f1a; border-radius: 8px; text-decoration: none; font-weight: 600; }
 .cert-dl:active { background: #6690f0; }
-.cert-help .hint { font-size: 12px; color: #8b93a7; margin: 6px 0; line-height: 1.55; }
+.cert-help .hint { font-size: 12px; color: #8b93a7; margin: 6px 0; line-height: 1.55; white-space: pre-line; }
 
 /* ---- 웹 터미널 (xterm.js) ---- */
 .term-btn { margin: 0 0 10px; padding: 8px 14px; background: #222941; color: #c9d1e4; border: 1px solid #2a3145; border-radius: 8px; cursor: pointer; }
