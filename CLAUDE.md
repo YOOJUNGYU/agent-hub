@@ -74,6 +74,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 프로젝트 개요는 [README.md](./README.md)를 참고. 이 저장소에서 위 원칙을 적용할 때 특히 유의할 점:
 
+- **사용 가이드 동기화(필수)**: 사용자에게 보이는 기능/동작(모바일·PC 콘솔 UI, 인증서·터미널·알림·프롬프트 흐름, 기본값 등)을 추가·변경하면 **같은 작업에서 `docs/index.html` 사용 가이드도 반드시 갱신**한다. 가이드는 GitHub Pages(SignPath homepage)이자 앱 `/guide.html`의 단일 소스다. 기능 변경 PR/커밋에 가이드 갱신이 누락되면 미완성으로 간주한다.
 - **네임스페이스**: 자체 코드의 루트 네임스페이스는 `AgentHub`. 새 코드도 `AgentHub.*`를 따른다.
 - **서드파티 코드**: `EmbedIO/`는 서드파티 라이브러리다. 내부 `EmbedIO` 네임스페이스와 소스는 **수정하지 않는다**(원칙 3: Surgical Changes).
 - **인코딩 주의**: C# 소스와 리소스에 **한글(UTF-8)** 문자열이 포함되어 있다. 문자열 일괄 치환 시 인코딩을 훼손하지 않는 방식(Edit 도구 또는 바이트 단위 처리)을 사용한다. 텍스트를 다른 코드페이지로 재인코딩해 저장하지 말 것.

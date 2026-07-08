@@ -12,6 +12,8 @@
     <div class="server-status">
       <span class="badge" id="statusBadge"><span class="spinner"></span><span data-i18n="server.checking">확인 중…</span></span>
       <a class="server-url" id="serverUrl" target="_blank" rel="noopener"></a>
+    </div>
+    <div class="hdr-right">
       <a class="guide-link" href="/guide.html" target="_blank" rel="noopener" data-i18n="guide.link">📖 사용 안내</a>
       <label class="lang-switch"><span aria-hidden="true">🌐</span>
         <select class="lang-select" data-lang-select aria-label="Language / 언어">
@@ -50,28 +52,33 @@
     </section>
     <section id="settings" class="view">
       <form id="settingsForm" class="settings-form">
-        <label data-i18n="settings.lang">언어 (Language)</label>
-        <select class="lang-select" data-lang-select aria-label="Language / 언어">
-          <option value="ko">한국어</option>
-          <option value="en">English</option>
-        </select>
-        <label for="portInput" data-i18n="settings.portLabel">서버 포트 (1024–65535)</label>
-        <input type="number" id="portInput" min="1024" max="65535" required />
-        <button type="submit" data-i18n="settings.save">저장 후 재시작</button>
-        <p class="hint" id="settingsHint" data-i18n="settings.hint">포트를 바꾸면 서버가 재시작되고 접속 주소가 변경됩니다.</p>
-        <hr />
-        <label class="chk"><input type="checkbox" id="termEnabled" /> <span data-i18n="settings.termEnable">웹 터미널 허용(모바일에서 PC 명령 실행)</span></label>
-        <p class="hint" data-i18n="settings.termWarn">승인된 기기가 이 PC에서 명령을 실행할 수 있게 됩니다. 필요할 때만 켜세요.</p>
-        <label for="termShell" data-i18n="settings.termShell">기본 셸</label>
-        <input type="text" id="termShell" placeholder="cmd.exe" />
-        <label for="termCwd" data-i18n="settings.termCwd">시작 폴더 (비우면 사용자 홈)</label>
-        <input type="text" id="termCwd" placeholder="%USERPROFILE%" />
-        <button type="button" id="termSaveBtn" data-i18n="settings.termSave">터미널 설정 저장</button>
-        <p class="hint" id="termHint"></p>
-        <hr />
-        <label class="chk"><input type="checkbox" id="hookEnabled" /> <span data-i18n="settings.hookEnable">질문 알림 훅 설치 (Claude 입력 대기 시 연결된 폰에 알림)</span></label>
-        <p class="hint" data-i18n="settings.hookNote">설치 시 ~/.claude/settings.json에 항목을 추가합니다(기존 훅 보존, 백업 생성). 앱 업데이트 후 경로가 바뀌면 다시 설치하세요.</p>
-        <p class="hint" id="hookHint"></p>
+        <div class="settings-col">
+          <h3 class="settings-h" data-i18n="settings.general">일반</h3>
+          <label data-i18n="settings.lang">언어 (Language)</label>
+          <select class="lang-select" data-lang-select aria-label="Language / 언어">
+            <option value="ko">한국어</option>
+            <option value="en">English</option>
+          </select>
+          <label for="portInput" data-i18n="settings.portLabel">서버 포트 (1024–65535)</label>
+          <input type="number" id="portInput" min="1024" max="65535" required />
+          <button type="submit" data-i18n="settings.save">저장 후 재시작</button>
+          <p class="hint" id="settingsHint" data-i18n="settings.hint">포트를 바꾸면 서버가 재시작되고 접속 주소가 변경됩니다.</p>
+        </div>
+        <div class="settings-col">
+          <h3 class="settings-h" data-i18n="settings.terminalGroup">터미널 · 알림</h3>
+          <label class="chk"><input type="checkbox" id="termEnabled" /> <span data-i18n="settings.termEnable">웹 터미널 허용(모바일에서 PC 명령 실행)</span></label>
+          <p class="hint" data-i18n="settings.termWarn">승인된 기기가 이 PC에서 명령을 실행할 수 있게 됩니다. 필요할 때만 켜세요.</p>
+          <label for="termShell" data-i18n="settings.termShell">기본 셸</label>
+          <input type="text" id="termShell" placeholder="cmd.exe" />
+          <label for="termCwd" data-i18n="settings.termCwd">시작 폴더 (비우면 사용자 홈)</label>
+          <input type="text" id="termCwd" placeholder="%USERPROFILE%" />
+          <button type="button" id="termSaveBtn" data-i18n="settings.termSave">터미널 설정 저장</button>
+          <p class="hint" id="termHint"></p>
+          <hr />
+          <label class="chk"><input type="checkbox" id="hookEnabled" /> <span data-i18n="settings.hookEnable">질문 알림 훅 설치 (Claude 입력 대기 시 연결된 폰에 알림)</span></label>
+          <p class="hint" data-i18n="settings.hookNote">설치 시 ~/.claude/settings.json에 항목을 추가합니다(기존 훅 보존, 백업 생성). 앱 업데이트 후 경로가 바뀌면 다시 설치하세요.</p>
+          <p class="hint" id="hookHint"></p>
+        </div>
       </form>
     </section>
   </main>

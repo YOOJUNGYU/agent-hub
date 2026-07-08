@@ -181,6 +181,16 @@ namespace AgentHub.Server
             try
             {
                 DeviceRegistry.Load();
+
+                // 질문 알림 훅 기본 설치(최초 1회). 사용자가 이후 제거하면 재설치하지 않음.
+                if (!Properties.Settings.Default.HookAutoInstalled)
+                {
+                    try { if (Hook.HookInstaller.Install()) { /* ok */ } }
+                    catch (Exception ex) { LogService.Instance.Error(ex); }
+                    Properties.Settings.Default.HookAutoInstalled = true;
+                    Properties.Settings.Default.Save();
+                }
+
                 CurrentPort = ResolvePort();
 
                 try
