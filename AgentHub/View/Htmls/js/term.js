@@ -82,17 +82,12 @@
   document.getElementById('termBtn') && document.getElementById('termBtn').addEventListener('click', () => window.openTerminal());
   document.getElementById('termBack') && document.getElementById('termBack').addEventListener('click', () => { if (opened) history.back(); });
 
-  // 하단 입력창 → PTY에 텍스트 + Enter 전송 (모바일에서 xterm 직접 타이핑 대신 편하게 프롬프트/슬래시 명령 입력)
-  function sendPrompt() {
-    const inp = document.getElementById('termPromptInput');
-    if (!inp) return;
-    send({ t: 'i', d: inp.value + '\r' });
-    inp.value = '';
-    if (term) term.focus();
-  }
-  document.getElementById('termPromptSend') && document.getElementById('termPromptSend').addEventListener('click', sendPrompt);
-  document.getElementById('termPromptInput') && document.getElementById('termPromptInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') { e.preventDefault(); sendPrompt(); }
+  // 특수키 버튼 → PTY로 해당 시퀀스 전송 (모바일 키보드로 못 넣는 Esc/Tab/방향키/Ctrl 등)
+  const keys = document.getElementById('termKeys');
+  keys && keys.addEventListener('click', e => {
+    const btn = e.target.closest('.key-btn');
+    if (!btn) return;
+    send({ t: 'i', d: btn.getAttribute('data-seq') });
   });
 
   // 뒤로가기(popstate)로 터미널을 벗어나면 정리 후 목록으로

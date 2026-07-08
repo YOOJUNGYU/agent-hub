@@ -15,23 +15,31 @@ namespace AgentHub.Common.Util
         private static UpdateManager _mgr;
         private static UpdateInfo _pending;
 
-        /// <summary>업데이트 확인 후 조용히 다운로드. 적용 대기 상태가 되면 true.</summary>
-        public static async Task<bool> CheckAndDownloadAsync()
+        /// <summary>업데이트 확인 결과.</summary>
+        public enum CheckResult
+        {
+            UpdateReady, // 새 버전 다운로드 완료 → 재시작 시 적용
+            UpToDate,    // 이미 최신 버전
+            Unavailable  // 개발/미설치 환경이거나 확인 실패
+        }
+
+        /// <summary>업데이트 확인 후 조용히 다운로드. 결과 상태를 반환.</summary>
+        public static async Task<CheckResult> CheckAndDownloadAsync()
         {
             try
             {
                 _mgr = new UpdateManager(new GithubSource(RepoUrl, null, false));
-                if (!_mgr.IsInstalled) return false;          // 개발/미설치 → skip
+                if (!_mgr.IsInstalled) return CheckResult.Unavailable;  // 개발/미설치 → 확인 불가
                 var info = await _mgr.CheckForUpdatesAsync();
-                if (info == null) return false;               // 최신 버전
+                if (info == null) return CheckResult.UpToDate;          // 최신 버전
                 await _mgr.DownloadUpdatesAsync(info);
                 _pending = info;
-                return true;
+                return CheckResult.UpdateReady;
             }
             catch (Exception ex)
             {
                 LogService.Instance.Error(ex);
-                return false;
+                return CheckResult.Unavailable;
             }
         }
 
