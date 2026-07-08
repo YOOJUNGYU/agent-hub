@@ -22,5 +22,6 @@
     <Compile Include="..\AgentHub\Server\Terminal\ConPtySession.cs" Link="Linked\ConPtySession.cs" />
     <Compile Include="..\AgentHub\Server\Terminal\EngineSpec.cs" Link="Linked\EngineSpec.cs" />
     <Compile Include="..\AgentHub\Server\Hook\HookConfigMerger.cs" Link="Linked\HookConfigMerger.cs" />
+    <Compile Include="..\AgentHub\Server\Hook\PermissionRegistry.cs" Link="Linked\PermissionRegistry.cs" />
   </ItemGroup>
 </Project>

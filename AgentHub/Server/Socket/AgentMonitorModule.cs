@@ -70,9 +70,24 @@ namespace AgentHub.Server.Socket
                 {
                     _watching.TryRemove(context.Id, out _);
                 }
+                else if (msg.Type == "permissionDecision")
+                {
+                    // 폰에서 온 권한 결정 → 대기 중인 PreToolUse 훅 해제.
+                    if (!string.IsNullOrEmpty(msg.Id))
+                        AgentHub.Server.Hook.PermissionRegistry.Resolve(msg.Id, msg.Decision);
+                }
                 // 세션 제어(프롬프트/슬래시/답변)는 /ws/session 대화형 터미널에서 수행한다.
             }
             catch (Exception ex) { LogService.Instance.Error(ex); }
+        }
+
+        /// <summary>응답 가능한(승인된) 소켓이 하나라도 연결돼 있는지.</summary>
+        public bool HasApprovedClient()
+        {
+            foreach (var ctx in ActiveContexts)
+                if (_tokens.TryGetValue(ctx.Id, out var h) && DeviceRegistry.StatusByHash(h) == DeviceStatus.Approved)
+                    return true;
+            return false;
         }
 
         /// <summary>변경 발생 시 각 구독 소켓에 해당 세션 활동을 push.</summary>
@@ -146,5 +161,7 @@ namespace AgentHub.Server.Socket
     {
         public string Type { get; set; }
         public string SessionId { get; set; }
+        public string Id { get; set; }        // permissionDecision 대상 id
+        public string Decision { get; set; }  // "allow" | "deny"
     }
 }

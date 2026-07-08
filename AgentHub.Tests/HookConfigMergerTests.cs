@@ -56,5 +56,22 @@ namespace AgentHub.Tests
             Assert.False(HookConfigMerger.IsInstalled("not json", "agenthub-hook.js"));
             Assert.False(HookConfigMerger.IsInstalled("{}", "agenthub-hook.js"));
         }
+
+        [Fact]
+        public void PreToolUse_and_Notification_coexist_and_are_idempotent()
+        {
+            var withNotify = HookConfigMerger.AddHook("{}", "Notification", Entry(), "agenthub-hook.js");
+            var both = HookConfigMerger.AddHook(withNotify, "PreToolUse", Entry(), "agenthub-hook.js");
+            Assert.True(HookConfigMerger.IsInstalled(both, "Notification", "agenthub-hook.js"));
+            Assert.True(HookConfigMerger.IsInstalled(both, "PreToolUse", "agenthub-hook.js"));
+
+            var again = HookConfigMerger.AddHook(both, "PreToolUse", Entry(), "agenthub-hook.js");
+            var arr = (JArray)JObject.Parse(again)["hooks"]["PreToolUse"];
+            Assert.Single(arr); // 중복 추가 안 됨
+
+            var removed = HookConfigMerger.RemoveHook(again, "PreToolUse", "agenthub-hook.js");
+            Assert.False(HookConfigMerger.IsInstalled(removed, "PreToolUse", "agenthub-hook.js"));
+            Assert.True(HookConfigMerger.IsInstalled(removed, "Notification", "agenthub-hook.js")); // Notification 보존
+        }
     }
 }

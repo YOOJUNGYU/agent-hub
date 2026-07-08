@@ -209,6 +209,47 @@ namespace AgentHub.Server.Controller
             await SendJsonAsync(Json.Serialize(new { ok = true }));
         }
 
+        // PreToolUse 훅(블로킹): 위험 도구 권한을 폰에서 원격 승인. {decision:"allow"|"deny"|"ask"} 반환.
+        [Route(HttpVerbs.Post, "/hook/permission")]
+        public async Task HookPermission()
+        {
+            if (!IsLoopback()) { await Forbidden(); return; }
+            var raw = await HttpContext.GetRequestBodyAsStringAsync();
+            var decision = "ask";
+            try
+            {
+                var o = JObject.Parse(raw);
+                var mode = ((string)o["permission_mode"] ?? "").ToLowerInvariant();
+                // default 모드 + 응답할 폰이 연결돼 있을 때만 원격 승인. 아니면 정상 흐름(PC 프롬프트)으로 폴백.
+                if ((mode == "" || mode == "default") && AgentMonitorService.HasApprovedClient())
+                {
+                    var id = Guid.NewGuid().ToString("N");
+                    var tool = (string)o["tool_name"] ?? "";
+                    var detail = ToolDetail(tool, o["tool_input"] as JObject);
+                    var project = LastSegment((string)o["cwd"] ?? "");
+                    AgentMonitorService.BroadcastPermission(id, project, tool, detail, (string)o["session_id"]);
+                    decision = await AgentHub.Server.Hook.PermissionRegistry.AwaitDecision(id, 110000);
+                }
+            }
+            catch (Exception ex) { LogService.Instance.Error(ex); }
+            await SendJsonAsync(Json.Serialize(new { decision }));
+        }
+
+        /// <summary>권한 카드에 보여줄 도구 요약(Bash→명령, 파일 도구→경로).</summary>
+        private static string ToolDetail(string tool, JObject input)
+        {
+            if (input == null) return tool;
+            switch (tool)
+            {
+                case "Bash": return (string)input["command"] ?? tool;
+                case "Write":
+                case "Edit":
+                case "MultiEdit":
+                case "NotebookEdit": return (string)input["file_path"] ?? tool;
+                default: return tool;
+            }
+        }
+
         [Route(HttpVerbs.Get, "/settings")]
         public Task GetSettings()
             => SendJsonAsync(Json.Serialize(new { port = Properties.Settings.Default.ServerPort }));
