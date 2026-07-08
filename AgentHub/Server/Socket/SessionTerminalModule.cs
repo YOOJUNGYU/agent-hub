@@ -9,6 +9,7 @@ using AgentHub.Common.Models;
 using AgentHub.Common.Util;
 using AgentHub.Server.Agents;
 using AgentHub.Server.Devices;
+using AgentHub.Server.Hook;
 using AgentHub.Server.Terminal;
 
 namespace AgentHub.Server.Socket
@@ -131,6 +132,15 @@ namespace AgentHub.Server.Socket
                     await SendTextSafe(context, Json.Serialize(new { type = "denied", reason = "nocwd" }));
                     await CloseAsync(context);
                     return;
+                }
+
+                // 세션을 처음 가져오는 시점: 원본 프로세스(및 쉘 창)를 종료해 중복 writer 충돌을 없앤다.
+                // (훅이 보고한 PID가 있을 때만. 없으면 종전 동작으로 폴백.)
+                if (SessionPidRegistry.TryGet(sessionId, out var origPid))
+                {
+                    try { AgentHub.Common.Util.ProcessKiller.KillSessionOwner(origPid); }
+                    catch (Exception ex) { LogService.Instance.Error(ex); }
+                    SessionPidRegistry.Remove(sessionId); // 곧 우리 resume가 자기 PID로 다시 등록
                 }
 
                 var command = EngineSpec.For("claude").ResumeCommand(sessionId);

@@ -235,6 +235,21 @@ namespace AgentHub.Server.Controller
             await SendJsonAsync(Json.Serialize(new { decision }));
         }
 
+        // 세션↔PID 보고(원본 종료용). 훅이 process.ppid를 보낸다.
+        [Route(HttpVerbs.Post, "/hook/session-pid")]
+        public async Task HookSessionPid()
+        {
+            if (!IsLoopback()) { await Forbidden(); return; }
+            var raw = await HttpContext.GetRequestBodyAsStringAsync();
+            try
+            {
+                var o = JObject.Parse(raw);
+                AgentHub.Server.Hook.SessionPidRegistry.Record((string)o["session_id"], (int?)o["pid"] ?? 0);
+            }
+            catch (Exception ex) { LogService.Instance.Error(ex); }
+            await SendJsonAsync(Json.Serialize(new { ok = true }));
+        }
+
         /// <summary>권한 카드에 보여줄 도구 요약(Bash→명령, 파일 도구→경로).</summary>
         private static string ToolDetail(string tool, JObject input)
         {
