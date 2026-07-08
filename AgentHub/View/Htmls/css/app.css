@@ -217,3 +217,7 @@ body.host-shell #logs.view.active{display:flex; flex-direction:column; overflow:
 .ask-actions button { flex: 1; padding: 8px; border-radius: 8px; border: none; cursor: pointer; }
 #askAnswer { background: #7aa2ff; color: #0b0f1a; font-weight: 600; }
 #askDismiss { background: #2a3145; color: #c9d1e4; }
+
+/* 사용 가이드 링크 */
+.guide-link { display: inline-block; margin: 8px 0 0; font-size: 13px; color: #7aa2ff; text-decoration: none; }
+.cert-help-wrap .guide-link { padding: 4px 0; }
