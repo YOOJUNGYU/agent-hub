@@ -51,6 +51,7 @@ namespace AgentHub.View.Forms
         #endregion
 
         private NotifyIcon _notify;
+        private MenuItem _updateMenuItem;
         private bool _isExiting;
         private bool _updateReady;
         private Panel _loadingOverlay;
@@ -124,17 +125,28 @@ namespace AgentHub.View.Forms
             ShowLoading("화면 불러오는 중…");
             core.Navigate($"{EmbedIOServer.LocalUrl}/host");
 
-            // 백그라운드 자동 업데이트 확인(설치본에서만) → 준비되면 트레이 알림
+            // 백그라운드 자동 업데이트 확인(설치본에서만). 결과에 따라 트레이 메뉴 표시 갱신.
             _ = UpdateService.CheckAndDownloadAsync().ContinueWith(t =>
             {
-                if (t.IsFaulted || !t.Result || IsDisposed) return;
+                if (t.IsFaulted || IsDisposed) return;
+                var result = t.Result;
                 try
                 {
                     BeginInvoke((Action)(() =>
                     {
-                        _updateReady = true;
-                        _notify?.ShowBalloonTip(5000, "Agent Hub",
-                            "새 버전이 준비되었습니다. 재시작 시 적용됩니다.", ToolTipIcon.Info);
+                        if (result == UpdateService.CheckResult.UpdateReady)
+                        {
+                            _updateReady = true;
+                            if (_updateMenuItem != null) { _updateMenuItem.Text = "지금 업데이트 후 재시작"; _updateMenuItem.Enabled = true; }
+                            _notify?.ShowBalloonTip(5000, "Agent Hub",
+                                "새 버전이 준비되었습니다. 재시작 시 적용됩니다.", ToolTipIcon.Info);
+                        }
+                        else if (_updateMenuItem != null)
+                        {
+                            // 최신 버전(UpToDate) 또는 확인 불가(Unavailable) → 재시작 버튼 대신 상태만 표시.
+                            _updateMenuItem.Text = result == UpdateService.CheckResult.UpToDate ? "최신 버전입니다" : "업데이트 확인 불가";
+                            _updateMenuItem.Enabled = false;
+                        }
                     }));
                 }
                 catch (Exception ex) { LogService.Instance.Error(ex); }
@@ -201,7 +213,9 @@ namespace AgentHub.View.Forms
         {
             var menu = new ContextMenu();
             menu.MenuItems.Add(new MenuItem("열기", (s, e) => SetShowWindow(true)));
-            menu.MenuItems.Add(new MenuItem("지금 업데이트 후 재시작", (s, e) => { if (_updateReady) UpdateService.ApplyAndRestart(); }));
+            // 초기: 확인 중. 확인 완료 후 결과에 따라 "지금 업데이트 후 재시작"/"최신 버전입니다"로 갱신.
+            _updateMenuItem = new MenuItem("업데이트 확인 중…", (s, e) => { if (_updateReady) UpdateService.ApplyAndRestart(); }) { Enabled = false };
+            menu.MenuItems.Add(_updateMenuItem);
             menu.MenuItems.Add("-");
             menu.MenuItems.Add(new MenuItem("완전 종료", (s, e) => ExitApplication()));
 

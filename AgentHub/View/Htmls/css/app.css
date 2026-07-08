@@ -224,10 +224,11 @@ body.host-shell #logs.view.active{display:flex; flex-direction:column; overflow:
 #askAnswer { background: #7aa2ff; color: #0b0f1a; font-weight: 600; }
 #askDismiss { background: #2a3145; color: #c9d1e4; }
 
-/* ---- 프롬프트 입력창 (터미널 하단: 텍스트/슬래시 명령을 PTY로 전송) ---- */
-.prompt-bar { display: flex; gap: 8px; padding: 10px 0 0; align-items: center; }
-.prompt-bar input { flex: 1; padding: 10px 12px; font-size: 14px; background: #171a2b; color: #e6e9f2; border: 1px solid #2c3150; border-radius: 10px; }
-.prompt-bar button { padding: 10px 16px; font-size: 14px; font-weight: 600; color: #0b0f1a; background: #7aa2ff; border: 0; border-radius: 10px; cursor: pointer; }
+/* ---- 터미널 특수키 바 (모바일에서 못 넣는 키를 버튼으로) ---- */
+.term-keys { display: flex; gap: 6px; padding: 8px 0 2px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.key-btn { flex: 0 0 auto; min-width: 44px; padding: 9px 12px; font-size: 13px; font-weight: 600;
+  background: #222941; color: #c9d1e4; border: 1px solid #2a3145; border-radius: 8px; cursor: pointer; }
+.key-btn:active { background: #2a3350; }
 
 /* 사용 가이드 링크 */
 .guide-link { display: inline-block; margin: 8px 0 0; font-size: 13px; color: #7aa2ff; text-decoration: none; }
@@ -271,5 +272,5 @@ body:not(.host-shell) #authPending:not([hidden]){ flex:1 1 auto; min-height:0; o
 
 /* 터미널 화면: 헤드/경고/입력창 고정 + xterm이 남은 공간 채움 */
 body:not(.host-shell) #terminal:not([hidden]){ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
-#terminal .detail-head, #terminal .term-warn, #terminal #termPromptBar{ flex:0 0 auto; }
+#terminal .detail-head, #terminal .term-warn, #terminal #termKeys{ flex:0 0 auto; }
 #terminal #termView{ flex:1 1 auto; min-height:0; }
