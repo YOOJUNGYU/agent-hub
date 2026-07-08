@@ -405,16 +405,17 @@
   <div class="wrap">
     <div class="txt">
       <div class="stepno">STEP 05 · <span class="ko">선택</span><span class="en">OPTIONAL</span></div>
-      <h2><span class="ko">터미널 · 질문 알림</span><span class="en">Terminal &amp; question alerts</span></h2>
-      <p><span class="ko">기본으로 켜져 있어(PC 콘솔 설정에서 끌 수 있음) 휴대폰에서 <b>터미널</b>로 claude를 직접 실행하고, Claude가 입력을 기다릴 때 <b>알림</b>을 받아 바로 답할 수 있습니다.</span>
-         <span class="en">On by default (you can turn them off in the PC console): open a <b>terminal</b> to run claude from your phone, and get an <b>alert</b> when Claude is waiting so you can answer right away.</span></p>
+      <h2><span class="ko">프롬프트 · 질문 알림 · 터미널</span><span class="en">Prompt · alerts · terminal</span></h2>
+      <p><span class="ko">승인된 폰에서는 각 세션에 <b>프롬프트</b>를 보내고 Claude의 <b>질문에 옵션으로 답</b>할 수 있습니다(기본 사용 가능). Claude가 입력을 기다리면 <b>알림</b>이 옵니다. 추가로, PC에서 <b>웹 터미널</b>을 켜면(기본 꺼짐) 폰에서 셸을 직접 다룰 수 있습니다.</span>
+         <span class="en">From an approved phone you can send a <b>prompt</b> to each session and <b>answer Claude's questions</b> by tapping an option (available by default). You get an <b>alert</b> when Claude is waiting. Optionally, enable the <b>web terminal</b> on the PC (off by default) to drive a shell directly from the phone.</span></p>
       <ol class="ck">
-        <li><span class="ko">PC 콘솔 설정에서 <b>웹 터미널 허용</b> / <b>질문 알림 훅 설치</b></span><span class="en">In PC settings: <b>Allow web terminal</b> / <b>Install alert hook</b></span></li>
-        <li><span class="ko">폰: <b>🔔 알림 켜기</b> 허용</span><span class="en">Phone: allow <b>🔔 Enable alerts</b></span></li>
-        <li><span class="ko">알림 → <b>답변하기</b> → 터미널에서 y/n·텍스트 입력</span><span class="en">Alert → <b>Answer</b> → type y/n or text in the terminal</span></li>
+        <li><span class="ko">세션 상세 하단 <b>입력창</b>에 프롬프트 입력 → 보내기 (승인 기기면 바로 가능)</span><span class="en">Type in the <b>input box</b> at the bottom of a session → Send (works once the device is approved)</span></li>
+        <li><span class="ko">Claude 질문 시 <b>옵션 버튼</b>을 탭해 답변</span><span class="en">When Claude asks, tap an <b>option button</b> to answer</span></li>
+        <li><span class="ko">알림을 받으려면: PC에서 <b>질문 알림 훅 설치</b>(기본 설치) + 폰에서 <b>🔔 알림 켜기</b></span><span class="en">For alerts: <b>Install alert hook</b> on the PC (installed by default) + <b>🔔 Enable alerts</b> on the phone</span></li>
+        <li><span class="ko">셸이 필요하면 PC 설정에서 <b>웹 터미널 허용</b>(기본 꺼짐)</span><span class="en">For a shell, enable <b>Allow web terminal</b> in PC settings (off by default)</span></li>
       </ol>
-      <div class="note"><span class="ko">⚠️ 터미널은 PC에서 실제 명령을 실행합니다. 신뢰하는 상황에서만 켜세요. 모든 통신은 집/회사 네트워크(LAN) 안에서만 오갑니다.</span>
-        <span class="en">⚠️ The terminal runs real commands on the PC — enable only when you trust it. All traffic stays inside your local network.</span></div>
+      <div class="note"><span class="ko">⚠️ 프롬프트·터미널은 PC에서 실제 명령을 실행합니다(승인된 기기만). 웹 터미널(셸)은 기본 꺼짐이며 필요할 때만 켜세요. 모든 통신은 집/회사 네트워크(LAN) 안에서만 오갑니다.</span>
+        <span class="en">⚠️ Prompts and the terminal run real commands on the PC (approved devices only). The web terminal (shell) is off by default — enable it only when needed. All traffic stays inside your local network.</span></div>
     </div>
     <div>
       <div class="phone" aria-hidden="true"><div class="screen">

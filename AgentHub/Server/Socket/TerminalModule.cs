@@ -77,7 +77,8 @@ namespace AgentHub.Server.Socket
             _byToken.Clear();
             _ctxToken.Clear();
             _sendLocks.Clear();
-            ManagedSessionRegistry.DisposeAll();
+            // 관리 세션(프롬프트 워크플로)은 웹 터미널 토글과 독립이므로 여기서 정리하지 않는다.
+            // (서버 정지 시 EmbedIOServer.StopServer에서 ManagedSessionRegistry.DisposeAll 호출.)
         }
 
         protected override async Task OnClientConnectedAsync(IWebSocketContext context)
