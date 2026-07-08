@@ -46,6 +46,7 @@ namespace AgentHub.Server.Socket
                 _tokens.TryRemove(kv.Key, out _);
             }
             _sessions.Clear();
+            ManagedSessionRegistry.DisposeAll();
         }
 
         protected override async Task OnClientConnectedAsync(IWebSocketContext context)
