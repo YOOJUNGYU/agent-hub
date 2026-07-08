@@ -15,6 +15,8 @@
   <header class="app-header">
     <div class="brand"><span class="logo">◈</span> Agent Hub</div>
     <div class="server-status">
+      <button id="installBtn" class="hdr-btn install" hidden data-i18n="pwa.install">⬇ 앱 설치</button>
+      <button id="certBtn" class="hdr-btn" data-i18n="cert.hdr" aria-haspopup="true" aria-expanded="false">🔒 인증서</button>
       <span class="badge" id="wsBadge"><span class="spinner"></span><span data-i18n="ws.connecting">연결 중…</span></span>
       <label class="lang-switch"><span aria-hidden="true">🌐</span>
         <select class="lang-select" data-lang-select aria-label="Language / 언어">
@@ -22,6 +24,14 @@
           <option value="en">English</option>
         </select>
       </label>
+    </div>
+    <div id="certPanel" class="cert-panel" hidden>
+      <p class="cert-panel-title" data-i18n="cert.summary">📱 인증서 설치 (PWA 설치 · 보안경고 제거)</p>
+      <a class="cert-dl" href="/api/cert" data-i18n="cert.download">인증서 다운로드</a>
+      <p class="hint" data-i18n="cert.android">Android: …</p>
+      <p class="hint" data-i18n="cert.ios">iOS: …</p>
+      <p class="hint" id="iosInstallHint" hidden data-i18n="pwa.iosHint">iOS: 공유 버튼 → “홈 화면에 추가”로 앱으로 설치하세요.</p>
+      <p class="hint" data-i18n="cert.note">설치 후 새로고침하면 보안경고 없이 접속되고 홈 화면 추가(PWA 설치)가 가능합니다.</p>
     </div>
   </header>
   <main>
@@ -83,15 +93,6 @@
     </section>
   </main>
   <footer class="cert-help-wrap">
-    <details class="cert-help">
-      <summary data-i18n="cert.summary">📱 인증서 설치 (PWA 설치 · 보안경고 제거)</summary>
-      <div class="cert-body">
-        <a class="cert-dl" href="/api/cert" data-i18n="cert.download">인증서 다운로드</a>
-        <p class="hint" data-i18n="cert.ios">iOS: 다운로드 → 설정 앱의 “프로파일 다운로드됨” 열기 → 설치 → 설정 › 일반 › 정보 › 인증서 신뢰 설정에서 AgentHub 신뢰 켜기</p>
-        <p class="hint" data-i18n="cert.android">Android: 다운로드 → CA 인증서로 설치 (설정 › 보안 › 인증서 설치 › CA 인증서)</p>
-        <p class="hint" data-i18n="cert.note">설치 후 새로고침하면 보안경고 없이 접속되고 홈 화면 추가(PWA 설치)가 가능합니다. iOS에서 설치 후에도 접속이 안 되면 인증서 유효기간 때문일 수 있습니다.</p>
-      </div>
-    </details>
     <a class="guide-link" href="/guide.html" target="_blank" rel="noopener" data-i18n="guide.link">📖 사용법 보기</a>
   </footer>
   <script src="/js/xterm.js"></script>

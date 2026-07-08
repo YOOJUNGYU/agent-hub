@@ -221,3 +221,17 @@ body.host-shell #logs.view.active{display:flex; flex-direction:column; overflow:
 /* 사용 가이드 링크 */
 .guide-link { display: inline-block; margin: 8px 0 0; font-size: 13px; color: #7aa2ff; text-decoration: none; }
 .cert-help-wrap .guide-link { padding: 4px 0; }
+
+/* 헤더 인증서/설치 버튼 + 인증서 패널 */
+.hdr-btn { background:#222941; color:#c9d1e4; border:1px solid #2a3145; border-radius:8px;
+  padding:5px 9px; font-size:12px; cursor:pointer; white-space:nowrap; }
+.hdr-btn:active { background:#2a3350; }
+.hdr-btn.install { background:#7aa2ff; color:#0b0f1a; border-color:#7aa2ff; font-weight:700; }
+.app-header { position:relative; }
+.cert-panel { position:absolute; top:calc(100% + 6px); right:12px; z-index:30;
+  width:min(340px, 92vw); background:#171b28; border:1px solid #2a3145; border-radius:12px;
+  padding:12px 14px; box-shadow:0 20px 50px -20px rgba(0,0,0,.75); }
+.cert-panel-title { font-weight:600; font-size:13px; margin:0 0 10px; color:#e6e9f2; }
+.cert-panel .cert-dl { display:inline-block; margin:0 0 10px; padding:9px 16px; background:#7aa2ff;
+  color:#0b0f1a; border-radius:8px; text-decoration:none; font-weight:700; }
+.cert-panel .hint { font-size:12px; color:#8b93a7; margin:6px 0; line-height:1.55; white-space:pre-line; }
