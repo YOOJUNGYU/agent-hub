@@ -284,6 +284,9 @@
     <Content Include="View\Htmls\js\term.js">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="hook\agenthub-hook.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\EmbedIO\EmbedIO.csproj">

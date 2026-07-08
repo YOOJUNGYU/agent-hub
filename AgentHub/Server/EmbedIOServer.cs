@@ -183,6 +183,14 @@ namespace AgentHub.Server
                 DeviceRegistry.Load();
                 CurrentPort = ResolvePort();
 
+                try
+                {
+                    var hookDir = Path.Combine(Application.StartupPath, "hook");
+                    if (!Directory.Exists(hookDir)) Directory.CreateDirectory(hookDir);
+                    File.WriteAllText(Path.Combine(hookDir, "endpoint.txt"), CurrentPort.ToString());
+                }
+                catch (Exception ex) { LogService.Instance.Error(ex); }
+
                 var privateIps = GetPrivateIPv4List();
                 CurrentHost = privateIps.Count > 0 ? privateIps[0] : "127.0.0.1";
 
