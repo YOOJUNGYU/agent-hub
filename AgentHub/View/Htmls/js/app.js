@@ -75,8 +75,9 @@ function connect() {
     try {
       const m = JSON.parse(ev.data);
       if (m.type === 'auth') applyAuth(m.status);
-      else if (m.type === 'sessions') { renderSessions(m.sessions); if (currentSessionId === null && document.getElementById('terminal').hidden) { showScreen('monitor'); if (window.refreshTermButton) window.refreshTermButton(); } }
+      else if (m.type === 'sessions') { renderSessions(m.sessions); if (currentSessionId === null && document.getElementById('terminal').hidden) { showScreen('monitor'); if (window.refreshTermButton) window.refreshTermButton(); refreshNotifyBtn(); } }
       else if (m.type === 'activity') { renderActivity(m.sessionId, m.events); }
+      else if (m.type === 'ask') { handleAsk(m); }
     } catch (e) { /* ignore malformed */ }
   };
 }
@@ -157,6 +158,46 @@ function rel(iso) {
   if (s < 86400) return Math.floor(s/3600) + 'h'; return Math.floor(s/86400) + 'd';
 }
 
+// ---- 알림 권한 ----
+function refreshNotifyBtn() {
+  const b = document.getElementById('notifyBtn');
+  if (!b || !('Notification' in window)) { if (b) b.hidden = true; return; }
+  b.hidden = (Notification.permission === 'granted');
+}
+document.getElementById('notifyBtn') && document.getElementById('notifyBtn').addEventListener('click', async () => {
+  if (!('Notification' in window)) return;
+  try { await Notification.requestPermission(); } catch (_) {}
+  refreshNotifyBtn();
+});
+
+// ---- ask 배너(질문 알림) ----
+let lastAsk = null;
+function handleAsk(m) {
+  lastAsk = m;
+  if (('Notification' in window) && Notification.permission === 'granted') {
+    var title = t('ask.title');
+    var opts = { body: (m.project ? '[' + m.project + '] ' : '') + (m.message || ''), tag: m.sessionId || 'ask' };
+    if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+      navigator.serviceWorker.ready
+        .then(function (reg) { return reg.showNotification(title, opts); })
+        .catch(function () { try { new Notification(title, opts); } catch (e) {} });
+    } else {
+      try { new Notification(title, opts); } catch (e) {}
+    }
+  }
+  const banner = document.getElementById('askBanner');
+  document.getElementById('askProject').textContent = m.project || '';
+  document.getElementById('askMsg').textContent = m.message || '';
+  banner.hidden = false;
+}
+document.getElementById('askAnswer') && document.getElementById('askAnswer').addEventListener('click', () => {
+  document.getElementById('askBanner').hidden = true;
+  if (window.openTerminal) window.openTerminal();
+});
+document.getElementById('askDismiss') && document.getElementById('askDismiss').addEventListener('click', () => {
+  document.getElementById('askBanner').hidden = true;
+});
+
 // ---- 언어 변경 시 동적 콘텐츠 재렌더 ----
 document.addEventListener('i18n:changed', () => {
   setBadge(wsConnected);
@@ -174,6 +215,7 @@ window.addEventListener('popstate', () => {
 
 showScreen('authPending'); // 최초: WS 응답 전까지 대기 표시
 connect();
+refreshNotifyBtn();
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});

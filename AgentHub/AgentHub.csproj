@@ -143,6 +143,8 @@
     <Compile Include="Server\Terminal\ConPtyInterop.cs" />
     <Compile Include="Server\Terminal\ConPtySession.cs" />
     <Compile Include="Server\Terminal\TerminalGate.cs" />
+    <Compile Include="Server\Hook\HookConfigMerger.cs" />
+    <Compile Include="Server\Hook\HookInstaller.cs" />
     <Compile Include="View\Forms\FormToast.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -281,6 +283,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="View\Htmls\js\term.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="hook\agenthub-hook.js">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
