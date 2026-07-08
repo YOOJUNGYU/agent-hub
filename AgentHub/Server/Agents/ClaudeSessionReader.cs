@@ -60,7 +60,6 @@ namespace AgentHub.Server.Agents
                     _paths[id] = fi.FullName;
                     var lines = ReadAllLinesShared(fi.FullName);
                     var s = TranscriptParser.Summarize(id, lines, now);
-                    s.Managed = AgentHub.Server.Terminal.ManagedSessionRegistry.IsManaged(s.Id);
                     s.PendingAsk = TranscriptParser.ExtractPendingAsk(lines);
                     result.Add(s);
                 }
