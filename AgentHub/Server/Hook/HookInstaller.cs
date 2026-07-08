@@ -32,7 +32,8 @@ namespace AgentHub.Server.Hook
                 // 수동 설치 동작이라 best-effort로 감수한다(락 없음).
                 var existing = ReadSettings();
                 if (!IsWritable(existing)) return false;
-                var entry = new JObject
+                // Notification: 알림용(fire-and-forget, async).
+                var notifyEntry = new JObject
                 {
                     ["matcher"] = "",
                     ["hooks"] = new JArray { new JObject
@@ -44,7 +45,20 @@ namespace AgentHub.Server.Hook
                         ["timeout"] = 5
                     }}
                 };
-                var merged = HookConfigMerger.AddNotificationHook(existing, entry, Marker);
+                // PreToolUse: 위험 도구(파일/셸)의 권한을 폰에서 원격 승인. 블로킹(동기) — 결정을 반환해야 함.
+                var permEntry = new JObject
+                {
+                    ["matcher"] = "Bash|Write|Edit|MultiEdit|NotebookEdit",
+                    ["hooks"] = new JArray { new JObject
+                    {
+                        ["type"] = "command",
+                        ["command"] = ResolveNode(),
+                        ["args"] = new JArray { ScriptPath },
+                        ["timeout"] = 120
+                    }}
+                };
+                var merged = HookConfigMerger.AddHook(existing, "Notification", notifyEntry, Marker);
+                merged = HookConfigMerger.AddHook(merged, "PreToolUse", permEntry, Marker);
                 WriteSettingsWithBackup(merged);
                 return true;
             }
@@ -58,7 +72,8 @@ namespace AgentHub.Server.Hook
                 // Install()과 동일한 lost-update 가능성에 대한 주의 사항 참고.
                 var existing = ReadSettings();
                 if (!IsWritable(existing)) return false;
-                var removed = HookConfigMerger.RemoveNotificationHook(existing, Marker);
+                var removed = HookConfigMerger.RemoveHook(existing, "Notification", Marker);
+                removed = HookConfigMerger.RemoveHook(removed, "PreToolUse", Marker);
                 WriteSettingsWithBackup(removed);
                 return true;
             }

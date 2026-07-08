@@ -81,6 +81,7 @@ function connect() {
       }
       else if (m.type === 'activity') { renderActivity(m.sessionId, m.events); }
       else if (m.type === 'ask') { handleAsk(m); }
+      else if (m.type === 'permission') { handlePermission(m); }
     } catch (e) { /* ignore malformed */ }
   };
 }
@@ -215,6 +216,30 @@ document.getElementById('askAnswer') && document.getElementById('askAnswer').add
 document.getElementById('askDismiss') && document.getElementById('askDismiss').addEventListener('click', () => {
   document.getElementById('askBanner').hidden = true;
 });
+
+// ---- 권한 요청(PreToolUse) 원격 승인 ----
+let currentPermId = null;
+function handlePermission(m) {
+  currentPermId = m.id;
+  if (('Notification' in window) && Notification.permission === 'granted') {
+    var title = t('perm.title');
+    var opts = { body: (m.project ? '[' + m.project + '] ' : '') + (m.detail || m.tool || ''), tag: 'perm-' + m.id, requireInteraction: true };
+    if (navigator.serviceWorker && navigator.serviceWorker.ready)
+      navigator.serviceWorker.ready.then(function (r) { return r.showNotification(title, opts); }).catch(function () { try { new Notification(title, opts); } catch (e) {} });
+    else try { new Notification(title, opts); } catch (e) {}
+  }
+  document.getElementById('permProject').textContent = m.project || '';
+  document.getElementById('permTool').textContent = m.tool || '';
+  document.getElementById('permDetail').textContent = m.detail || '';
+  document.getElementById('permBanner').hidden = false;
+}
+function sendPermission(decision) {
+  if (currentPermId) send({ type: 'permissionDecision', id: currentPermId, decision });
+  currentPermId = null;
+  document.getElementById('permBanner').hidden = true;
+}
+document.getElementById('permAllow') && document.getElementById('permAllow').addEventListener('click', () => sendPermission('allow'));
+document.getElementById('permDeny') && document.getElementById('permDeny').addEventListener('click', () => sendPermission('deny'));
 
 // ---- 언어 변경 시 동적 콘텐츠 재렌더 ----
 document.addEventListener('i18n:changed', () => {
