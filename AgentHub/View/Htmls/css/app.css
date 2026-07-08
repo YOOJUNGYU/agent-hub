@@ -252,3 +252,28 @@ body.host-shell #logs.view.active{display:flex; flex-direction:column; overflow:
 .cert-panel .hint { font-size:12px; color:#8b93a7; margin:6px 0; line-height:1.55; white-space:pre-line; }
 
 a.hdr-btn { text-decoration: none; }
+
+/* ===== 모바일(PWA) 뷰포트 채움 레이아웃 (host 콘솔 제외) ===== */
+body:not(.host-shell){ height:100vh; height:100dvh; display:flex; flex-direction:column; overflow:hidden; }
+body:not(.host-shell) > .app-header{ flex:0 0 auto; }
+body:not(.host-shell) main{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+body:not(.host-shell) #askBanner{ flex:0 0 auto; }
+
+/* 모니터: 스크롤 컨테이너 + '새 세션' 하단(짧으면 카드 아래, 길면 sticky) */
+body:not(.host-shell) #monitor:not([hidden]){ flex:1 1 auto; min-height:0; display:block; overflow-y:auto; }
+.monitor-top{ display:flex; gap:8px; flex-wrap:wrap; }
+.new-session-btn{ position:sticky; bottom:0; width:100%; margin:12px 0 0; padding:13px;
+  background:#7aa2ff; color:#0b0f1a; font-weight:700; font-size:15px; border:0; border-radius:12px; cursor:pointer;
+  box-shadow:0 -8px 16px -8px rgba(0,0,0,.5); }
+.new-session-btn[hidden]{ display:none; }
+
+/* 상세: 헤드 고정 + 피드 스크롤(flex:1) + 입력창/옵션 하단 고정 */
+body:not(.host-shell) #detail:not([hidden]){ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+#detail .detail-head{ flex:0 0 auto; }
+#detail .activity-feed{ flex:1 1 auto; min-height:0; overflow-y:auto; }
+#detail #askBox, #detail #promptBar, #detail #externalNote{ flex:0 0 auto; }
+
+/* 인증/터미널 화면은 스크롤 허용 */
+body:not(.host-shell) #authRequest:not([hidden]),
+body:not(.host-shell) #authPending:not([hidden]),
+body:not(.host-shell) #terminal:not([hidden]){ flex:1 1 auto; min-height:0; overflow-y:auto; }
