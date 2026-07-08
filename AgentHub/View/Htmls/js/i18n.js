@@ -54,6 +54,8 @@
       'settings.termShell': '기본 셸',
       'settings.termCwd': '시작 폴더 (비우면 사용자 홈)',
       'settings.termSave': '터미널 설정 저장',
+      'settings.hookEnable': '질문 알림 훅 설치 (Claude 입력 대기 시 연결된 폰에 알림)',
+      'settings.hookNote': '설치 시 ~/.claude/settings.json에 항목을 추가합니다(기존 훅 보존, 백업 생성). 앱 업데이트 후 경로가 바뀌면 다시 설치하세요.',
       // 모바일 — WebSocket 상태
       'ws.connecting': '연결 중…',
       'ws.connected': '🟢 실시간 연결됨',
@@ -134,6 +136,8 @@
       'settings.termShell': 'Default shell',
       'settings.termCwd': 'Start folder (leave empty to use user home)',
       'settings.termSave': 'Save terminal settings',
+      'settings.hookEnable': 'Install question notify hook (notify connected phone when Claude waits for input)',
+      'settings.hookNote': 'When installed, an item will be added to ~/.claude/settings.json (existing hooks are preserved, a backup is created). If the path changes after an app update, reinstall.',
       'ws.connecting': 'Connecting…',
       'ws.connected': '🟢 Live',
       'ws.disconnected': '🔴 Disconnected',

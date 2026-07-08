@@ -219,6 +219,7 @@ async function loadSettings() {
     $('#termShell').value = c.shell || '';
     $('#termCwd').value = c.workingDir || '';
   } catch (e) { /* noop */ }
+  try { const h = await (await fetch('/api/hook/status')).json(); $('#hookEnabled').checked = !!h.installed; } catch (e) { /* ignore */ }
 }
 $('#settingsForm').addEventListener('submit', async e => {
   e.preventDefault();
@@ -247,6 +248,16 @@ $('#termSaveBtn').addEventListener('click', async () => {
     })).json();
     hint.textContent = res.ok ? t('settings.saved').replace('{url}', '') : (t('settings.error'));
   } catch (e) { hint.textContent = t('settings.reqFail') + e.message; }
+});
+$('#hookEnabled').addEventListener('change', async () => {
+  const hint = $('#hookHint');
+  hint.textContent = t('settings.saving');
+  try {
+    const url = $('#hookEnabled').checked ? '/api/hook/install' : '/api/hook/uninstall';
+    const res = await (await fetch(url, { method: 'POST' })).json();
+    hint.textContent = res.ok ? t('settings.saved').replace('{url}', '') : t('settings.error');
+    if (!res.ok) $('#hookEnabled').checked = !$('#hookEnabled').checked;
+  } catch (e) { hint.textContent = t('settings.reqFail') + e.message; $('#hookEnabled').checked = !$('#hookEnabled').checked; }
 });
 
 // ---- 언어 변경 시 동적 콘텐츠 재렌더 ----
