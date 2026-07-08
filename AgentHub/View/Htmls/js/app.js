@@ -228,3 +228,59 @@ refreshNotifyBtn();
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
+
+// ---- 인증서 메뉴(헤더) + PWA 설치 유도 ----
+(function () {
+  var isStandalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  var certBtn = document.getElementById('certBtn');
+  var certPanel = document.getElementById('certPanel');
+  var installBtn = document.getElementById('installBtn');
+
+  // 이미 앱(PWA)으로 설치·실행 중이면 인증서/설치 유도 숨김 (인증서는 이미 신뢰됨)
+  if (isStandalone) {
+    if (certBtn) certBtn.hidden = true;
+    if (installBtn) installBtn.hidden = true;
+    if (certPanel) certPanel.hidden = true;
+    return;
+  }
+
+  // 인증서 메뉴 토글(헤더 드롭다운)
+  if (certBtn && certPanel) {
+    certBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var open = certPanel.hidden;
+      certPanel.hidden = !open;
+      certBtn.setAttribute('aria-expanded', String(open));
+    });
+    document.addEventListener('click', function (e) {
+      if (!certPanel.hidden && !certPanel.contains(e.target) && e.target !== certBtn) {
+        certPanel.hidden = true; certBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
+
+  // PWA 설치 유도: 브라우저로 접속했을 때만
+  var deferred = null;
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault(); deferred = e; if (installBtn) installBtn.hidden = false;
+  });
+  if (installBtn) installBtn.addEventListener('click', async function () {
+    if (deferred) {
+      deferred.prompt();
+      try { await deferred.userChoice; } catch (_) {}
+      deferred = null; installBtn.hidden = true;
+    } else if (certPanel) {
+      // iOS 등 beforeinstallprompt 미지원 → 안내 노출
+      certPanel.hidden = false;
+      var h = document.getElementById('iosInstallHint'); if (h) h.hidden = false;
+    }
+  });
+  window.addEventListener('appinstalled', function () {
+    if (installBtn) installBtn.hidden = true;
+    if (certBtn) certBtn.hidden = true;
+    if (certPanel) certPanel.hidden = true;
+  });
+  // iOS Safari는 beforeinstallprompt가 없으므로 설치 버튼을 노출해 A2HS 안내로 유도
+  if (isIOS && installBtn) installBtn.hidden = false;
+})();
