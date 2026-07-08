@@ -11,10 +11,6 @@ html{
 }
 body{
   margin:0;
-  min-height:100vh;
-  min-height:100dvh;
-  display:flex;
-  flex-direction:column;
 }
 
 /* ===== Scrollbars (slim, theme-matched) — 전역 통일 ===== */
@@ -28,12 +24,19 @@ body{
   font-family:'Malgun Gothic','맑은 고딕','Segoe UI',system-ui,sans-serif;
   background:var(--bg); color:var(--fore); -webkit-text-size-adjust:100%;
 }
+body.host-shell{
+  height:100vh;
+  height:100dvh;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
 
 /* ===== Header ===== */
 .app-header{
   display:flex; flex-wrap:wrap; gap:.5rem 1rem; align-items:center; justify-content:start;
   padding:.9rem 1.2rem; background:linear-gradient(90deg,#181c2a,#22284a);
-  border-bottom:1px solid var(--border); position:sticky; top:0; z-index:3;
+  border-bottom:1px solid var(--border); flex:0 0 auto; z-index:3;
 }
 .server-status{display:flex; align-items:center; gap:.6rem; flex-wrap:wrap}
 .badge{padding:.28rem .7rem; border-radius:999px; font-size:.85rem; background:var(--panel2); border:1px solid var(--border); white-space:nowrap}
@@ -43,13 +46,15 @@ body{
 .server-url:hover{text-decoration:underline}
 
 /* ===== Tabs ===== */
-.tabs{display:flex; gap:.25rem; padding:.5rem .8rem; background:var(--panel); border-bottom:1px solid var(--border); position:sticky; top:56px; z-index:2}
+.tabs{display:flex; gap:.25rem; padding:.5rem .8rem; background:var(--panel); border-bottom:1px solid var(--border); flex:0 0 auto; z-index:2}
 .tab{flex:0 0 auto; background:transparent; border:none; color:var(--muted); padding:.6rem 1rem; border-radius:10px; font-size:1rem; cursor:pointer}
 .tab.active{color:var(--fore); background:var(--panel2)}
 
-main{flex:1 1 auto; min-height:0; display:flex; flex-direction:column; padding:1rem 1.2rem}
+body.host-shell main{flex:1 1 auto; min-height:0; display:flex; flex-direction:column; overflow:hidden; padding:1rem 1.2rem}
+main{padding:1rem 1.2rem}
 .view{display:none; min-height:0}
-.view.active{display:block; flex:1 1 auto}
+.view.active{display:block}
+body.host-shell .view.active{flex:1 1 auto; overflow:auto}
 
 /* ===== Summary stats ===== */
 .summary{display:flex; gap:.8rem; flex-wrap:wrap; margin-bottom:1rem}
@@ -77,8 +82,11 @@ main{flex:1 1 auto; min-height:0; display:flex; flex-direction:column; padding:1
 .tbl td.ua{color:var(--muted); word-break:break-all; max-width:420px}
 
 /* ===== Logs ===== */
-#logs.view.active{display:flex; flex-direction:column}
-.log-list{flex:1 1 auto; min-height:0; font-family:Consolas,'D2Coding',monospace; font-size:.82rem; background:#0d0f17; border:1px solid var(--border); border-radius:var(--radius); padding:.8rem; overflow:auto; white-space:pre-wrap}
+body.host-shell #logs.view.active{display:flex; flex-direction:column; overflow:hidden}
+.log-list{position:relative; flex:1 1 auto; min-height:0; font-family:Consolas,'D2Coding',monospace; font-size:.82rem; line-height:1.45; background:#0d0f17; border:1px solid var(--border); border-radius:var(--radius); padding:.8rem; overflow:auto; white-space:pre-wrap}
+.log-virtual-spacer{position:relative; width:100%}
+.log-virtual-window{position:absolute; left:0; right:0; top:0}
+.log-line{min-height:1.45em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 
 /* ===== Settings form ===== */
 .settings-form{display:flex; flex-direction:column; gap:.7rem; max-width:420px}
@@ -104,7 +112,6 @@ main{flex:1 1 auto; min-height:0; display:flex; flex-direction:column; padding:1
 /* ===== Responsive ===== */
 @media (max-width:600px){
   .app-header{flex-direction:column; align-items:flex-start; gap:.4rem}
-  .tabs{top:88px}
   main{padding:.8rem}
   .agent-grid{grid-template-columns:1fr}
   .tab{flex:1 1 0; text-align:center}

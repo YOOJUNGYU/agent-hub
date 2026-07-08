@@ -9,12 +9,20 @@ const fmtTime = iso => { try { return new Date(iso).toLocaleString(); } catch (e
 // 마지막 데이터(언어 변경 시 재렌더용)
 let lastClients = null, lastClientCount = null, lastDevices = null;
 
+const LOG_MAX_ENTRIES = 10000;
+const LOG_OVERSCAN = 16;
+let logStore = [];
+let logRenderQueued = false;
+let logStickToBottom = true;
+let logResizeObserver = null;
+
 // ---- 탭 ----
 $$('.tab').forEach(btn => btn.addEventListener('click', () => {
   $$('.tab').forEach(b => b.classList.remove('active'));
   $$('.view').forEach(v => v.classList.remove('active'));
   btn.classList.add('active');
   $('#' + btn.dataset.view).classList.add('active');
+  if (btn.dataset.view === 'logs') scheduleLogRender(logStickToBottom);
 }));
 
 // ---- 서버 상태 + 접속 URL ----
@@ -112,15 +120,93 @@ function connect() {
 }
 
 // ---- 로그 (FormMain이 window.addLog로 push) ----
-window.addLog = function (evt) {
+function getLogViewport() {
   const el = $('#logList');
-  if (!el) return;
-  const line = document.createElement('div');
+  if (!el) return null;
+  if (!el._virtualLogReady) {
+    el.innerHTML = '<div class="log-virtual-spacer"><div class="log-virtual-window"></div></div>';
+    el._virtualLogReady = true;
+    el._logSpacer = $('.log-virtual-spacer', el);
+    el._logWindow = $('.log-virtual-window', el);
+    el.addEventListener('scroll', () => {
+      logStickToBottom = isLogAtBottom(el);
+      scheduleLogRender(false);
+    });
+    if ('ResizeObserver' in window) {
+      logResizeObserver = new ResizeObserver(() => scheduleLogRender(logStickToBottom));
+      logResizeObserver.observe(el);
+    } else {
+      window.addEventListener('resize', () => scheduleLogRender(logStickToBottom));
+    }
+  }
+  return { el, spacer: el._logSpacer, win: el._logWindow };
+}
+
+function getLogRowHeight(el) {
+  const style = getComputedStyle(el);
+  const lineHeight = parseFloat(style.lineHeight);
+  const fontSize = parseFloat(style.fontSize);
+  return Math.max(16, Number.isFinite(lineHeight) ? lineHeight : fontSize * 1.45);
+}
+
+function isLogAtBottom(el) {
+  return el.scrollTop + el.clientHeight >= el.scrollHeight - getLogRowHeight(el) * 2;
+}
+
+function scheduleLogRender(scrollToBottom) {
+  if (scrollToBottom) logStickToBottom = true;
+  if (logRenderQueued) return;
+  logRenderQueued = true;
+  requestAnimationFrame(renderLogs);
+}
+
+function renderLogs() {
+  logRenderQueued = false;
+  const viewport = getLogViewport();
+  if (!viewport) return;
+
+  const { el, spacer, win } = viewport;
+  const rowHeight = getLogRowHeight(el);
+  const total = logStore.length;
+  const totalHeight = total * rowHeight;
+  const start = Math.max(0, Math.floor(el.scrollTop / rowHeight) - LOG_OVERSCAN);
+  const visibleRows = Math.ceil(el.clientHeight / rowHeight) + LOG_OVERSCAN * 2;
+  const end = Math.min(total, start + visibleRows);
+  const frag = document.createDocumentFragment();
+
+  spacer.style.height = totalHeight + 'px';
+  win.style.transform = `translateY(${start * rowHeight}px)`;
+
+  for (let i = start; i < end; i++) {
+    const line = document.createElement('div');
+    line.className = 'log-line';
+    line.textContent = logStore[i];
+    line.title = logStore[i];
+    frag.appendChild(line);
+  }
+
+  win.replaceChildren(frag);
+  if (logStickToBottom) {
+    el.scrollTop = el.scrollHeight;
+  }
+}
+
+window.addLog = function (evt) {
+  const viewport = getLogViewport();
+  const el = viewport && viewport.el;
+  const wasAtBottom = !el || isLogAtBottom(el);
   const msg = typeof evt === 'string' ? evt : (evt && evt.Message) || JSON.stringify(evt);
-  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-  el.appendChild(line);
-  el.scrollTop = el.scrollHeight;
-  while (el.childNodes.length > 500) el.removeChild(el.firstChild);
+  logStore.push(`[${new Date().toLocaleTimeString()}] ${msg}`);
+
+  if (logStore.length > LOG_MAX_ENTRIES) {
+    const removed = logStore.length - LOG_MAX_ENTRIES;
+    logStore.splice(0, removed);
+    if (el && !wasAtBottom) {
+      el.scrollTop = Math.max(0, el.scrollTop - removed * getLogRowHeight(el));
+    }
+  }
+
+  scheduleLogRender(wasAtBottom);
 };
 
 // ---- 설정(포트) ----
