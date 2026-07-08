@@ -20,6 +20,7 @@
     <Compile Include="..\AgentHub\Server\Terminal\TerminalGate.cs" Link="Linked\TerminalGate.cs" />
     <Compile Include="..\AgentHub\Server\Terminal\ConPtyInterop.cs" Link="Linked\ConPtyInterop.cs" />
     <Compile Include="..\AgentHub\Server\Terminal\ConPtySession.cs" Link="Linked\ConPtySession.cs" />
+    <Compile Include="..\AgentHub\Server\Terminal\EngineSpec.cs" Link="Linked\EngineSpec.cs" />
     <Compile Include="..\AgentHub\Server\Hook\HookConfigMerger.cs" Link="Linked\HookConfigMerger.cs" />
   </ItemGroup>
 </Project>
