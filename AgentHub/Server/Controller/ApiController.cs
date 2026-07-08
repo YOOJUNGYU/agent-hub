@@ -160,6 +160,29 @@ namespace AgentHub.Server.Controller
             await SendJsonAsync(Json.Serialize(new { ok = true, enabled = body.Enabled }));
         }
 
+        // ---- Notification 훅 설치/제거 (PC/loopback 전용) ----
+
+        [Route(HttpVerbs.Get, "/hook/status")]
+        public Task HookStatus()
+        {
+            if (!IsLoopback()) return Forbidden();
+            return SendJsonAsync(Json.Serialize(new { installed = AgentHub.Server.Hook.HookInstaller.IsInstalled() }));
+        }
+
+        [Route(HttpVerbs.Post, "/hook/install")]
+        public Task HookInstall()
+        {
+            if (!IsLoopback()) return Forbidden();
+            return SendJsonAsync(Json.Serialize(new { ok = AgentHub.Server.Hook.HookInstaller.Install() }));
+        }
+
+        [Route(HttpVerbs.Post, "/hook/uninstall")]
+        public Task HookUninstall()
+        {
+            if (!IsLoopback()) return Forbidden();
+            return SendJsonAsync(Json.Serialize(new { ok = AgentHub.Server.Hook.HookInstaller.Uninstall() }));
+        }
+
         [Route(HttpVerbs.Get, "/settings")]
         public Task GetSettings()
             => SendJsonAsync(Json.Serialize(new { port = Properties.Settings.Default.ServerPort }));

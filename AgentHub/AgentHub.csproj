@@ -144,6 +144,7 @@
     <Compile Include="Server\Terminal\ConPtySession.cs" />
     <Compile Include="Server\Terminal\TerminalGate.cs" />
     <Compile Include="Server\Hook\HookConfigMerger.cs" />
+    <Compile Include="Server\Hook\HookInstaller.cs" />
     <Compile Include="View\Forms\FormToast.cs">
       <SubType>Form</SubType>
     </Compile>
