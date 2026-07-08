@@ -42,6 +42,22 @@ namespace AgentHub.Server.Agents
 
         private static readonly System.Threading.SemaphoreSlim _sendGate = new System.Threading.SemaphoreSlim(1, 1);
 
+        public static async void BroadcastAsk(string project, string message, string sessionId)
+        {
+            var msg = Json.Serialize(new
+            {
+                type = "ask",
+                project,
+                message,
+                sessionId,
+                at = DateTime.UtcNow.ToString("o")
+            });
+            await _sendGate.WaitAsync();
+            try { if (_module != null) await _module.BroadcastMessageAsync(msg); }
+            catch (Exception ex) { LogService.Instance.Error(ex); }
+            finally { _sendGate.Release(); }
+        }
+
         private static async void OnChanged()
         {
             await _sendGate.WaitAsync();

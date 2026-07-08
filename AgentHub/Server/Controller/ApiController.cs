@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using EmbedIO;
 using EmbedIO.Routing;
 using EmbedIO.WebApi;
+using Newtonsoft.Json.Linq;
 using AgentHub.Common.Models;
 using AgentHub.Common.Util;
 using AgentHub.Server.Agents;
@@ -183,6 +184,30 @@ namespace AgentHub.Server.Controller
             return SendJsonAsync(Json.Serialize(new { ok = AgentHub.Server.Hook.HookInstaller.Uninstall() }));
         }
 
+        [Route(HttpVerbs.Post, "/hook/notification")]
+        public async Task HookNotification()
+        {
+            if (!IsLoopback()) { await Forbidden(); return; }
+            var raw = await HttpContext.GetRequestBodyAsStringAsync();
+            try
+            {
+                var o = JObject.Parse(raw);
+                var ntype = ((string)o["notification_type"] ?? "").ToLowerInvariant();
+                // 비-actionable 타입만 무시, 그 외(및 미지정)는 알림
+                var skip = ntype == "auth_success" || ntype == "agent_completed"
+                        || ntype == "elicitation_complete" || ntype == "elicitation_response";
+                if (!skip)
+                {
+                    var cwd = (string)o["cwd"] ?? "";
+                    var project = LastSegment(cwd);
+                    var message = (string)o["message"] ?? "입력이 필요합니다";
+                    AgentMonitorService.BroadcastAsk(project, message, (string)o["session_id"]);
+                }
+            }
+            catch (Exception ex) { LogService.Instance.Error(ex); }
+            await SendJsonAsync(Json.Serialize(new { ok = true }));
+        }
+
         [Route(HttpVerbs.Get, "/settings")]
         public Task GetSettings()
             => SendJsonAsync(Json.Serialize(new { port = Properties.Settings.Default.ServerPort }));
@@ -231,6 +256,14 @@ namespace AgentHub.Server.Controller
         {
             HttpContext.Response.StatusCode = 403;
             return SendJsonAsync(Json.Serialize(new { ok = false, message = "forbidden" }));
+        }
+
+        private static string LastSegment(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return "";
+            var t = path.Replace('\\', '/').TrimEnd('/');
+            var i = t.LastIndexOf('/');
+            return i >= 0 ? t.Substring(i + 1) : t;
         }
 
         public class PortSetting
