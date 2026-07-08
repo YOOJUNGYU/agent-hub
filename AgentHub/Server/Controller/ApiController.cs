@@ -54,8 +54,9 @@ namespace AgentHub.Server.Controller
         [Route(HttpVerbs.Get, "/sessions")]
         public Task Sessions()
         {
+            // PC 호스트 콘솔(loopback)은 토큰 없이 허용, 그 외는 승인 기기만.
             var status = DeviceRegistry.StatusOf(DeviceToken());
-            if (status != DeviceStatus.Approved)
+            if (!IsLoopback() && status != DeviceStatus.Approved)
             {
                 HttpContext.Response.StatusCode = 401;
                 return SendJsonAsync(Json.Serialize(new { ok = false, status }));

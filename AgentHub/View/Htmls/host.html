@@ -26,6 +26,7 @@
   <nav class="tabs">
     <button class="tab active" data-view="devices" data-i18n="tab.devices">기기 관리</button>
     <button class="tab" data-view="clients" data-i18n="tab.clients">연결된 기기</button>
+    <button class="tab" data-view="sessionterm" data-i18n="tab.sessionTerm">세션 터미널</button>
     <button class="tab" data-view="logs" data-i18n="tab.logs">로그</button>
     <button class="tab" data-view="settings" data-i18n="tab.settings">설정</button>
   </nav>
@@ -45,6 +46,26 @@
       </div>
       <div id="clientList">
         <div class="loading"><span class="spinner"></span><span data-i18n="clients.loading">접속 기기 정보를 불러오는 중…</span></div>
+      </div>
+    </section>
+    <section id="sessionterm" class="view">
+      <div class="st-bar">
+        <label for="stSession" data-i18n="sessionTerm.pick">세션</label>
+        <select id="stSession"></select>
+        <button type="button" id="stOpen" data-i18n="sessionTerm.open">터미널 열기</button>
+        <span class="hint" id="stHint" data-i18n="sessionTerm.hint">폰에서 연 세션과 실시간으로 공유됩니다.</span>
+      </div>
+      <div id="stView"></div>
+      <div id="stKeys" class="term-keys">
+        <button class="key-btn" data-seq="&#x1b;">Esc</button>
+        <button class="key-btn" data-seq="&#x09;">Tab</button>
+        <button class="key-btn" data-seq="&#x1b;[A">↑</button>
+        <button class="key-btn" data-seq="&#x1b;[B">↓</button>
+        <button class="key-btn" data-seq="&#x1b;[D">←</button>
+        <button class="key-btn" data-seq="&#x1b;[C">→</button>
+        <button class="key-btn" data-seq="&#x0d;">Enter</button>
+        <button class="key-btn" data-seq="&#x03;">Ctrl-C</button>
+        <button class="key-btn" data-seq="&#x1a;">Ctrl-Z</button>
       </div>
     </section>
     <section id="logs" class="view">
@@ -79,7 +100,11 @@
       </form>
     </section>
   </main>
+  <link rel="stylesheet" href="/css/xterm.css" />
+  <script src="/js/xterm.js"></script>
+  <script src="/js/addon-fit.js"></script>
   <script src="/js/i18n.js"></script>
   <script src="/js/host.js"></script>
+  <script src="/js/host-term.js"></script>
 </body>
 </html>
