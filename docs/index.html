@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Agent Hub — 사용 가이드</title>
+<meta name="description" content="내 PC의 AI 에이전트(Claude)를 휴대폰에서 보고 제어하는 Agent Hub 사용 가이드." />
+<style>
+  :root{
+    --bg:#0e1017; --surface:#171b28; --surface2:#1f2433; --border:#2a3145;
+    --text:#e6e9f2; --muted:#8b93a7; --faint:#6b7280;
+    --accent:#7aa2ff; --accent2:#9d7bff;
+    --ok:#4ade80; --warn:#fbbf24; --danger:#fb7185;
+    --mono:ui-monospace,"Cascadia Code","Cascadia Mono",Consolas,"D2Coding",monospace;
+    --sans:system-ui,-apple-system,"Segoe UI","Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+    --maxw:1080px; --radius:16px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--text); font-family:var(--sans);
+    line-height:1.6; -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(1200px 500px at 80% -10%, rgba(122,162,255,.10), transparent 60%),
+      radial-gradient(900px 400px at 0% 10%, rgba(157,123,255,.08), transparent 55%);
+  }
+  /* 언어 토글 */
+  body.lang-ko .en{display:none}
+  body.lang-en .ko{display:none}
+
+  a{color:var(--accent); text-decoration:none}
+  a:hover{text-decoration:underline}
+  :focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:6px}
+
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 20px}
+
+  /* 상단바 */
+  .topbar{position:sticky; top:0; z-index:20; backdrop-filter:blur(10px);
+    background:rgba(14,16,23,.72); border-bottom:1px solid var(--border)}
+  .topbar .wrap{display:flex; align-items:center; gap:14px; height:58px}
+  .brand{display:flex; align-items:center; gap:9px; font-weight:700; letter-spacing:.2px}
+  .brand .logo{color:var(--accent); font-size:20px}
+  .brand small{font-family:var(--mono); font-size:11px; color:var(--muted); font-weight:500;
+    border:1px solid var(--border); border-radius:999px; padding:2px 8px; letter-spacing:.5px}
+  .spacer{flex:1}
+  .lang{display:inline-flex; border:1px solid var(--border); border-radius:999px; overflow:hidden; font-family:var(--mono); font-size:12px}
+  .lang button{background:transparent; color:var(--muted); border:0; padding:6px 11px; cursor:pointer}
+  .lang button.on{background:var(--accent); color:#0b0f1a; font-weight:700}
+  .dl{background:var(--accent); color:#0b0f1a; font-weight:700; padding:8px 14px; border-radius:10px; font-size:14px}
+  .dl:hover{text-decoration:none; filter:brightness(1.06)}
+
+  /* 히어로 */
+  .hero{padding:64px 0 40px}
+  .hero .wrap{display:grid; grid-template-columns:1.05fr .95fr; gap:40px; align-items:center}
+  .eyebrow{font-family:var(--mono); font-size:12px; letter-spacing:2.5px; text-transform:uppercase;
+    color:var(--accent); margin:0 0 14px}
+  h1{font-size:clamp(30px,4.4vw,50px); line-height:1.08; margin:0 0 16px; letter-spacing:-.02em; font-weight:800}
+  h1 .grad{background:linear-gradient(100deg,var(--accent),var(--accent2)); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .lead{color:var(--muted); font-size:17px; max-width:44ch; margin:0 0 24px}
+  .herobtns{display:flex; gap:12px; flex-wrap:wrap}
+  .btn2{border:1px solid var(--border); color:var(--text); padding:9px 15px; border-radius:10px; font-size:14px}
+  .btn2:hover{border-color:var(--accent); text-decoration:none}
+
+  /* 폰 목업 */
+  .phone{width:290px; max-width:78vw; margin:0 auto; background:#05070c; border:1px solid #313a52;
+    border-radius:34px; padding:12px; box-shadow:0 30px 80px -30px rgba(0,0,0,.8), 0 0 0 1px rgba(122,162,255,.06);
+    position:relative}
+  .phone::before{content:""; position:absolute; top:16px; left:50%; transform:translateX(-50%);
+    width:92px; height:6px; border-radius:6px; background:#1a2133}
+  .screen{background:var(--bg); border-radius:24px; overflow:hidden; height:520px; position:relative;
+    display:flex; flex-direction:column}
+  .s-head{display:flex; align-items:center; gap:8px; padding:14px 14px 10px; border-bottom:1px solid var(--border); font-size:13px}
+  .s-head .logo{color:var(--accent)}
+  .s-head .badge{margin-left:auto; font-family:var(--mono); font-size:10px; color:var(--ok);
+    border:1px solid #14532d; background:#0f2a1a; border-radius:999px; padding:2px 8px}
+  .s-body{padding:12px; overflow:hidden; flex:1}
+
+  /* 목업 안 재사용 UI */
+  .card{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:11px 12px; margin-bottom:9px}
+  .card .top{display:flex; align-items:center; gap:7px; margin-bottom:5px}
+  .chip{font-family:var(--mono); font-size:9px; text-transform:uppercase; letter-spacing:.5px; padding:2px 7px; border-radius:999px}
+  .chip.active{background:#0f2a1a; color:var(--ok); border:1px solid #14532d}
+  .chip.idle{background:#2c2a12; color:var(--warn); border:1px solid #3f3f16}
+  .chip.ended{background:#241a24; color:var(--faint); border:1px solid #3a2030}
+  .card .title{font-weight:600; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .card .meta{color:var(--muted); font-size:11px}
+  .card .task{color:#c9d1e4; font-size:12px; margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 rgba(74,222,128,.6);animation:pulse 2s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(74,222,128,.5)}70%{box-shadow:0 0 0 7px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
+
+  .authcard{text-align:center; padding:26px 16px}
+  .authcard h3{margin:14px 0 8px; font-size:16px}
+  .authcard p{color:var(--muted); font-size:12px; margin:0 0 14px}
+  .field{width:100%; background:#0d0f17; border:1px solid var(--border); border-radius:9px; padding:9px 11px; color:var(--text); font-size:12px; margin-bottom:10px}
+  .primary{width:100%; background:var(--accent); color:#0b0f1a; border:0; border-radius:9px; padding:10px; font-weight:700; font-size:13px}
+  .spin{width:26px;height:26px;border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; margin:0 auto; animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .feed .ev{background:#141824; border-left:3px solid var(--border); border-radius:8px; padding:7px 9px; margin-bottom:6px; font-size:11px}
+  .feed .ev.tool{border-left-color:var(--accent)}
+  .feed .ev.res{border-left-color:var(--ok)}
+  .feed .ev .h{display:flex; gap:6px; align-items:center}
+  .feed .ev .t{color:var(--muted); margin-top:3px; font-family:var(--mono); font-size:10px}
+
+  /* 섹션 공통 */
+  section.step{padding:46px 0; border-top:1px solid var(--border)}
+  .step .wrap{display:grid; grid-template-columns:1fr 1fr; gap:44px; align-items:center}
+  .step.rev .txt{order:2}
+  .stepno{font-family:var(--mono); font-size:12px; color:var(--accent2); letter-spacing:2px}
+  .step h2{font-size:clamp(22px,3vw,30px); margin:8px 0 14px; letter-spacing:-.01em}
+  .step p{color:var(--muted); margin:0 0 14px}
+  ol.ck{list-style:none; counter-reset:c; padding:0; margin:0}
+  ol.ck li{counter-increment:c; position:relative; padding:8px 0 8px 34px; border-bottom:1px dashed var(--border); font-size:15px}
+  ol.ck li::before{content:counter(c); position:absolute; left:0; top:7px; width:22px; height:22px;
+    font-family:var(--mono); font-size:11px; color:var(--accent); border:1px solid var(--border);
+    border-radius:7px; display:grid; place-items:center; background:var(--surface)}
+  ol.ck li b{color:var(--text)}
+  .note{font-size:13px; color:var(--warn); background:rgba(251,191,36,.08); border:1px solid rgba(251,191,36,.25);
+    border-radius:10px; padding:10px 12px; margin-top:14px}
+
+  /* OS 설정 목업(인증서) + 재생기 */
+  .cert-block{grid-column:1 / -1}
+  .tabs{display:inline-flex; border:1px solid var(--border); border-radius:10px; overflow:hidden; margin:0 0 18px; font-family:var(--mono); font-size:13px}
+  .tabs button{background:transparent; color:var(--muted); border:0; padding:8px 18px; cursor:pointer}
+  .tabs button.on{background:var(--surface2); color:var(--text)}
+  .certgrid{display:grid; grid-template-columns:1fr 1fr; gap:44px; align-items:center}
+  .osframe{width:300px; max-width:80vw; margin:0 auto; background:#05070c; border:1px solid #313a52; border-radius:30px; padding:11px}
+  .osscreen{background:#0b0d14; border-radius:22px; height:480px; overflow:hidden; position:relative}
+  .osbar{background:#11151f; padding:12px 14px; font-size:13px; color:var(--text); border-bottom:1px solid var(--border); font-weight:600; display:flex; align-items:center; gap:8px}
+  .osframe .frame{position:absolute; inset:0; top:44px; padding:14px; opacity:0; transform:translateX(14px); transition:opacity .45s, transform .45s; pointer-events:none}
+  .osframe .frame.on{opacity:1; transform:none; pointer-events:auto}
+  .osrow{display:flex; align-items:center; gap:10px; padding:11px 4px; border-bottom:1px solid #171c28; font-size:13px; color:var(--text)}
+  .osrow .ic{width:26px;height:26px;border-radius:7px;background:#1f2740;display:grid;place-items:center;font-size:13px;flex:none}
+  .osrow.sel{background:rgba(122,162,255,.12); border-radius:9px; box-shadow:inset 0 0 0 1px rgba(122,162,255,.4)}
+  .osrow .arw{margin-left:auto; color:var(--faint)}
+  .oswarn{margin-top:8px; font-size:12px; color:var(--warn); background:rgba(251,113,133,.08); border:1px solid rgba(251,113,133,.3); border-radius:8px; padding:9px}
+  .osbtns{display:flex; gap:8px; margin-top:12px}
+  .osbtns .b{flex:1; text-align:center; padding:9px; border-radius:8px; font-size:12px; font-weight:600}
+  .osbtns .b.cancel{background:#20263a; color:var(--muted)}
+  .osbtns .b.ok{background:var(--accent); color:#0b0f1a}
+  .osfile{display:flex; align-items:center; gap:9px; padding:10px; border:1px solid var(--border); border-radius:9px; margin-top:8px; font-size:12px}
+  .osfile .fx{font-size:18px}
+  .player{display:flex; align-items:center; gap:10px; margin-top:16px}
+  .player button{background:var(--surface2); color:var(--text); border:1px solid var(--border); border-radius:9px; padding:8px 14px; cursor:pointer; font-size:13px; font-family:var(--mono)}
+  .dots{display:flex; gap:6px}
+  .dots i{width:8px;height:8px;border-radius:50%;background:var(--border); cursor:pointer; transition:background .2s}
+  .dots i.on{background:var(--accent); width:20px; border-radius:5px}
+  .caption{font-size:14px; color:var(--muted); margin-top:12px; min-height:44px}
+  .caption b{color:var(--text)}
+
+  footer{border-top:1px solid var(--border); padding:34px 0 48px; color:var(--muted); font-size:14px}
+  footer .wrap{display:flex; gap:16px; flex-wrap:wrap; align-items:center}
+
+  @media (max-width:820px){
+    .hero .wrap, .step .wrap, .certgrid{grid-template-columns:1fr; gap:26px}
+    .step.rev .txt{order:0}
+    .hero{padding:40px 0 20px}
+    .brand small{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none !important; transition:none !important; scroll-behavior:auto !important}
+    .osframe .frame{transition:none}
+  }
+</style>
+</head>
+<body class="lang-ko">
+<header class="topbar">
+  <div class="wrap">
+    <div class="brand"><span class="logo">◈</span> Agent Hub
+      <small class="ko">사용 가이드</small><small class="en">USER GUIDE</small></div>
+    <div class="spacer"></div>
+    <div class="lang" role="group" aria-label="Language">
+      <button id="ko" class="on" type="button">KO</button><button id="en" type="button">EN</button>
+    </div>
+    <a class="dl" href="https://github.com/YOOJUNGYU/agent-hub/releases/latest" target="_blank" rel="noopener">
+      <span class="ko">다운로드</span><span class="en">Download</span></a>
+  </div>
+</header>
+
+<!-- 히어로 -->
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <p class="eyebrow">PC → <span class="ko">휴대폰</span><span class="en">Phone</span> · LAN</p>
+      <h1><span class="ko">내 PC의 AI 에이전트를<br><span class="grad">휴대폰에서</span> 지켜보세요</span>
+          <span class="en">Watch your PC's AI agent<br><span class="grad">from your phone</span></span></h1>
+      <p class="lead">
+        <span class="ko">같은 와이파이의 휴대폰으로 Claude가 지금 무엇을 하는지 실시간으로 보고, 질문에 답하고, 명령까지 보낼 수 있습니다. 아래 5분이면 준비 끝.</span>
+        <span class="en">On a phone connected to the same Wi‑Fi, see what Claude is doing in real time, answer its questions, and even send commands. Setup takes about five minutes.</span>
+      </p>
+      <div class="herobtns">
+        <a class="dl" href="https://github.com/YOOJUNGYU/agent-hub/releases/latest" target="_blank" rel="noopener">
+          <span class="ko">최신 버전 받기</span><span class="en">Get the latest</span></a>
+        <a class="btn2" href="#connect"><span class="ko">설정 시작하기 ↓</span><span class="en">Start setup ↓</span></a>
+      </div>
+    </div>
+    <div>
+      <div class="phone" aria-hidden="true">
+        <div class="screen">
+          <div class="s-head"><span class="logo">◈</span> Agent Hub <span class="badge">🟢 LIVE</span></div>
+          <div class="s-body">
+            <div class="card"><div class="top"><span class="chip active">active</span><span class="title">EmbedIOServer 리팩터</span></div>
+              <div class="meta">agent-hub · main</div><div class="task">🔧 Edit  EmbedIOServer.cs</div></div>
+            <div class="card"><div class="top"><span class="chip idle">idle</span><span class="title">문서 작성</span></div>
+              <div class="meta">docs · feat/guide</div><div class="task">💬 초안 검토 중…</div></div>
+            <div class="card"><div class="top"><span class="chip active">active</span><span class="title">테스트 실행</span></div>
+              <div class="meta">api · main</div><div class="task">🔧 Bash  dotnet test</div></div>
+            <div class="card" style="display:flex;align-items:center;gap:8px"><span class="dot"></span>
+              <span class="meta" style="margin:0">실시간 업데이트 중</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 1. 접속 -->
+<section class="step" id="connect">
+  <div class="wrap">
+    <div class="txt">
+      <div class="stepno">STEP 01</div>
+      <h2><span class="ko">같은 와이파이로 접속</span><span class="en">Connect on the same Wi‑Fi</span></h2>
+      <p><span class="ko">PC에서 Agent Hub를 실행하면 콘솔 상단에 접속 주소가 나옵니다. 휴대폰을 <b>같은 와이파이</b>에 연결하고 그 주소를 브라우저에 입력하세요.</span>
+         <span class="en">Run Agent Hub on your PC — the console shows an access address at the top. Put your phone on the <b>same Wi‑Fi</b> and open that address in its browser.</span></p>
+      <ol class="ck">
+        <li><span class="ko">PC 콘솔의 주소 확인 — 예: <b>https://192.168.0.10:47600</b></span><span class="en">Find the address in the PC console — e.g. <b>https://192.168.0.10:47600</b></span></li>
+        <li><span class="ko">휴대폰 브라우저 주소창에 입력</span><span class="en">Type it into your phone's browser</span></li>
+        <li><span class="ko">보안 경고가 뜨면 <b>고급 → 계속(이동)</b></span><span class="en">If a security warning appears, tap <b>Advanced → Proceed</b></span></li>
+      </ol>
+      <div class="note"><span class="ko">⚠️ 보안 경고는 자체 서명 인증서라서 나옵니다. 다음 단계에서 인증서를 등록하면 경고 없이 접속되고 홈 화면 추가(앱 설치)도 됩니다.</span>
+        <span class="en">⚠️ The warning appears because the certificate is self‑signed. Installing it (next step) removes the warning and enables Add to Home Screen.</span></div>
+    </div>
+    <div>
+      <div class="phone" aria-hidden="true"><div class="screen">
+        <div class="s-head" style="justify-content:center;color:var(--muted)">🔒 192.168.0.10:47600</div>
+        <div class="s-body" style="display:flex;flex-direction:column;justify-content:center;text-align:center;gap:12px">
+          <div style="font-size:40px">🛡️</div>
+          <div style="font-weight:700"><span class="ko">연결이 비공개로 설정되어 있지 않습니다</span><span class="en">Your connection is not private</span></div>
+          <div class="meta" style="font-size:12px"><span class="ko">내 PC의 자체 인증서라서 나오는 안내입니다.</span><span class="en">Shown because it's your PC's own certificate.</span></div>
+          <div style="margin-top:8px"><span style="color:var(--accent);font-size:13px"><span class="ko">고급 → 계속 이동</span><span class="en">Advanced → Proceed</span></span></div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 2. 인증서 등록 (핵심) -->
+<section class="step" id="cert">
+  <div class="wrap">
+    <div class="cert-block" style="text-align:center;max-width:640px;margin:0 auto 6px">
+      <div class="stepno">STEP 02 · <span class="ko">가장 중요</span><span class="en">MOST IMPORTANT</span></div>
+      <h2><span class="ko">인증서 등록 (조금 까다로워요)</span><span class="en">Install the certificate (the tricky part)</span></h2>
+      <p><span class="ko">한 번만 등록하면 경고 없이 접속되고, 홈 화면에 앱으로 설치할 수 있습니다. 휴대폰 종류를 고르고 순서대로 따라오세요.</span>
+         <span class="en">Do this once — then no warnings, and you can install it as an app. Pick your phone type and follow along.</span></p>
+    </div>
+    <div class="cert-block" style="text-align:center">
+      <div class="tabs" role="group" aria-label="OS">
+        <button id="tab-and" class="on" type="button">Android</button><button id="tab-ios" type="button">iOS</button>
+      </div>
+    </div>
+    <div class="cert-block">
+      <div class="certgrid">
+        <div>
+          <div class="osframe" aria-hidden="true">
+            <div class="osscreen">
+              <div class="osbar">⚙️ <span id="os-title">설정</span></div>
+              <!-- Android frames -->
+              <div class="frame and on" data-g="and" data-i="0">
+                <div class="osrow"><span class="ic">🔒</span><span class="ko">보안 및 개인정보</span><span class="en">Security &amp; privacy</span><span class="arw">›</span></div>
+                <div class="osrow sel"><span class="ic">📁</span><span class="ko">기타 보안 설정 › 기기 저장공간에서 설치</span><span class="en">More settings › Install from storage</span><span class="arw">›</span></div>
+                <div class="osrow"><span class="ic">🔑</span><span class="ko">신뢰할 수 있는 자격증명</span><span class="en">Trusted credentials</span><span class="arw">›</span></div>
+              </div>
+              <div class="frame and" data-g="and" data-i="1">
+                <div class="meta" style="font-size:12px;margin-bottom:8px"><span class="ko">인증서 종류 선택</span><span class="en">Choose type</span></div>
+                <div class="osrow sel"><span class="ic">🛡️</span><b>CA <span class="ko">인증서</span><span class="en">certificate</span></b><span class="arw">✓</span></div>
+                <div class="osrow"><span class="ic">👤</span><span class="ko">VPN 및 앱 인증서</span><span class="en">VPN &amp; app certificate</span></div>
+                <div class="osrow"><span class="ic">📶</span><span class="ko">Wi‑Fi 인증서</span><span class="en">Wi‑Fi certificate</span></div>
+                <div class="oswarn"><span class="ko">👉 반드시 <b>CA 인증서</b>를 고르세요. (VPN·앱 아님)</span><span class="en">👉 Pick <b>CA certificate</b> — not VPN &amp; app.</span></div>
+              </div>
+              <div class="frame and" data-g="and" data-i="2">
+                <div style="text-align:center;padding:10px 0"><div style="font-size:34px">⚠️</div>
+                  <div style="font-weight:700;margin:8px 0"><span class="ko">개인 정보가 보호되지 않을 수 있음</span><span class="en">Your data may not be private</span></div>
+                  <div class="meta" style="font-size:12px"><span class="ko">자체 서명 인증서라 나오는 정상 경고입니다.</span><span class="en">Normal warning for a self‑signed cert.</span></div>
+                </div>
+                <div class="osbtns"><span class="b cancel"><span class="ko">취소</span><span class="en">Cancel</span></span><span class="b ok"><span class="ko">계속 / 설치</span><span class="en">Install anyway</span></span></div>
+              </div>
+              <div class="frame and" data-g="and" data-i="3">
+                <div class="meta" style="font-size:12px;margin-bottom:6px"><span class="ko">다운로드 폴더에서 선택</span><span class="en">Pick from Downloads</span></div>
+                <div class="osfile"><span class="fx">📄</span> AgentHub.crt <span style="margin-left:auto;color:var(--ok)">✓</span></div>
+                <div style="text-align:center;margin-top:20px;font-size:34px">✅</div>
+                <div style="text-align:center;font-weight:700"><span class="ko">인증서가 설치되었습니다</span><span class="en">Certificate installed</span></div>
+              </div>
+              <!-- iOS frames -->
+              <div class="frame ios" data-g="ios" data-i="0">
+                <div class="osfile"><span class="fx">📄</span> AgentHub.crt</div>
+                <div style="text-align:center;margin:18px 0;font-size:30px">⬇️</div>
+                <div class="meta" style="font-size:12px;text-align:center"><span class="ko">Safari에서 다운로드하면 “프로파일이 다운로드됨” 안내가 뜹니다.</span><span class="en">In Safari you'll see "Profile Downloaded".</span></div>
+              </div>
+              <div class="frame ios" data-g="ios" data-i="1">
+                <div class="osrow sel"><span class="ic">📥</span><span class="ko">프로파일 다운로드됨</span><span class="en">Profile Downloaded</span><span class="arw">›</span></div>
+                <div class="meta" style="font-size:12px;margin-top:10px"><span class="ko">설정 앱 맨 위에 나타납니다 → 탭 → <b>설치</b> (기기 암호 입력)</span><span class="en">Appears at the top of Settings → tap → <b>Install</b> (enter passcode)</span></div>
+                <div class="osbtns" style="margin-top:16px"><span class="b ok"><span class="ko">설치</span><span class="en">Install</span></span></div>
+              </div>
+              <div class="frame ios" data-g="ios" data-i="2">
+                <div class="osbar" style="background:transparent;border:0;padding:0 0 8px"><span class="ko">일반 › 정보 › 인증서 신뢰 설정</span><span class="en">General › About › Certificate Trust</span></div>
+                <div class="osrow sel"><span class="ic">🛡️</span> AgentHub
+                  <span class="arw" style="margin-left:auto"><span style="display:inline-block;width:38px;height:22px;background:var(--ok);border-radius:11px;position:relative"><span style="position:absolute;right:2px;top:2px;width:18px;height:18px;background:#fff;border-radius:50%"></span></span></span></div>
+                <div class="oswarn" style="color:var(--ok);border-color:rgba(74,222,128,.3);background:rgba(74,222,128,.08)"><span class="ko">✅ 신뢰 스위치를 켜면 완료!</span><span class="en">✅ Turn the trust switch on — done!</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="player">
+            <button id="cert-play" type="button">▶ <span class="ko">재생</span><span class="en">Play</span></button>
+            <div class="dots" id="cert-dots"></div>
+          </div>
+          <div class="caption" id="cert-cap"></div>
+        </div>
+        <div class="txt">
+          <div id="cert-steps-and">
+            <ol class="ck">
+              <li><span class="ko">위 <b>인증서 다운로드</b> → 다운로드 폴더에 <b>AgentHub.crt</b> 저장</span><span class="en">Tap <b>Download certificate</b> → saved to Downloads as <b>AgentHub.crt</b></span></li>
+              <li><span class="ko">설정 → 보안 → <b>기기 저장공간에서 설치</b>(또는 인증서 설치)</span><span class="en">Settings → Security → <b>Install from device storage</b></span></li>
+              <li><span class="ko"><b>CA 인증서</b> 선택 <i>(VPN·앱 아님)</i></span><span class="en">Choose <b>CA certificate</b> <i>(not VPN &amp; app)</i></span></li>
+              <li><span class="ko">경고 화면에서 <b>계속/설치</b></span><span class="en"><b>Install anyway</b> on the warning</span></li>
+              <li><span class="ko">다운로드 폴더의 <b>AgentHub.crt</b> 선택 → 완료</span><span class="en">Pick <b>AgentHub.crt</b> from Downloads → done</span></li>
+            </ol>
+            <div class="note"><span class="ko">⚠️ 다운로드한 파일을 <b>그냥 탭하면</b> “신뢰할 수 있는 기관…” 오류가 납니다. 반드시 위 <b>설정</b> 경로로 설치하세요. (삼성: 설정 → 보안 및 개인정보 → 기타 보안 설정 → 기기 저장공간에서 설치)</span>
+              <span class="en">⚠️ Tapping the file directly shows a "trusted authority" error. You <b>must</b> install via Settings. (Samsung: Settings → Security → More settings → Install from storage)</span></div>
+          </div>
+          <div id="cert-steps-ios" style="display:none">
+            <ol class="ck">
+              <li><span class="ko"><b>Safari</b>로 위 <b>인증서 다운로드</b> (다른 브라우저는 불가)</span><span class="en">Download in <b>Safari</b> (other browsers can't install profiles)</span></li>
+              <li><span class="ko">설정 앱 맨 위 <b>프로파일 다운로드됨</b> → 설치 (기기 암호)</span><span class="en">Settings → <b>Profile Downloaded</b> → Install (passcode)</span></li>
+              <li><span class="ko">설정 → 일반 → 정보 → <b>인증서 신뢰 설정</b>에서 AgentHub 켜기</span><span class="en">Settings → General → About → <b>Certificate Trust Settings</b> → enable AgentHub</span></li>
+            </ol>
+            <div class="note"><span class="ko">설치 후에도 접속이 안 되면 인증서 유효기간 때문일 수 있어요 — 만든 사람에게 알려 주세요.</span>
+              <span class="en">If it still won't connect after installing, the certificate validity period may be the cause — let the maintainer know.</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3. 기기 인증 -->
+<section class="step rev" id="auth">
+  <div class="wrap">
+    <div class="txt">
+      <div class="stepno">STEP 03</div>
+      <h2><span class="ko">기기 인증받기</span><span class="en">Get your device approved</span></h2>
+      <p><span class="ko">아무 휴대폰이나 몰래 보지 못하도록, 처음 접속하면 승인이 필요합니다. 폰에서 기기 이름을 넣고 요청하면 PC에서 승인합니다.</span>
+         <span class="en">So not just any phone can watch, the first visit needs approval. Enter a device name on the phone, then approve it on the PC.</span></p>
+      <ol class="ck">
+        <li><span class="ko">폰: 기기 이름 입력 → <b>인증 요청 보내기</b></span><span class="en">Phone: enter a name → <b>Request access</b></span></li>
+        <li><span class="ko">PC 콘솔 <b>기기 관리</b>에서 요청 확인 → <b>승인</b></span><span class="en">PC console <b>Devices</b> tab → <b>Approve</b></span></li>
+        <li><span class="ko">폰이 자동으로 모니터 화면으로 전환</span><span class="en">The phone switches to the monitor automatically</span></li>
+      </ol>
+    </div>
+    <div>
+      <div class="phone" aria-hidden="true"><div class="screen">
+        <div class="s-head"><span class="logo">◈</span> Agent Hub</div>
+        <div class="s-body"><div class="authcard">
+          <div style="font-size:34px">🔐</div>
+          <h3><span class="ko">기기 인증이 필요합니다</span><span class="en">Device authorization</span></h3>
+          <p><span class="ko">PC에서 승인하면 접속됩니다.</span><span class="en">Approve on the PC to continue.</span></p>
+          <div class="field"><span class="ko">내 아이폰</span><span class="en">My phone</span></div>
+          <button class="primary"><span class="ko">인증 요청 보내기</span><span class="en">Request access</span></button>
+        </div></div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. 모니터 -->
+<section class="step" id="monitor">
+  <div class="wrap">
+    <div class="txt">
+      <div class="stepno">STEP 04</div>
+      <h2><span class="ko">세션 지켜보기</span><span class="en">Watch the sessions</span></h2>
+      <p><span class="ko">PC에서 돌아가는 Claude 세션이 카드로 보입니다. <b>active</b>(작업 중) · <b>idle</b>(대기) · <b>ended</b>(종료). 카드를 탭하면 실시간 활동 피드로 들어갑니다.</span>
+         <span class="en">Each Claude session shows as a card: <b>active</b> · <b>idle</b> · <b>ended</b>. Tap a card for its live activity feed.</span></p>
+      <ol class="ck">
+        <li><span class="ko">카드 = 세션(제목·프로젝트·현재 작업·상태)</span><span class="en">Card = a session (title, project, current task, status)</span></li>
+        <li><span class="ko">탭 → 도구 호출·메시지가 시간순으로 흐르는 피드</span><span class="en">Tap → a feed of tool calls and messages in order</span></li>
+        <li><span class="ko">최신 메시지를 보고 있으면 자동으로 따라 내려갑니다</span><span class="en">If you're at the bottom, it auto‑scrolls with new messages</span></li>
+      </ol>
+    </div>
+    <div>
+      <div class="phone" aria-hidden="true"><div class="screen">
+        <div class="s-head"><span style="color:var(--accent)">←</span> <span class="ko">EmbedIOServer 리팩터</span><span class="en">Refactor EmbedIOServer</span></div>
+        <div class="s-body feed">
+          <div class="ev"><div class="h">🧑 <span class="ko">사용자</span><span class="en">user</span></div><div class="t">/ws 정리해줘</div></div>
+          <div class="ev"><div class="h">💬 <span class="ko">메시지</span><span class="en">message</span></div><div class="t"><span class="ko">모듈을 분리합니다.</span><span class="en">Splitting the module.</span></div></div>
+          <div class="ev tool"><div class="h">🔧 Edit</div><div class="t">EmbedIOServer.cs</div></div>
+          <div class="ev res"><div class="h">↩︎ <span class="ko">결과</span><span class="en">result</span></div><div class="t">1 file changed</div></div>
+          <div class="ev tool"><div class="h">🔧 Bash</div><div class="t">dotnet test</div></div>
+          <div class="ev res"><div class="h">↩︎ <span class="ko">결과</span><span class="en">result</span></div><div class="t">24 passed</div></div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 5. 터미널 + 6. 알림 (합친 행) -->
+<section class="step rev" id="control">
+  <div class="wrap">
+    <div class="txt">
+      <div class="stepno">STEP 05 · <span class="ko">선택</span><span class="en">OPTIONAL</span></div>
+      <h2><span class="ko">터미널 · 질문 알림</span><span class="en">Terminal &amp; question alerts</span></h2>
+      <p><span class="ko">PC 콘솔에서 켜면(기본 꺼짐) 휴대폰에서 <b>터미널</b>로 claude를 직접 실행하고, Claude가 입력을 기다릴 때 <b>알림</b>을 받아 바로 답할 수 있습니다.</span>
+         <span class="en">Enable them in the PC console (off by default): open a <b>terminal</b> to run claude from your phone, and get an <b>alert</b> when Claude is waiting so you can answer right away.</span></p>
+      <ol class="ck">
+        <li><span class="ko">PC 콘솔 설정에서 <b>웹 터미널 허용</b> / <b>질문 알림 훅 설치</b></span><span class="en">In PC settings: <b>Allow web terminal</b> / <b>Install alert hook</b></span></li>
+        <li><span class="ko">폰: <b>🔔 알림 켜기</b> 허용</span><span class="en">Phone: allow <b>🔔 Enable alerts</b></span></li>
+        <li><span class="ko">알림 → <b>답변하기</b> → 터미널에서 y/n·텍스트 입력</span><span class="en">Alert → <b>Answer</b> → type y/n or text in the terminal</span></li>
+      </ol>
+      <div class="note"><span class="ko">⚠️ 터미널은 PC에서 실제 명령을 실행합니다. 신뢰하는 상황에서만 켜세요. 모든 통신은 집/회사 네트워크(LAN) 안에서만 오갑니다.</span>
+        <span class="en">⚠️ The terminal runs real commands on the PC — enable only when you trust it. All traffic stays inside your local network.</span></div>
+    </div>
+    <div>
+      <div class="phone" aria-hidden="true"><div class="screen">
+        <div class="s-head"><span class="logo">◈</span> Agent Hub</div>
+        <div class="s-body">
+          <div class="card" style="border-color:rgba(251,191,36,.35);background:rgba(251,191,36,.06)">
+            <div class="top">🔔 <b style="font-size:13px"><span class="ko">Claude가 입력을 기다립니다</span><span class="en">Claude is waiting</span></b></div>
+            <div class="task" style="color:#fde68a">[agent-hub] <span class="ko">Bash 실행을 허용할까요?</span><span class="en">Allow Bash command?</span></div>
+            <div class="osbtns" style="margin-top:10px"><span class="b ok"><span class="ko">답변하기</span><span class="en">Answer</span></span><span class="b cancel"><span class="ko">닫기</span><span class="en">Dismiss</span></span></div>
+          </div>
+          <div style="background:#05070c;border:1px solid var(--border);border-radius:10px;padding:10px;font-family:var(--mono);font-size:11px;color:#c9d1e4;margin-top:4px">
+            <div style="color:var(--ok)">$ claude</div>
+            <div style="color:var(--muted)"><span class="ko">? Bash 실행을 허용하시겠어요?</span><span class="en">? Allow running Bash?</span></div>
+            <div>❯ <span style="color:var(--accent)">yes</span> / no<span style="display:inline-block;width:7px;height:13px;background:var(--accent);vertical-align:-2px;margin-left:2px;animation:pulse 1.2s infinite"></span></div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="brand"><span class="logo">◈</span> Agent Hub</div>
+    <div class="spacer"></div>
+    <a href="https://github.com/YOOJUNGYU/agent-hub" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://github.com/YOOJUNGYU/agent-hub/issues" target="_blank" rel="noopener"><span class="ko">문의 · 이슈</span><span class="en">Issues</span></a>
+    <a href="https://github.com/YOOJUNGYU/agent-hub/releases/latest" target="_blank" rel="noopener"><span class="ko">다운로드</span><span class="en">Download</span></a>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var body=document.body;
+  // 언어 토글
+  function setLang(l){ body.className='lang-'+l; document.documentElement.lang=l;
+    document.getElementById('ko').classList.toggle('on',l==='ko');
+    document.getElementById('en').classList.toggle('on',l==='en');
+    renderCap(); }
+  document.getElementById('ko').onclick=function(){setLang('ko')};
+  document.getElementById('en').onclick=function(){setLang('en')};
+
+  // 인증서 재생기
+  var caps={
+    and:[
+      {ko:'설정 → 보안에서 “기기 저장공간에서 설치”를 엽니다.',en:'Settings → Security → "Install from device storage".'},
+      {ko:'인증서 종류에서 반드시 CA 인증서를 고릅니다.',en:'Choose CA certificate — this is the key step.'},
+      {ko:'“개인정보 보호 안 됨” 경고에서 계속/설치를 누릅니다.',en:'Tap Install anyway on the privacy warning.'},
+      {ko:'다운로드한 AgentHub.crt를 선택하면 설치 완료.',en:'Pick AgentHub.crt from Downloads — installed.'}
+    ],
+    ios:[
+      {ko:'Safari로 인증서를 받으면 “프로파일 다운로드됨”이 뜹니다.',en:'Download in Safari → "Profile Downloaded" appears.'},
+      {ko:'설정 맨 위의 프로파일을 눌러 설치합니다.',en:'Tap the profile at the top of Settings → Install.'},
+      {ko:'인증서 신뢰 설정에서 AgentHub 스위치를 켜면 완료.',en:'Turn on the AgentHub trust switch — done.'}
+    ]
+  };
+  var os='and', idx=0, timer=null;
+  var dotsEl=document.getElementById('cert-dots'), capEl=document.getElementById('cert-cap'), playBtn=document.getElementById('cert-play');
+
+  function frames(){ return Array.prototype.slice.call(document.querySelectorAll('.osframe .frame.'+os)); }
+  function show(i){ idx=i; var fs=frames();
+    fs.forEach(function(f,k){ f.classList.toggle('on',k===i); });
+    Array.prototype.forEach.call(dotsEl.children,function(d,k){ d.classList.toggle('on',k===i); });
+    renderCap();
+  }
+  function renderCap(){ var arr=caps[os]; if(!arr[idx]){capEl.textContent='';return;}
+    var l=body.classList.contains('lang-en')?'en':'ko';
+    capEl.innerHTML='<b>'+(idx+1)+'/'+arr.length+'</b> · '+arr[idx][l];
+  }
+  function buildDots(){ dotsEl.innerHTML=''; caps[os].forEach(function(_,k){
+    var i=document.createElement('i'); i.onclick=function(){stop();show(k);}; dotsEl.appendChild(i); }); }
+  function stop(){ if(timer){clearInterval(timer);timer=null;} playBtn.classList.remove('playing');
+    playBtn.firstChild.textContent='▶ '; }
+  function play(){ var reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+    if(reduce){ show((idx+1)%caps[os].length); return; }
+    stop(); timer=setInterval(function(){ show((idx+1)%caps[os].length); },2200);
+    playBtn.classList.add('playing'); playBtn.firstChild.textContent='⏸ '; }
+  playBtn.onclick=function(){ timer?stop():play(); };
+
+  function setOS(o){ os=o; idx=0;
+    document.getElementById('tab-and').classList.toggle('on',o==='and');
+    document.getElementById('tab-ios').classList.toggle('on',o==='ios');
+    document.getElementById('cert-steps-and').style.display=(o==='and')?'':'none';
+    document.getElementById('cert-steps-ios').style.display=(o==='ios')?'':'none';
+    document.getElementById('os-title').textContent=(o==='and')?'Settings':'Settings';
+    // 프레임 그룹 표시 전환
+    document.querySelectorAll('.osframe .frame').forEach(function(f){ f.style.display=(f.getAttribute('data-g')===o)?'':'none'; });
+    stop(); buildDots(); show(0);
+  }
+  document.getElementById('tab-and').onclick=function(){setOS('and')};
+  document.getElementById('tab-ios').onclick=function(){setOS('ios')};
+
+  setOS('and');
+})();
+</script>
+</body>
+</html>
