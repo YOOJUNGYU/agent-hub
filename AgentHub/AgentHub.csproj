@@ -292,6 +292,9 @@
     <Content Include="View\Htmls\js\term.js">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="View\Htmls\js\host-term.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="hook\agenthub-hook.js">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
