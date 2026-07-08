@@ -13,7 +13,6 @@ namespace AgentHub.Common.Models
         public string ToolName { get; set; }       // 최신 tool_use 이름 (없으면 null)
         public string LastActivityAt { get; set; } // ISO 8601 (UTC)
         public int MessageCount { get; set; }
-        public bool Managed { get; set; }
         public PendingAsk PendingAsk { get; set; }
     }
 }

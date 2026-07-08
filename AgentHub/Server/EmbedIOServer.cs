@@ -182,14 +182,9 @@ namespace AgentHub.Server
             {
                 DeviceRegistry.Load();
 
-                // 질문 알림 훅 기본 설치(최초 1회). 사용자가 이후 제거하면 재설치하지 않음.
-                if (!Properties.Settings.Default.HookAutoInstalled)
-                {
-                    try { if (Hook.HookInstaller.Install()) { /* ok */ } }
-                    catch (Exception ex) { LogService.Instance.Error(ex); }
-                    Properties.Settings.Default.HookAutoInstalled = true;
-                    Properties.Settings.Default.Save();
-                }
+                // 질문 알림 훅은 항상 설치(옵션 아님). 매 시작마다 멱등 설치 — HookConfigMerger가 중복을 제거한다.
+                try { Hook.HookInstaller.Install(); }
+                catch (Exception ex) { LogService.Instance.Error(ex); }
 
                 CurrentPort = ResolvePort();
 
@@ -227,6 +222,7 @@ namespace AgentHub.Server
                     .WithModule(agentModule)
                     .WithModule(new HostMonitorModule("/ws/host"))
                     .WithModule(new TerminalModule("/ws/term"))
+                    .WithModule(new SessionTerminalModule("/ws/session"))
                     // /host, /host.html 는 PC(loopback)에서만 접근 허용. 그 외는 정적 폴더로 통과.
                     .WithAction("/host", HttpVerbs.Any, GuardHostAsync)
                     .WithAction("/host.html", HttpVerbs.Any, GuardHostAsync)
@@ -264,7 +260,7 @@ namespace AgentHub.Server
             {
                 AgentMonitorService.Stop();
                 Socket.TerminalModule.DisableAllInstances();
-                Terminal.ManagedSessionRegistry.DisposeAll();
+                Socket.SessionTerminalModule.DisableAllInstances();
                 _cts?.Cancel();
                 _server?.Dispose();
             }

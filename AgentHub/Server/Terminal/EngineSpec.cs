@@ -8,6 +8,8 @@ namespace AgentHub.Server.Terminal
     {
         public abstract string Key { get; }
         public abstract string LaunchCommand();
+        /// <summary>기존 세션 대화를 이어받아 대화형으로 실행하는 명령(모바일 터미널 attach용).</summary>
+        public abstract string ResumeCommand(string sessionId);
         public abstract string ProjectDir(string cwd);
 
         // AskUserQuestion 메뉴 선택(커서 최상단 가정): Down×i + Enter. best-effort.
@@ -28,6 +30,8 @@ namespace AgentHub.Server.Terminal
     {
         public override string Key => "claude";
         public override string LaunchCommand() => "cmd.exe /c claude";
+        // sessionId는 UUID(안전 문자)라 별도 이스케이프 불필요.
+        public override string ResumeCommand(string sessionId) => "cmd.exe /c claude --resume " + sessionId;
         public override string ProjectDir(string cwd)
         {
             var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);

@@ -116,7 +116,8 @@ body.host-shell #logs.view.active{display:flex; flex-direction:column; overflow:
 
 /* ===== Responsive ===== */
 @media (max-width:600px){
-  .app-header{flex-direction:column; align-items:flex-start; gap:.4rem}
+  /* 모바일에서도 좌(브랜드)/우(사용법·인증서·언어) 양끝 정렬 유지 */
+  .app-header{align-items:center; justify-content:space-between; gap:.4rem .6rem}
   main{padding:.8rem}
   .agent-grid{grid-template-columns:1fr}
   .tab{flex:1 1 0; text-align:center}
@@ -211,7 +212,7 @@ body.host-shell #logs.view.active{display:flex; flex-direction:column; overflow:
 /* ---- 웹 터미널 (xterm.js) ---- */
 .term-btn { margin: 0 0 10px; padding: 8px 14px; background: #222941; color: #c9d1e4; border: 1px solid #2a3145; border-radius: 8px; cursor: pointer; }
 .term-warn { color: #fbbf24; font-size: 12px; margin: 4px 0 8px; }
-#termView { height: 70vh; width: 100%; }
+#termView { width: 100%; }
 #terminal .detail-head { margin-bottom: 8px; }
 
 /* ---- 질문 알림 배너 ---- */
@@ -223,20 +224,10 @@ body.host-shell #logs.view.active{display:flex; flex-direction:column; overflow:
 #askAnswer { background: #7aa2ff; color: #0b0f1a; font-weight: 600; }
 #askDismiss { background: #2a3145; color: #c9d1e4; }
 
-/* ---- 프롬프트 입력창 (managed 세션) ---- */
+/* ---- 프롬프트 입력창 (터미널 하단: 텍스트/슬래시 명령을 PTY로 전송) ---- */
 .prompt-bar { display: flex; gap: 8px; padding: 10px 0 0; align-items: center; }
-.prompt-bar[hidden] { display: none; }
 .prompt-bar input { flex: 1; padding: 10px 12px; font-size: 14px; background: #171a2b; color: #e6e9f2; border: 1px solid #2c3150; border-radius: 10px; }
 .prompt-bar button { padding: 10px 16px; font-size: 14px; font-weight: 600; color: #0b0f1a; background: #7aa2ff; border: 0; border-radius: 10px; cursor: pointer; }
-
-/* ---- AskUserQuestion 옵션 답변 ---- */
-.ask-box { margin: 10px 0 0; padding: 10px 12px; background: #201f14; border: 1px solid #6b5a1e; border-radius: 10px; display: flex; flex-direction: column; gap: 8px; }
-.ask-box[hidden] { display: none; }
-.ask-q { color: #fde68a; font-size: 13px; word-break: break-word; }
-.ask-pick { color: #8b93a7; font-size: 11px; }
-.ask-options { display: flex; flex-direction: column; gap: 6px; }
-.ask-opt { padding: 9px 12px; border-radius: 8px; border: 1px solid #2a3145; background: #222941; color: #c9d1e4; text-align: left; cursor: pointer; font-size: 13px; }
-.ask-opt:active { background: #2a3350; }
 
 /* 사용 가이드 링크 */
 .guide-link { display: inline-block; margin: 8px 0 0; font-size: 13px; color: #7aa2ff; text-decoration: none; }
@@ -267,18 +258,18 @@ body:not(.host-shell) #askBanner{ flex:0 0 auto; }
 /* 모니터: 스크롤 컨테이너 + '새 세션' 하단(짧으면 카드 아래, 길면 sticky) */
 body:not(.host-shell) #monitor:not([hidden]){ flex:1 1 auto; min-height:0; display:block; overflow-y:auto; }
 .monitor-top{ display:flex; gap:8px; flex-wrap:wrap; }
-.new-session-btn{ position:sticky; bottom:0; width:100%; margin:12px 0 0; padding:13px;
-  background:#7aa2ff; color:#0b0f1a; font-weight:700; font-size:15px; border:0; border-radius:12px; cursor:pointer;
-  box-shadow:0 -8px 16px -8px rgba(0,0,0,.5); }
-.new-session-btn[hidden]{ display:none; }
 
-/* 상세: 헤드 고정 + 피드 스크롤(flex:1) + 입력창/옵션 하단 고정 */
+/* 상세: 헤드 고정 + 피드 스크롤(flex:1). 헤드의 '터미널 열기'는 우측 정렬 */
 body:not(.host-shell) #detail:not([hidden]){ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
 #detail .detail-head{ flex:0 0 auto; }
+#detail .detail-title{ flex:1 1 auto; min-width:0; }
 #detail .activity-feed{ flex:1 1 auto; min-height:0; overflow-y:auto; }
-#detail #askBox, #detail #promptBar, #detail #externalNote{ flex:0 0 auto; }
 
-/* 인증/터미널 화면은 스크롤 허용 */
+/* 인증 화면은 스크롤 허용 */
 body:not(.host-shell) #authRequest:not([hidden]),
-body:not(.host-shell) #authPending:not([hidden]),
-body:not(.host-shell) #terminal:not([hidden]){ flex:1 1 auto; min-height:0; overflow-y:auto; }
+body:not(.host-shell) #authPending:not([hidden]){ flex:1 1 auto; min-height:0; overflow-y:auto; }
+
+/* 터미널 화면: 헤드/경고/입력창 고정 + xterm이 남은 공간 채움 */
+body:not(.host-shell) #terminal:not([hidden]){ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+#terminal .detail-head, #terminal .term-warn, #terminal #termPromptBar{ flex:0 0 auto; }
+#terminal #termView{ flex:1 1 auto; min-height:0; }

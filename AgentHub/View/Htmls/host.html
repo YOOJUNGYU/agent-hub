@@ -75,9 +75,7 @@
           <button type="button" id="termSaveBtn" data-i18n="settings.termSave">터미널 설정 저장</button>
           <p class="hint" id="termHint"></p>
           <hr />
-          <label class="chk"><input type="checkbox" id="hookEnabled" /> <span data-i18n="settings.hookEnable">질문 알림 훅 설치 (Claude 입력 대기 시 연결된 폰에 알림)</span></label>
-          <p class="hint" data-i18n="settings.hookNote">설치 시 ~/.claude/settings.json에 항목을 추가합니다(기존 훅 보존, 백업 생성). 앱 업데이트 후 경로가 바뀌면 다시 설치하세요.</p>
-          <p class="hint" id="hookHint"></p>
+          <p class="hint" data-i18n="settings.hookAlways">질문 알림 훅은 자동으로 설치됩니다(Claude가 입력을 기다리면 연결된 폰에 알림). 서버 시작 시 ~/.claude/settings.json에 항목을 추가하며 기존 훅은 보존됩니다.</p>
         </div>
       </form>
     </section>

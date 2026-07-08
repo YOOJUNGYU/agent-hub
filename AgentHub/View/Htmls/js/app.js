@@ -77,7 +77,6 @@ function connect() {
       if (m.type === 'auth') applyAuth(m.status);
       else if (m.type === 'sessions') {
         renderSessions(m.sessions);
-        if (currentSessionId !== null) updateDetailExtras(currentSessionId);
         if (currentSessionId === null && document.getElementById('terminal').hidden) { showScreen('monitor'); if (window.refreshTermButton) window.refreshTermButton(); refreshNotifyBtn(); }
       }
       else if (m.type === 'activity') { renderActivity(m.sessionId, m.events); }
@@ -124,39 +123,10 @@ function openDetail(id) {
   document.getElementById('detailTitle').textContent = (sessionsById[id] && sessionsById[id].title) || '';
   $('#activityFeed').innerHTML =
     '<div class="loading"><span class="spinner"></span></div>';
-  updateDetailExtras(id);
   showScreen('detail');
   // 히스토리 항목 추가 → 기기 뒤로가기가 앱 종료 대신 popstate로 목록 복귀
   history.pushState({ screen: 'detail', id }, '');
   send({ type: 'watch', sessionId: id });
-}
-
-// 상세 화면의 프롬프트 입력창/AskUserQuestion 옵션 박스를 현재 세션 상태로 갱신 (화면 전환 없음)
-function updateDetailExtras(id) {
-  const s = sessionsById[id];
-  const promptBar = $('#promptBar');
-  const note = $('#externalNote');
-  if (promptBar) promptBar.hidden = false;   // 모든 세션 상세에서 입력창 상시 노출
-  if (note) note.hidden = true;
-  renderAskBox(s);
-}
-
-function renderAskBox(s) {
-  const box = $('#askBox');
-  if (!box) return;
-  const ask = s && s.pendingAsk;
-  if (!ask) { box.hidden = true; box.innerHTML = ''; return; }
-  box.hidden = false;
-  const opts = ask.options || [];
-  box.innerHTML = '<div class="ask-q">' + esc(ask.question || ask.header || '') + '</div>'
-    + '<div class="ask-pick">' + esc(t('ask.pick')) + '</div>'
-    + '<div class="ask-options">' + opts.map((o, i) =>
-        '<button class="ask-opt" data-i="' + i + '">' + esc(o) + '</button>').join('') + '</div>';
-  box.querySelectorAll('.ask-opt').forEach(btn => {
-    btn.addEventListener('click', () => {
-      send({ type: 'answer', sessionId: currentSessionId, optionIndex: Number(btn.getAttribute('data-i')) });
-    });
-  });
 }
 
 // 상세 → 목록 복귀 (기기 back / 화면 버튼 공통 경로)
@@ -178,7 +148,6 @@ function renderActivity(sessionId, events) {
   if (firstActivityRender || atBottom) feed.scrollTop = feed.scrollHeight; // 첫 진입/최하단 → 자동 최하단
   else feed.scrollTop = prevTop;                                          // 과거 보는 중 → 위치 유지
   firstActivityRender = false;
-  updateDetailExtras(sessionId);
 }
 
 function evHtml(e) {
@@ -200,20 +169,10 @@ function rel(iso) {
   if (s < 86400) return Math.floor(s/3600) + 'h'; return Math.floor(s/86400) + 'd';
 }
 
-// ---- 새 세션 시작 ----
-document.getElementById('newSessionBtn') && document.getElementById('newSessionBtn').addEventListener('click', () => {
-  const cwd = prompt(t('session.newPrompt'));
-  if (!cwd) return;
-  send({ type: 'startSession', engine: 'claude', cwd });
-});
-
-// ---- 프롬프트 전송 ----
-document.getElementById('promptSend') && document.getElementById('promptSend').addEventListener('click', () => {
-  const inp = document.getElementById('promptInput');
-  const text = inp.value.trim();
-  if (!text || currentSessionId === null) return;
-  send({ type: 'prompt', sessionId: currentSessionId, text });
-  inp.value = '';
+// ---- 세션 터미널 열기 (claude --resume attach) ----
+document.getElementById('openSessionTermBtn') && document.getElementById('openSessionTermBtn').addEventListener('click', () => {
+  if (currentSessionId && window.openSessionTerminal)
+    window.openSessionTerminal(currentSessionId, sessionsById[currentSessionId] && sessionsById[currentSessionId].title);
 });
 
 // ---- 알림 권한 ----
@@ -250,7 +209,8 @@ function handleAsk(m) {
 }
 document.getElementById('askAnswer') && document.getElementById('askAnswer').addEventListener('click', () => {
   document.getElementById('askBanner').hidden = true;
-  if (window.openTerminal) window.openTerminal();
+  // 해당 세션의 대화형 터미널로 이동해 질문에 답변 (없으면 무시)
+  if (lastAsk && lastAsk.sessionId && window.openSessionTerminal) window.openSessionTerminal(lastAsk.sessionId);
 });
 document.getElementById('askDismiss') && document.getElementById('askDismiss').addEventListener('click', () => {
   document.getElementById('askBanner').hidden = true;

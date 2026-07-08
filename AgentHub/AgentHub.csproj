@@ -141,10 +141,10 @@
     <Compile Include="Server\Socket\HostMonitorModule.cs" />
     <Compile Include="Server\Socket\MonitorClientRegistry.cs" />
     <Compile Include="Server\Socket\TerminalModule.cs" />
+    <Compile Include="Server\Socket\SessionTerminalModule.cs" />
     <Compile Include="Server\Terminal\ConPtyInterop.cs" />
     <Compile Include="Server\Terminal\ConPtySession.cs" />
     <Compile Include="Server\Terminal\EngineSpec.cs" />
-    <Compile Include="Server\Terminal\ManagedSessionRegistry.cs" />
     <Compile Include="Server\Terminal\TerminalGate.cs" />
     <Compile Include="Server\Hook\HookConfigMerger.cs" />
     <Compile Include="Server\Hook\HookInstaller.cs" />
