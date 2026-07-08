@@ -59,7 +59,10 @@ namespace AgentHub.Server.Agents
                     var id = Path.GetFileNameWithoutExtension(fi.Name);
                     _paths[id] = fi.FullName;
                     var lines = ReadAllLinesShared(fi.FullName);
-                    result.Add(TranscriptParser.Summarize(id, lines, now));
+                    var s = TranscriptParser.Summarize(id, lines, now);
+                    s.Managed = AgentHub.Server.Terminal.ManagedSessionRegistry.IsManaged(s.Id);
+                    s.PendingAsk = TranscriptParser.ExtractPendingAsk(lines);
+                    result.Add(s);
                 }
                 catch (Exception ex) { LogService.Instance.Error(ex); }
             }

@@ -10,8 +10,10 @@
   // 모니터 진입 시 버튼 노출 여부 갱신 (app.js에서 호출)
   window.refreshTermButton = async function () {
     const btn = document.getElementById('termBtn');
-    if (!btn) return;
-    btn.hidden = !(await terminalEnabled());
+    const newBtn = document.getElementById('newSessionBtn');
+    const enabled = await terminalEnabled();
+    if (btn) btn.hidden = !enabled;
+    if (newBtn) newBtn.hidden = !enabled;
   };
 
   function ensureTerm() {

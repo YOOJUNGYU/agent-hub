@@ -70,6 +70,22 @@ namespace AgentHub.Server.Socket
                 {
                     _watching.TryRemove(context.Id, out _);
                 }
+                else if (msg.Type == "startSession")
+                {
+                    if (!Properties.Settings.Default.TerminalEnabled) return;
+                    try { AgentHub.Server.Terminal.ManagedSessionRegistry.Start(msg.Engine ?? "claude", msg.Cwd); }
+                    catch (Exception ex) { LogService.Instance.Error(ex); }
+                }
+                else if (msg.Type == "prompt")
+                {
+                    if (Properties.Settings.Default.TerminalEnabled && !string.IsNullOrEmpty(msg.SessionId))
+                        AgentHub.Server.Terminal.ManagedSessionRegistry.Prompt(msg.SessionId, msg.Text);
+                }
+                else if (msg.Type == "answer")
+                {
+                    if (Properties.Settings.Default.TerminalEnabled && !string.IsNullOrEmpty(msg.SessionId))
+                        AgentHub.Server.Terminal.ManagedSessionRegistry.Answer(msg.SessionId, msg.OptionIndex);
+                }
             }
             catch (Exception ex) { LogService.Instance.Error(ex); }
         }
@@ -145,5 +161,9 @@ namespace AgentHub.Server.Socket
     {
         public string Type { get; set; }
         public string SessionId { get; set; }
+        public string Cwd { get; set; }
+        public string Engine { get; set; }
+        public string Text { get; set; }
+        public int OptionIndex { get; set; }
     }
 }

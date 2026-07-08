@@ -119,6 +119,7 @@
     <Compile Include="Common\Models\Error.cs" />
     <Compile Include="Common\Models\Device.cs" />
     <Compile Include="Common\Models\ServerStatusInfo.cs" />
+    <Compile Include="Common\Models\PendingAsk.cs" />
     <Compile Include="Common\Models\SessionSummary.cs" />
     <Compile Include="Common\Models\ActivityEvent.cs" />
     <Compile Include="Common\Util\AppSettingsProvider.cs" />
@@ -142,6 +143,8 @@
     <Compile Include="Server\Socket\TerminalModule.cs" />
     <Compile Include="Server\Terminal\ConPtyInterop.cs" />
     <Compile Include="Server\Terminal\ConPtySession.cs" />
+    <Compile Include="Server\Terminal\EngineSpec.cs" />
+    <Compile Include="Server\Terminal\ManagedSessionRegistry.cs" />
     <Compile Include="Server\Terminal\TerminalGate.cs" />
     <Compile Include="Server\Hook\HookConfigMerger.cs" />
     <Compile Include="Server\Hook\HookInstaller.cs" />

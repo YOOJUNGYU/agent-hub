@@ -254,6 +254,7 @@ namespace AgentHub.Server
             {
                 AgentMonitorService.Stop();
                 Socket.TerminalModule.DisableAllInstances();
+                Terminal.ManagedSessionRegistry.DisposeAll();
                 _cts?.Cancel();
                 _server?.Dispose();
             }
