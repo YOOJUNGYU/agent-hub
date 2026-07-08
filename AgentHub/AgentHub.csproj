@@ -119,6 +119,7 @@
     <Compile Include="Common\Models\Error.cs" />
     <Compile Include="Common\Models\Device.cs" />
     <Compile Include="Common\Models\ServerStatusInfo.cs" />
+    <Compile Include="Common\Models\PendingAsk.cs" />
     <Compile Include="Common\Models\SessionSummary.cs" />
     <Compile Include="Common\Models\ActivityEvent.cs" />
     <Compile Include="Common\Util\AppSettingsProvider.cs" />

@@ -33,6 +33,32 @@ namespace AgentHub.Server.Agents
 
         private static string Str(JToken t) => t?.Type == JTokenType.String ? t.Value<string>() : null;
 
+        public static PendingAsk ExtractPendingAsk(IReadOnlyList<string> lines)
+        {
+            JObject lastAsk = null; string askId = null;
+            foreach (var line in lines)
+            {
+                var o = TryParse(line); if (o == null) continue;
+                var content = o["message"]?["content"] as JArray; if (content == null) continue;
+                foreach (var b in content.OfType<JObject>())
+                {
+                    if (Str(b["type"]) == "tool_use" && Str(b["name"]) == "AskUserQuestion")
+                    { lastAsk = b; askId = Str(b["id"]); }
+                    else if (Str(b["type"]) == "tool_result" && askId != null && Str(b["tool_use_id"]) == askId)
+                    { lastAsk = null; askId = null; } // 답변됨
+                }
+            }
+            if (lastAsk == null) return null;
+            var q = (lastAsk["input"]?["questions"] as JArray)?.OfType<JObject>().FirstOrDefault();
+            if (q == null) return null;
+            var opts = new List<string>();
+            foreach (var op in (q["options"] as JArray ?? new JArray()).OfType<JObject>())
+            { var l = Str(op["label"]); if (l != null) opts.Add(l); }
+            return new PendingAsk { Question = Str(q["question"]), Header = Str(q["header"]),
+                MultiSelect = q["multiSelect"]?.Type == JTokenType.Boolean && q["multiSelect"].Value<bool>(),
+                Options = opts };
+        }
+
         public static SessionSummary Summarize(string sessionId, IReadOnlyList<string> lines, DateTime nowUtc)
         {
             var s = new SessionSummary { Id = sessionId, Status = "ended" };
