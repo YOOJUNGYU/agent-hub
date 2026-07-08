@@ -218,6 +218,21 @@ body.host-shell #logs.view.active{display:flex; flex-direction:column; overflow:
 #askAnswer { background: #7aa2ff; color: #0b0f1a; font-weight: 600; }
 #askDismiss { background: #2a3145; color: #c9d1e4; }
 
+/* ---- 프롬프트 입력창 (managed 세션) ---- */
+.prompt-bar { display: flex; gap: 8px; padding: 10px 0 0; align-items: center; }
+.prompt-bar[hidden] { display: none; }
+.prompt-bar input { flex: 1; padding: 10px 12px; font-size: 14px; background: #171a2b; color: #e6e9f2; border: 1px solid #2c3150; border-radius: 10px; }
+.prompt-bar button { padding: 10px 16px; font-size: 14px; font-weight: 600; color: #0b0f1a; background: #7aa2ff; border: 0; border-radius: 10px; cursor: pointer; }
+
+/* ---- AskUserQuestion 옵션 답변 ---- */
+.ask-box { margin: 10px 0 0; padding: 10px 12px; background: #201f14; border: 1px solid #6b5a1e; border-radius: 10px; display: flex; flex-direction: column; gap: 8px; }
+.ask-box[hidden] { display: none; }
+.ask-q { color: #fde68a; font-size: 13px; word-break: break-word; }
+.ask-pick { color: #8b93a7; font-size: 11px; }
+.ask-options { display: flex; flex-direction: column; gap: 6px; }
+.ask-opt { padding: 9px 12px; border-radius: 8px; border: 1px solid #2a3145; background: #222941; color: #c9d1e4; text-align: left; cursor: pointer; font-size: 13px; }
+.ask-opt:active { background: #2a3350; }
+
 /* 사용 가이드 링크 */
 .guide-link { display: inline-block; margin: 8px 0 0; font-size: 13px; color: #7aa2ff; text-decoration: none; }
 .cert-help-wrap .guide-link { padding: 4px 0; }

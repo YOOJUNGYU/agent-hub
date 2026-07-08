@@ -67,6 +67,7 @@
     <!-- 모니터: 세션 리스트 -->
     <section id="monitor" class="screen" hidden>
       <button id="termBtn" class="term-btn" hidden data-i18n="term.open">⌨ 터미널</button>
+      <button id="newSessionBtn" class="term-btn" hidden data-i18n="session.new">+ 새 세션</button>
       <button id="notifyBtn" class="term-btn" data-i18n="notify.on">🔔 알림 켜기</button>
       <div class="summary" id="summary"></div>
       <div class="session-list" id="sessionList">
@@ -81,6 +82,12 @@
         <div class="detail-title" id="detailTitle"></div>
       </div>
       <div class="activity-feed" id="activityFeed"></div>
+      <div id="askBox" class="ask-box" hidden></div>
+      <p class="hint" id="externalNote" data-i18n="session.external" hidden>외부 실행 세션 — 보기 전용</p>
+      <div id="promptBar" class="prompt-bar" hidden>
+        <input id="promptInput" type="text" data-i18n-ph="prompt.ph" placeholder="프롬프트 입력…" />
+        <button id="promptSend" data-i18n="prompt.send">보내기</button>
+      </div>
     </section>
 
     <!-- 모바일 웹 터미널 (xterm.js ⇄ /ws/term) -->
