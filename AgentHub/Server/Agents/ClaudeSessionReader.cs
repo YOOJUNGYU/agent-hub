@@ -85,6 +85,23 @@ namespace AgentHub.Server.Agents
             catch (Exception ex) { LogService.Instance.Error(ex); return new List<ActivityEvent>(); }
         }
 
+        /// <summary>세션의 작업 디렉터리(cwd)를 트랜스크립트에서 조회. resume 실행용. 실패 시 null.</summary>
+        public static string CwdOf(string sessionId)
+        {
+            try
+            {
+                if (!_paths.TryGetValue(sessionId, out var path) || !File.Exists(path))
+                {
+                    path = FindSessionFile(sessionId);
+                    if (path == null) return null;
+                    _paths[sessionId] = path;
+                }
+                var lines = ReadAllLinesShared(path);
+                return TranscriptParser.Summarize(sessionId, lines, DateTime.UtcNow).Cwd;
+            }
+            catch (Exception ex) { LogService.Instance.Error(ex); return null; }
+        }
+
         private static string FindSessionFile(string sessionId)
         {
             var root = ProjectsRoot;

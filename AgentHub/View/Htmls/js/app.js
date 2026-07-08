@@ -136,8 +136,8 @@ function updateDetailExtras(id) {
   const s = sessionsById[id];
   const promptBar = $('#promptBar');
   const note = $('#externalNote');
-  if (promptBar) promptBar.hidden = !(s && s.managed);
-  if (note) note.hidden = !s || !!s.managed;
+  if (promptBar) promptBar.hidden = false;   // 모든 세션 상세에서 입력창 상시 노출
+  if (note) note.hidden = true;
   renderAskBox(s);
 }
 
