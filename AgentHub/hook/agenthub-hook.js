@@ -34,6 +34,15 @@ process.stdin.on('end', () => {
   const port = readPort();
   if (!port) process.exit(0);
 
+  // 세션↔PID 지도용 보고(모바일이 세션을 가져올 때 원본 프로세스 종료에 사용).
+  // process.ppid = 이 훅을 띄운 claude 프로세스 PID.
+  if (p.hook_event_name === 'SessionStart') {
+    post(port, '/api/hook/session-pid', { session_id: p.session_id, pid: process.ppid }, 2500, () => process.exit(0));
+    setTimeout(() => process.exit(0), 3000);
+    return;
+  }
+  post(port, '/api/hook/session-pid', { session_id: p.session_id, pid: process.ppid }, 2000, () => {}); // fire-and-forget
+
   if (p.hook_event_name === 'PreToolUse') {
     // 권한 요청 → 서버가 폰 응답을 기다렸다가 {decision:"allow"|"deny"|"ask"} 반환.
     post(port, '/api/hook/permission', {

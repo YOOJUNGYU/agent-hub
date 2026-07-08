@@ -57,8 +57,22 @@ namespace AgentHub.Server.Hook
                         ["timeout"] = 120
                     }}
                 };
+                // SessionStart: 세션 시작 시 PID 보고(원본 종료용 지도). fire-and-forget.
+                var startEntry = new JObject
+                {
+                    ["matcher"] = "",
+                    ["hooks"] = new JArray { new JObject
+                    {
+                        ["type"] = "command",
+                        ["command"] = ResolveNode(),
+                        ["args"] = new JArray { ScriptPath },
+                        ["async"] = true,
+                        ["timeout"] = 5
+                    }}
+                };
                 var merged = HookConfigMerger.AddHook(existing, "Notification", notifyEntry, Marker);
                 merged = HookConfigMerger.AddHook(merged, "PreToolUse", permEntry, Marker);
+                merged = HookConfigMerger.AddHook(merged, "SessionStart", startEntry, Marker);
                 WriteSettingsWithBackup(merged);
                 return true;
             }
@@ -74,6 +88,7 @@ namespace AgentHub.Server.Hook
                 if (!IsWritable(existing)) return false;
                 var removed = HookConfigMerger.RemoveHook(existing, "Notification", Marker);
                 removed = HookConfigMerger.RemoveHook(removed, "PreToolUse", Marker);
+                removed = HookConfigMerger.RemoveHook(removed, "SessionStart", Marker);
                 WriteSettingsWithBackup(removed);
                 return true;
             }
