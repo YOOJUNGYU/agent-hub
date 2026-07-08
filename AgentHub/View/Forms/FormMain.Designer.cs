@@ -41,6 +41,7 @@ partial class FormMain
             this.pnlTitleBar = new System.Windows.Forms.Panel();
             this.flpTitle = new System.Windows.Forms.FlowLayoutPanel();
             this.lblVersionInfo = new System.Windows.Forms.Label();
+            this.lnkUpdateStatus = new System.Windows.Forms.LinkLabel();
             this.lblTitle = new System.Windows.Forms.Label();
             this.btnWindowMinimize = new System.Windows.Forms.Button();
             this.btnWindowClose = new System.Windows.Forms.Button();
@@ -182,6 +183,7 @@ partial class FormMain
             this.flpTitle.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
             this.flpTitle.BackColor = System.Drawing.Color.Transparent;
             this.flpTitle.Controls.Add(this.lblVersionInfo);
+            this.flpTitle.Controls.Add(this.lnkUpdateStatus);
             this.flpTitle.Location = new System.Drawing.Point(137, 0);
             this.flpTitle.Margin = new System.Windows.Forms.Padding(4);
             this.flpTitle.Name = "flpTitle";
@@ -202,9 +204,23 @@ partial class FormMain
             this.lblVersionInfo.TabIndex = 10;
             this.lblVersionInfo.Text = "version";
             this.lblVersionInfo.MouseDown += new System.Windows.Forms.MouseEventHandler(this.pnlTitleBar_MouseDown);
-            // 
+            //
+            // lnkUpdateStatus
+            //
+            this.lnkUpdateStatus.ActiveLinkColor = System.Drawing.Color.FromArgb(((int)(((byte)(122)))), ((int)(((byte)(162)))), ((int)(((byte)(255)))));
+            this.lnkUpdateStatus.AutoSize = true;
+            this.lnkUpdateStatus.Font = new System.Drawing.Font("맑은 고딕", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.lnkUpdateStatus.LinkColor = System.Drawing.Color.FromArgb(((int)(((byte)(122)))), ((int)(((byte)(162)))), ((int)(((byte)(255)))));
+            this.lnkUpdateStatus.Location = new System.Drawing.Point(77, 12);
+            this.lnkUpdateStatus.Margin = new System.Windows.Forms.Padding(0, 0, 7, 0);
+            this.lnkUpdateStatus.Name = "lnkUpdateStatus";
+            this.lnkUpdateStatus.Size = new System.Drawing.Size(0, 25);
+            this.lnkUpdateStatus.TabIndex = 12;
+            this.lnkUpdateStatus.Visible = false;
+            this.lnkUpdateStatus.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.lnkUpdateStatus_LinkClicked);
+            //
             // lblTitle
-            // 
+            //
             this.lblTitle.AutoSize = true;
             this.lblTitle.Font = new System.Drawing.Font("맑은 고딕", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
             this.lblTitle.ForeColor = System.Drawing.Color.WhiteSmoke;
@@ -339,6 +355,7 @@ partial class FormMain
         private System.Windows.Forms.Label lblTitle;
         private System.Windows.Forms.FlowLayoutPanel flpTitle;
         private System.Windows.Forms.Label lblVersionInfo;
+        private System.Windows.Forms.LinkLabel lnkUpdateStatus;
         private System.Windows.Forms.Panel pnlMainCenter;
         private Microsoft.Web.WebView2.WinForms.WebView2 webViewServer;
     }

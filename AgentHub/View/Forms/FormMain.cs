@@ -138,14 +138,28 @@ namespace AgentHub.View.Forms
                         {
                             _updateReady = true;
                             if (_updateMenuItem != null) { _updateMenuItem.Text = "지금 업데이트 후 재시작"; _updateMenuItem.Enabled = true; }
+                            // 타이틀바: 클릭 가능한 "업데이트 후 재시작" 링크로 표시
+                            lnkUpdateStatus.Text = "업데이트 후 재시작";
+                            lnkUpdateStatus.LinkArea = new LinkArea(0, lnkUpdateStatus.Text.Length);
+                            lnkUpdateStatus.Visible = true;
                             _notify?.ShowBalloonTip(5000, "Agent Hub",
                                 "새 버전이 준비되었습니다. 재시작 시 적용됩니다.", ToolTipIcon.Info);
                         }
                         else if (_updateMenuItem != null)
                         {
                             // 최신 버전(UpToDate) 또는 확인 불가(Unavailable) → 재시작 버튼 대신 상태만 표시.
-                            _updateMenuItem.Text = result == UpdateService.CheckResult.UpToDate ? "최신 버전입니다" : "업데이트 확인 불가";
+                            bool upToDate = result == UpdateService.CheckResult.UpToDate;
+                            _updateMenuItem.Text = upToDate ? "최신 버전입니다" : "업데이트 확인 불가";
                             _updateMenuItem.Enabled = false;
+                            if (upToDate)
+                            {
+                                // 타이틀바: 평문(링크 아님) "최신 버전입니다"
+                                lnkUpdateStatus.Text = "최신 버전입니다";
+                                lnkUpdateStatus.LinkArea = new LinkArea(0, 0);
+                                lnkUpdateStatus.ForeColor = System.Drawing.Color.FromArgb(127, 224, 166);
+                                lnkUpdateStatus.Visible = true;
+                            }
+                            else lnkUpdateStatus.Visible = false; // 확인 불가(개발/미설치) → 표시 안 함
                         }
                     }));
                 }
@@ -189,6 +203,12 @@ namespace AgentHub.View.Forms
 
         private void SetVersionInfo()
             => lblVersionInfo.Text = $@"version: {EtcUtil.GetFileVersionInfo().FileVersion} ({EtcUtil.GetBuildDateTime():yyyy-MM-dd})";
+
+        // 타이틀바 업데이트 링크 클릭 → 다운로드된 업데이트 적용 후 재시작(준비된 경우에만).
+        private void lnkUpdateStatus_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            if (_updateReady) UpdateService.ApplyAndRestart();
+        }
 
         private void LoadSetting()
         {
