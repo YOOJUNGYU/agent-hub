@@ -58,8 +58,44 @@ namespace AgentHub.Server.Terminal
 
         public static bool Prompt(string sessionId, string text)
         {
-            if (!ById.TryGetValue(sessionId, out var e) || text == null) return false;
-            try { e.Pty.Write(Encoding.UTF8.GetBytes(text + "\r")); return true; }
+            if (string.IsNullOrEmpty(sessionId) || text == null) return false;
+            // 관리 세션: 우리가 소유한 PTY stdin에 직접 기록.
+            if (ById.TryGetValue(sessionId, out var e))
+            {
+                try { e.Pty.Write(Encoding.UTF8.GetBytes(text + "\r")); return true; }
+                catch (Exception ex) { LogService.Instance.Error(ex); return false; }
+            }
+            // 비관리(외부) 세션: headless resume로 프롬프트 이어붙이기 시도.
+            // 주의: 그 세션이 다른 곳에서 라이브면 트랜스크립트가 뒤섞일 수 있음(사용자 선택).
+            return ResumePrompt(sessionId, text);
+        }
+
+        private static bool ResumePrompt(string sessionId, string text)
+        {
+            try
+            {
+                var cwd = AgentHub.Server.Agents.ClaudeSessionReader.CwdOf(sessionId);
+                if (string.IsNullOrEmpty(cwd) || !Directory.Exists(cwd)) return false;
+                // claude -p --resume <id> "<text>" — 해당 cwd에서 headless 실행 후 종료(대화에 추가됨).
+                var args = "/c claude -p --resume " + sessionId + " \"" + text.Replace("\"", "\\\"") + "\"";
+                var psi = new System.Diagnostics.ProcessStartInfo("cmd.exe", args)
+                {
+                    WorkingDirectory = cwd,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                };
+                var p = System.Diagnostics.Process.Start(psi);
+                if (p != null)
+                {
+                    // fire-and-forget: 출력 버퍼가 막히지 않도록 비동기로 흘려보냄.
+                    p.OutputDataReceived += (s, ev) => { };
+                    p.ErrorDataReceived += (s, ev) => { };
+                    try { p.BeginOutputReadLine(); p.BeginErrorReadLine(); } catch { }
+                }
+                return true;
+            }
             catch (Exception ex) { LogService.Instance.Error(ex); return false; }
         }
 
