@@ -70,20 +70,21 @@ namespace AgentHub.Server.Socket
                 {
                     _watching.TryRemove(context.Id, out _);
                 }
+                // 프롬프트/답변/새 세션은 승인 기기면 항상 허용(웹 터미널 토글과 무관).
+                // 상단에서 이미 Approved 게이트를 통과한 상태.
                 else if (msg.Type == "startSession")
                 {
-                    if (!Properties.Settings.Default.TerminalEnabled) return;
                     try { AgentHub.Server.Terminal.ManagedSessionRegistry.Start(msg.Engine ?? "claude", msg.Cwd); }
                     catch (Exception ex) { LogService.Instance.Error(ex); }
                 }
                 else if (msg.Type == "prompt")
                 {
-                    if (Properties.Settings.Default.TerminalEnabled && !string.IsNullOrEmpty(msg.SessionId))
+                    if (!string.IsNullOrEmpty(msg.SessionId))
                         AgentHub.Server.Terminal.ManagedSessionRegistry.Prompt(msg.SessionId, msg.Text);
                 }
                 else if (msg.Type == "answer")
                 {
-                    if (Properties.Settings.Default.TerminalEnabled && !string.IsNullOrEmpty(msg.SessionId))
+                    if (!string.IsNullOrEmpty(msg.SessionId))
                         AgentHub.Server.Terminal.ManagedSessionRegistry.Answer(msg.SessionId, msg.OptionIndex);
                 }
             }

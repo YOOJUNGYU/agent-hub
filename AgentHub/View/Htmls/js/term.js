@@ -12,8 +12,8 @@
     const btn = document.getElementById('termBtn');
     const newBtn = document.getElementById('newSessionBtn');
     const enabled = await terminalEnabled();
-    if (btn) btn.hidden = !enabled;
-    if (newBtn) newBtn.hidden = !enabled;
+    if (btn) btn.hidden = !enabled;        // raw 웹 터미널은 토글에 따라 노출
+    if (newBtn) newBtn.hidden = false;     // 새 세션(프롬프트 워크플로)은 항상 노출
   };
 
   function ensureTerm() {
