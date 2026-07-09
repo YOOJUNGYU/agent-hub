@@ -77,7 +77,7 @@
       'monitor.empty': '최근 활동한 세션이 없습니다.',
       'detail.back': '← 목록',
       'term.open': '⌨ 터미널',
-      'term.openSession': '⌨ 터미널 열기',
+      'term.openSession': '⌨ 터미널',
       'term.title': '터미널',
       'term.warn': '이 터미널은 PC에서 실제 명령을 실행합니다. 신뢰하는 경우에만 사용하세요.',
       'term.confirmOpen': '기존 세션이 실행 중이던 쉘이 종료되고 해당 세션이 재시작됩니다. 그래도 모바일에서 실행하여 프롬프트를 보내시겠습니까?',
