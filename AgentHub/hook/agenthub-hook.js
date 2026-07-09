@@ -43,6 +43,32 @@ process.stdin.on('end', () => {
   }
   post(port, '/api/hook/session-pid', { session_id: p.session_id, pid: process.ppid }, 2000, () => {}); // fire-and-forget
 
+  if (p.hook_event_name === 'PermissionRequest') {
+    // AskUserQuestion(질문+답변 목록)만 폰으로 넘겨 원격 답변받는다. 그 외 권한요청은
+    // 출력 없이 통과시켜 기존 PreToolUse 권한 흐름을 그대로 둔다.
+    if (p.tool_name !== 'AskUserQuestion') { process.exit(0); return; }
+    post(port, '/api/hook/elicit', {
+      session_id: p.session_id, cwd: p.cwd, tool_input: p.tool_input
+    }, 118000, data => {
+      try {
+        const r = JSON.parse(data || '{}');
+        if (r.updatedInput) {
+          // 폰에서 고른 답을 마치 사용자가 답한 것처럼 주입.
+          process.stdout.write(JSON.stringify({
+            hookSpecificOutput: {
+              hookEventName: 'PermissionRequest',
+              decision: { behavior: 'allow', updatedInput: r.updatedInput }
+            }
+          }));
+        }
+        // updatedInput 없음(무응답/타임아웃/미승인) → 출력 없음 = 기존 흐름(PC 프롬프트)으로 폴백.
+      } catch (e) {}
+      process.exit(0);
+    });
+    setTimeout(() => process.exit(0), 119000); // 안전망(훅 timeout 120s 이내)
+    return;
+  }
+
   if (p.hook_event_name === 'PreToolUse') {
     // 권한 요청 → 서버가 폰 응답을 기다렸다가 {decision:"allow"|"deny"|"ask"} 반환.
     post(port, '/api/hook/permission', {

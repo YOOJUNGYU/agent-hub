@@ -235,6 +235,38 @@ namespace AgentHub.Server.Controller
             await SendJsonAsync(Json.Serialize(new { decision }));
         }
 
+        // PermissionRequest 훅(블로킹): AskUserQuestion(질문+답변 목록)을 폰에서 원격 답변.
+        // 폰이 고른 답을 updatedInput.answers로 되돌려주면 Claude가 그 답으로 진행한다.
+        // 응답할 폰이 없거나 무응답/타임아웃이면 updatedInput 없이 반환 → 훅이 정상 흐름으로 폴백.
+        [Route(HttpVerbs.Post, "/hook/elicit")]
+        public async Task HookElicit()
+        {
+            if (!IsLoopback()) { await Forbidden(); return; }
+            var raw = await HttpContext.GetRequestBodyAsStringAsync();
+            object updatedInput = null;
+            try
+            {
+                var o = JObject.Parse(raw);
+                var toolInput = o["tool_input"] as JObject;
+                var questions = toolInput?["questions"] as JArray;
+                if (questions != null && questions.Count > 0 && AgentMonitorService.HasApprovedClient())
+                {
+                    var id = Guid.NewGuid().ToString("N");
+                    var project = LastSegment((string)o["cwd"] ?? "");
+                    AgentMonitorService.BroadcastElicit(id, project, questions, (string)o["session_id"]);
+                    var answersJson = await AgentHub.Server.Hook.AskRegistry.AwaitAnswer(id, 110000);
+                    if (!string.IsNullOrEmpty(answersJson))
+                    {
+                        var updated = (JObject)toolInput.DeepClone();
+                        updated["answers"] = JToken.Parse(answersJson);
+                        updatedInput = updated;
+                    }
+                }
+            }
+            catch (Exception ex) { LogService.Instance.Error(ex); }
+            await SendJsonAsync(Json.Serialize(new { updatedInput }));
+        }
+
         // 세션↔PID 보고(원본 종료용). 훅이 process.ppid를 보낸다.
         [Route(HttpVerbs.Post, "/hook/session-pid")]
         public async Task HookSessionPid()

@@ -76,6 +76,12 @@ namespace AgentHub.Server.Socket
                     if (!string.IsNullOrEmpty(msg.Id))
                         AgentHub.Server.Hook.PermissionRegistry.Resolve(msg.Id, msg.Decision);
                 }
+                else if (msg.Type == "elicitAnswer")
+                {
+                    // 폰에서 고른 AskUserQuestion 답변 → 대기 중인 PermissionRequest 훅 해제.
+                    if (!string.IsNullOrEmpty(msg.Id) && msg.Answers != null)
+                        AgentHub.Server.Hook.AskRegistry.Resolve(msg.Id, msg.Answers.ToString());
+                }
                 // 세션 제어(프롬프트/슬래시/답변)는 /ws/session 대화형 터미널에서 수행한다.
             }
             catch (Exception ex) { LogService.Instance.Error(ex); }
@@ -161,7 +167,8 @@ namespace AgentHub.Server.Socket
     {
         public string Type { get; set; }
         public string SessionId { get; set; }
-        public string Id { get; set; }        // permissionDecision 대상 id
+        public string Id { get; set; }        // permissionDecision / elicitAnswer 대상 id
         public string Decision { get; set; }  // "allow" | "deny"
+        public Newtonsoft.Json.Linq.JObject Answers { get; set; }  // elicitAnswer: { [질문텍스트]: 라벨/배열 }
     }
 }

@@ -149,6 +149,7 @@
     <Compile Include="Server\Terminal\TerminalGate.cs" />
     <Compile Include="Server\Hook\HookConfigMerger.cs" />
     <Compile Include="Server\Hook\PermissionRegistry.cs" />
+    <Compile Include="Server\Hook\AskRegistry.cs" />
     <Compile Include="Server\Hook\SessionPidRegistry.cs" />
     <Compile Include="Server\Hook\HookInstaller.cs" />
     <Compile Include="View\Forms\FormToast.cs">

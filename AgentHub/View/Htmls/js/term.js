@@ -34,7 +34,16 @@
   function send(o) { try { tws && tws.readyState === 1 && tws.send(JSON.stringify(o)); } catch (_) {} }
 
   // 로딩 오버레이: resume는 ready 직후 이력을 PTY 출력으로 재생하므로, 첫 출력 바이트가 올 때까지 표시.
-  function showLoading(on) { const el = document.getElementById('termLoading'); if (el) el.hidden = !on; }
+  // 단, resume가 출력을 전혀 안 내보내는 경우(충돌·빈 세션 등) 무한 로딩이 되므로 타임아웃 폴백을 둔다.
+  let loadTimer = null;
+  function showLoading(on) {
+    const el = document.getElementById('termLoading');
+    if (el) el.hidden = !on;
+    if (loadTimer) { clearTimeout(loadTimer); loadTimer = null; }
+    if (on) loadTimer = setTimeout(() => {
+      const e2 = document.getElementById('termLoading'); if (e2) e2.hidden = true; loadTimer = null;
+    }, 8000);
+  }
 
   const DENY = { disabled: '터미널이 비활성화됨', unauthorized: '권한 없음', nosession: '세션 정보 없음', nocwd: '세션 폴더를 찾을 수 없음' };
 

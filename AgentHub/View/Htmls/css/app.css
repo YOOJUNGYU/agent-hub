@@ -204,7 +204,9 @@ body.host-shell #sessionterm.view.active{ display:flex; flex-direction:column; o
 .ev-tool_use { border-left-color: #7aa2ff; }
 .ev-tool_result { border-left-color: #4ade80; }
 .ev-user_prompt { border-left-color: #fbbf24; }
-.ev-head { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+.ev-head { display: flex; gap: 8px; align-items: center; font-size: 13px; min-width: 0; }
+.ev-icon { flex: 0 0 auto; }
+.ev-summary { min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
 .ev-text { color: #aab3c5; font-size: 12px; margin-top: 4px; white-space: pre-wrap; word-break: break-word; max-height: 8em; overflow: hidden; }
 .empty { color: #6b7280; text-align: center; padding: 24px; }
 
@@ -219,7 +221,7 @@ body.host-shell #sessionterm.view.active{ display:flex; flex-direction:column; o
 .cert-help .hint { font-size: 12px; color: #8b93a7; margin: 6px 0; line-height: 1.55; white-space: pre-line; }
 
 /* ---- 웹 터미널 (xterm.js) ---- */
-.term-btn { margin: 0 0 10px; padding: 8px 14px; background: #222941; color: #c9d1e4; border: 1px solid #2a3145; border-radius: 8px; cursor: pointer; }
+.term-btn { margin: 0 0 10px; padding: 8px 14px; background: #222941; color: #c9d1e4; border: 1px solid #2a3145; border-radius: 8px; cursor: pointer; white-space: nowrap; }
 .term-warn { color: #fbbf24; font-size: 12px; margin: 4px 0 8px; }
 #termView { width: 100%; }
 #terminal .detail-head { margin-bottom: 8px; }
@@ -232,6 +234,35 @@ body.host-shell #sessionterm.view.active{ display:flex; flex-direction:column; o
 .ask-actions button { flex: 1; padding: 8px; border-radius: 8px; border: none; cursor: pointer; }
 #askAnswer { background: #7aa2ff; color: #0b0f1a; font-weight: 600; }
 #askDismiss { background: #2a3145; color: #c9d1e4; }
+
+/* ---- 질문/답변(AskUserQuestion) 오버레이 ---- */
+.elicit-overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end;
+  justify-content: center; background: rgba(6,8,15,.6); padding: 12px; }
+.elicit-overlay[hidden] { display: none; }
+.elicit-card { width: 100%; max-width: 560px; max-height: 88vh; display: flex; flex-direction: column;
+  background: #171b28; border: 1px solid #2a3145; border-radius: 16px; padding: 16px 16px 0;
+  box-shadow: 0 24px 60px -20px rgba(0,0,0,.8); }
+.elicit-progress { color: #8b93a7; font-size: 12px; }
+.elicit-progress:empty { display: none; }
+.elicit-header { color: var(--accent); font-weight: 700; font-size: 13px; margin: 2px 0 6px; }
+.elicit-question { color: #e6e9f2; font-size: 15px; line-height: 1.5; word-break: break-word; }
+.elicit-hint { color: #8b93a7; font-size: 12px; margin: 6px 0 10px; }
+.elicit-options { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden;
+  display: flex; flex-direction: column; gap: 8px; }
+.elicit-opt { display: flex; align-items: flex-start; gap: 10px; padding: 12px; cursor: pointer;
+  background: #1b2030; border: 1px solid #2a3145; border-radius: 10px; }
+.elicit-opt:active { background: #222941; }
+.elicit-opt input { margin: 2px 0 0; flex: 0 0 auto; width: 18px; height: 18px; accent-color: var(--accent); }
+.elicit-opt-body { min-width: 0; }
+.elicit-opt-label { display: block; color: #e6e9f2; font-size: 14px; word-break: break-word; }
+.elicit-opt-desc { color: #8b93a7; font-size: 12px; margin-top: 3px; word-break: break-word; }
+.elicit-other { width: 100%; box-sizing: border-box; margin-top: 2px; padding: 10px; resize: vertical;
+  background: #0d0f17; color: #e6e9f2; border: 1px solid #2a3145; border-radius: 8px; font-size: 14px; font-family: inherit; }
+.elicit-other[hidden] { display: none; }
+.elicit-actions { flex: 0 0 auto; display: flex; gap: 8px; padding: 12px 0 calc(4px + env(safe-area-inset-bottom)); }
+.elicit-btn { flex: 1; padding: 12px; border-radius: 10px; border: none; font-size: 15px; font-weight: 700; cursor: pointer; }
+.elicit-btn.primary { background: var(--accent); color: #08130c; }
+.elicit-btn.ghost { background: #2a3145; color: #c9d1e4; }
 
 /* 권한 요청 배너(PreToolUse 원격 승인) */
 .ask-banner.perm { background: #2a1f14; border-color: #7a4a1e; }
@@ -269,7 +300,10 @@ a.hdr-btn { text-decoration: none; }
 /* ===== 모바일(PWA) 뷰포트 채움 레이아웃 (host 콘솔 제외) ===== */
 body:not(.host-shell){ height:100vh; height:100dvh; display:flex; flex-direction:column; overflow:hidden; }
 body:not(.host-shell) > .app-header{ flex:0 0 auto; }
-body:not(.host-shell) main{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+body:not(.host-shell) main{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; overflow:hidden;
+  /* 뷰포트를 시스템 바 안쪽(safe area)에 두어 하단 내비게이션/홈 인디케이터가 콘텐츠를 가리지 않게 한다.
+     env(safe-area-inset-bottom)은 안드로이드에서 0으로 보고되는 경우가 많아, 최소 여백을 함께 확보한다. */
+  padding-bottom:calc(1rem + env(safe-area-inset-bottom)); }
 body:not(.host-shell) #askBanner, body:not(.host-shell) #permBanner{ flex:0 0 auto; }
 
 /* 모니터: 스크롤 컨테이너 + '새 세션' 하단(짧으면 카드 아래, 길면 sticky) */
@@ -280,7 +314,9 @@ body:not(.host-shell) #monitor:not([hidden]){ flex:1 1 auto; min-height:0; displ
 body:not(.host-shell) #detail:not([hidden]){ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
 #detail .detail-head{ flex:0 0 auto; }
 #detail .detail-title{ flex:1 1 auto; min-width:0; }
-#detail .activity-feed{ flex:1 1 auto; min-height:0; overflow-y:auto; }
+#detail .term-btn{ flex:0 0 auto; }
+#detail .activity-feed{ flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; padding-bottom:calc(16px + env(safe-area-inset-bottom)); }
+#detail .ev{ min-width:0; }
 
 /* 인증 화면은 스크롤 허용 */
 body:not(.host-shell) #authRequest:not([hidden]),

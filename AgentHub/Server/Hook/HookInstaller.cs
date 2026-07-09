@@ -57,6 +57,19 @@ namespace AgentHub.Server.Hook
                         ["timeout"] = 120
                     }}
                 };
+                // PermissionRequest: AskUserQuestion(질문+답변 목록)을 폰에서 원격 답변. 블로킹(동기).
+                // 훅 스크립트가 AskUserQuestion 외에는 출력 없이 통과시키므로 matcher는 전체("").
+                var permReqEntry = new JObject
+                {
+                    ["matcher"] = "",
+                    ["hooks"] = new JArray { new JObject
+                    {
+                        ["type"] = "command",
+                        ["command"] = ResolveNode(),
+                        ["args"] = new JArray { ScriptPath },
+                        ["timeout"] = 120
+                    }}
+                };
                 // SessionStart: 세션 시작 시 PID 보고(원본 종료용 지도). fire-and-forget.
                 var startEntry = new JObject
                 {
@@ -72,6 +85,7 @@ namespace AgentHub.Server.Hook
                 };
                 var merged = HookConfigMerger.AddHook(existing, "Notification", notifyEntry, Marker);
                 merged = HookConfigMerger.AddHook(merged, "PreToolUse", permEntry, Marker);
+                merged = HookConfigMerger.AddHook(merged, "PermissionRequest", permReqEntry, Marker);
                 merged = HookConfigMerger.AddHook(merged, "SessionStart", startEntry, Marker);
                 WriteSettingsWithBackup(merged);
                 return true;
@@ -88,6 +102,7 @@ namespace AgentHub.Server.Hook
                 if (!IsWritable(existing)) return false;
                 var removed = HookConfigMerger.RemoveHook(existing, "Notification", Marker);
                 removed = HookConfigMerger.RemoveHook(removed, "PreToolUse", Marker);
+                removed = HookConfigMerger.RemoveHook(removed, "PermissionRequest", Marker);
                 removed = HookConfigMerger.RemoveHook(removed, "SessionStart", Marker);
                 WriteSettingsWithBackup(removed);
                 return true;

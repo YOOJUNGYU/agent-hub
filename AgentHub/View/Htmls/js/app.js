@@ -81,6 +81,7 @@ function connect() {
       }
       else if (m.type === 'activity') { renderActivity(m.sessionId, m.events); }
       else if (m.type === 'ask') { handleAsk(m); }
+      else if (m.type === 'elicit') { handleElicit(m); }
       else if (m.type === 'permission') { handlePermission(m); }
     } catch (e) { /* ignore malformed */ }
   };
@@ -190,9 +191,7 @@ document.getElementById('notifyBtn') && document.getElementById('notifyBtn').add
 });
 
 // ---- ask 배너(질문 알림) ----
-let lastAsk = null;
 function handleAsk(m) {
-  lastAsk = m;
   if (('Notification' in window) && Notification.permission === 'granted') {
     var title = t('ask.title');
     var opts = { body: (m.project ? '[' + m.project + '] ' : '') + (m.message || ''), tag: m.sessionId || 'ask' };
@@ -209,13 +208,118 @@ function handleAsk(m) {
   document.getElementById('askMsg').textContent = m.message || '';
   banner.hidden = false;
 }
-document.getElementById('askAnswer') && document.getElementById('askAnswer').addEventListener('click', () => {
-  document.getElementById('askBanner').hidden = true;
-  // 해당 세션의 대화형 터미널로 이동해 질문에 답변 (없으면 무시)
-  if (lastAsk && lastAsk.sessionId && window.openSessionTerminal) window.openSessionTerminal(lastAsk.sessionId);
-});
 document.getElementById('askDismiss') && document.getElementById('askDismiss').addEventListener('click', () => {
   document.getElementById('askBanner').hidden = true;
+});
+
+// ---- elicit 오버레이(AskUserQuestion 질문+답변 선택) ----
+// 서버 PermissionRequest 훅이 질문을 push하면 옵션을 골라 바로 답변한다(터미널 불필요).
+let elicit = null; // { id, questions:[{header,question,multiSelect,options:[{label,description}]}], step, answers:{} }
+const ELICIT_OTHER = '__other__';
+
+function handleElicit(m) {
+  const qs = Array.isArray(m.questions) ? m.questions.filter(q => q && q.question) : [];
+  if (qs.length === 0) return;
+  elicit = { id: m.id, questions: qs, step: 0, answers: {} };
+  document.getElementById('askBanner').hidden = true; // 같은 질문의 알림 배너가 오버레이 뒤에 남지 않도록
+  if (('Notification' in window) && Notification.permission === 'granted') {
+    const opts = { body: (m.project ? '[' + m.project + '] ' : '') + qs[0].question, tag: 'elicit-' + m.id, requireInteraction: true };
+    if (navigator.serviceWorker && navigator.serviceWorker.ready)
+      navigator.serviceWorker.ready.then(r => r.showNotification(t('elicit.title'), opts)).catch(() => { try { new Notification(t('elicit.title'), opts); } catch (e) {} });
+    else try { new Notification(t('elicit.title'), opts); } catch (e) {}
+  }
+  renderElicitStep();
+  document.getElementById('elicit').hidden = false;
+}
+
+function renderElicitStep() {
+  if (!elicit) return;
+  const q = elicit.questions[elicit.step];
+  const total = elicit.questions.length;
+  const multi = !!q.multiSelect;
+  document.getElementById('elicitProgress').textContent = total > 1 ? (elicit.step + 1) + ' / ' + total : '';
+  document.getElementById('elicitHeader').textContent = q.header || (t('elicit.question') + ' ' + (elicit.step + 1));
+  document.getElementById('elicitQuestion').textContent = q.question;
+  document.getElementById('elicitHint').textContent = multi ? t('elicit.chooseMulti') : t('elicit.chooseOne');
+  const prev = elicit.answers[q.question]; // 이전 선택 복원용(라벨 문자열 또는 배열)
+  const prevSet = prev == null ? [] : (Array.isArray(prev) ? prev : String(prev).split(', '));
+  const opts = Array.isArray(q.options) ? q.options : [];
+  const type = multi ? 'checkbox' : 'radio';
+  let html = '';
+  opts.forEach((op, i) => {
+    const label = op && op.label != null ? String(op.label) : '';
+    const desc = op && op.description ? '<div class="elicit-opt-desc">' + esc(op.description) + '</div>' : '';
+    const checked = prevSet.indexOf(label) >= 0 ? ' checked' : '';
+    html += '<label class="elicit-opt"><input type="' + type + '" name="elicitOpt" value="' + i + '"' + checked + '>'
+      + '<span class="elicit-opt-body"><span class="elicit-opt-label">' + esc(label) + '</span>' + desc + '</span></label>';
+  });
+  // "기타" 자유 입력(터미널 UI가 자동 제공하는 Other를 클라이언트에서 주입)
+  const otherChecked = prevSet.some(v => opts.every(o => (o && String(o.label)) !== v)) ? ' checked' : '';
+  html += '<label class="elicit-opt"><input type="' + type + '" name="elicitOpt" value="' + ELICIT_OTHER + '"' + otherChecked + '>'
+    + '<span class="elicit-opt-body"><span class="elicit-opt-label">' + esc(t('elicit.other')) + '</span></span></label>'
+    + '<textarea id="elicitOther" class="elicit-other" rows="2" data-i18n-ph="elicit.otherPh"' + (otherChecked ? '' : ' hidden') + '></textarea>';
+  const box = document.getElementById('elicitOptions');
+  box.innerHTML = html;
+  if (otherChecked) {
+    const custom = prevSet.filter(v => opts.every(o => (o && String(o.label)) !== v))[0] || '';
+    const ta = document.getElementById('elicitOther'); if (ta) ta.value = custom;
+  }
+  box.querySelectorAll('input[name="elicitOpt"]').forEach(inp => inp.addEventListener('change', onElicitOptChange));
+  const back = document.getElementById('elicitBack');
+  const next = document.getElementById('elicitNext');
+  back.textContent = elicit.step === 0 ? t('elicit.cancel') : t('elicit.back');
+  next.textContent = elicit.step === total - 1 ? t('elicit.submit') : t('elicit.next');
+  if (window.I18n) I18n.apply();
+}
+
+function onElicitOptChange() {
+  const ta = document.getElementById('elicitOther');
+  if (!ta) return;
+  const checked = Array.from(document.querySelectorAll('input[name="elicitOpt"]:checked'));
+  const otherOn = checked.some(c => c.value === ELICIT_OTHER);
+  ta.hidden = !otherOn;
+  if (otherOn) ta.focus();
+}
+
+function collectElicitAnswer() {
+  const q = elicit.questions[elicit.step];
+  const opts = Array.isArray(q.options) ? q.options : [];
+  const checked = Array.from(document.querySelectorAll('input[name="elicitOpt"]:checked'));
+  if (checked.length === 0) return null;
+  const labels = [];
+  checked.forEach(c => {
+    if (c.value === ELICIT_OTHER) {
+      const ta = document.getElementById('elicitOther');
+      const v = ta && ta.value.trim();
+      if (v) labels.push(v);
+    } else {
+      const op = opts[Number(c.value)];
+      if (op && op.label != null) labels.push(String(op.label));
+    }
+  });
+  if (labels.length === 0) return null;
+  return q.multiSelect ? labels.join(', ') : labels[0];
+}
+
+function closeElicit() {
+  document.getElementById('elicit').hidden = true;
+  elicit = null;
+}
+
+document.getElementById('elicitNext') && document.getElementById('elicitNext').addEventListener('click', () => {
+  if (!elicit) return;
+  const ans = collectElicitAnswer();
+  if (ans == null) return; // 최소 하나는 선택
+  const q = elicit.questions[elicit.step];
+  elicit.answers[q.question] = ans;
+  if (elicit.step < elicit.questions.length - 1) { elicit.step++; renderElicitStep(); return; }
+  send({ type: 'elicitAnswer', id: elicit.id, answers: elicit.answers });
+  closeElicit();
+});
+document.getElementById('elicitBack') && document.getElementById('elicitBack').addEventListener('click', () => {
+  if (!elicit) return;
+  if (elicit.step === 0) { closeElicit(); return; } // 취소(무응답 → 서버 타임아웃 후 PC 프롬프트로 폴백)
+  elicit.step--; renderElicitStep();
 });
 
 // ---- 권한 요청(PreToolUse) 원격 승인 ----
@@ -263,6 +367,13 @@ refreshNotifyBtn();
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
+  // 새 서비스워커가 제어를 넘겨받으면(=새 버전 활성화) 한 번만 새로고침해 최신 화면 반영.
+  var _reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    if (_reloading) return;
+    _reloading = true;
+    location.reload();
+  });
 }
 
 // ---- 인증서 메뉴(헤더) + PWA 설치 유도 ----

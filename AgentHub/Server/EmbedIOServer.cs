@@ -226,6 +226,8 @@ namespace AgentHub.Server
                     // /host, /host.html 는 PC(loopback)에서만 접근 허용. 그 외는 정적 폴더로 통과.
                     .WithAction("/host", HttpVerbs.Any, GuardHostAsync)
                     .WithAction("/host.html", HttpVerbs.Any, GuardHostAsync)
+                    // 서비스워커: 캐시 키({{VER}})를 자산 해시로 치환해 서빙 → 빌드마다 자동 무효화.
+                    .WithAction("/sw.js", HttpVerbs.Any, ctx => ServeServiceWorkerAsync(ctx, htmlPath))
                     // 정적 SPA (반드시 마지막 — "/"는 catch-all). "/" -> index.html, "/host" -> host.html
                     .WithStaticFolder("/", htmlPath, false, m =>
                     {
@@ -242,6 +244,49 @@ namespace AgentHub.Server
             {
                 LogService.Instance.Error(ex);
                 throw;
+            }
+        }
+
+        /// <summary>
+        /// /sw.js 를 동적으로 서빙한다. 캐시 키 자리표시자({{VER}})를 View/Htmls 자산의
+        /// 해시로 치환하므로, 빌드로 파일이 바뀌면 서비스워커 내용이 달라져 브라우저가
+        /// 재설치하고 옛 캐시를 폐기한다(수동 버전 증가 불필요). 항상 no-store 로 내려
+        /// 브라우저가 매번 최신 sw.js 를 비교하도록 한다.
+        /// </summary>
+        private static async Task ServeServiceWorkerAsync(EmbedIO.IHttpContext ctx, string htmlPath)
+        {
+            string content;
+            try { content = File.ReadAllText(Path.Combine(htmlPath, "sw.js"), Encoding.UTF8); }
+            catch { throw RequestHandler.PassThrough(); } // 없으면 정적 폴더로 위임
+
+            content = content.Replace("{{VER}}", ComputeAssetVersion(htmlPath));
+
+            ctx.Response.Headers.Set(HttpHeaderNames.CacheControl, "no-store, no-cache, must-revalidate");
+            ctx.Response.Headers.Set(HttpHeaderNames.Pragma, "no-cache");
+            await ctx.SendStringAsync(content, "text/javascript", Encoding.UTF8);
+        }
+
+        /// <summary>View/Htmls 하위 모든 파일의 (상대경로·수정시각·크기) 해시. 빌드로 자산이 갱신되면 값이 바뀐다.</summary>
+        private static string ComputeAssetVersion(string htmlPath)
+        {
+            try
+            {
+                var files = Directory.GetFiles(htmlPath, "*", SearchOption.AllDirectories);
+                Array.Sort(files, StringComparer.OrdinalIgnoreCase);
+                var sb = new StringBuilder();
+                foreach (var f in files)
+                {
+                    var fi = new FileInfo(f);
+                    sb.Append(fi.Name).Append('|').Append(fi.LastWriteTimeUtc.Ticks).Append('|').Append(fi.Length).Append(';');
+                }
+                using var md5 = MD5.Create();
+                var hash = md5.ComputeHash(Encoding.UTF8.GetBytes(sb.ToString()));
+                return BitConverter.ToString(hash, 0, 5).Replace("-", "").ToLowerInvariant();
+            }
+            catch (Exception ex)
+            {
+                LogService.Instance.Error(ex);
+                return "static";
             }
         }
 

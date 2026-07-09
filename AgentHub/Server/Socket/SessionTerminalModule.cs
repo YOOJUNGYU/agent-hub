@@ -30,6 +30,7 @@ namespace AgentHub.Server.Socket
         {
             public ConPtySession Pty;
             public string SessionId;
+            public volatile bool GotOutput; // resume가 출력 바이트를 하나라도 냈는지(무출력 감지용)
             // 여러 클라이언트가 동시에 입력할 수 있으므로 PTY 쓰기를 직렬화(바이트 인터리브 방지).
             public readonly object WriteGate = new object();
             // 현재 붙어있는 소켓들(context.Id 집합). 출력 브로드캐스트 대상.
@@ -146,10 +147,17 @@ namespace AgentHub.Server.Socket
                 var command = EngineSpec.For("claude").ResumeCommand(sessionId);
                 var session = new Session { SessionId = sessionId };
                 session.Attached[context.Id] = 0;
-                session.Pty = new ConPtySession(command, cwd, 100, 30, (buf, n) => OnPtyOutput(sessionId, buf, n));
-                session.Pty.Exited += async () => await OnSessionExited(sessionId);
+                // PTY 생성 전에 먼저 등록한다 — ConPtySession의 읽기 스레드가 생성자에서 시작되므로,
+                // 등록 전에 도착한 초기 출력 바이트를 OnPtyOutput이 유실하지 않도록.
                 _bySession[sessionId] = session;
+                try
+                {
+                    session.Pty = new ConPtySession(command, cwd, 100, 30, (buf, n) => OnPtyOutput(sessionId, buf, n));
+                    session.Pty.Exited += async () => await OnSessionExited(sessionId);
+                }
+                catch { _bySession.TryRemove(sessionId, out _); throw; }
                 await SendTextSafe(context, Json.Serialize(new { type = "ready" }));
+                ArmNoOutputWatchdog(sessionId); // resume가 아무 출력도 안 내면 안내(무한 로딩/빈 화면 방지)
             }
             catch (Exception ex)
             {
@@ -161,6 +169,7 @@ namespace AgentHub.Server.Socket
         private async void OnPtyOutput(string sessionId, byte[] buf, int n)
         {
             if (!_bySession.TryGetValue(sessionId, out var s)) return;
+            s.GotOutput = true;
             var slice = new byte[n];
             Buffer.BlockCopy(buf, 0, slice, 0, n);
             s.Append(slice); // 버퍼링(재접속 재생용)
@@ -170,6 +179,28 @@ namespace AgentHub.Server.Socket
                 var ctx = FindContext(ctxId);
                 if (ctx != null) { try { await SendBytesSafe(ctx, slice); } catch { } }
             }
+        }
+
+        // resume(claude --resume)가 일정 시간 아무 출력도 내지 않으면(원본 미종료 충돌·재개 불가·빈 세션 등)
+        // 로그를 남기고, 클라이언트가 무한 로딩/빈 화면에 머물지 않도록 안내 한 줄을 터미널에 표시한다.
+        private async void ArmNoOutputWatchdog(string sessionId)
+        {
+            try
+            {
+                await Task.Delay(7000);
+                if (!_bySession.TryGetValue(sessionId, out var s) || s.GotOutput) return; // 종료됨/정상 출력 도착
+                LogService.Instance.Warn("세션 터미널 resume 출력 없음(7s): " + sessionId
+                    + " — 원본 프로세스 미종료 충돌 / 재개 불가 / 빈 세션 가능성");
+                var notice = Encoding.UTF8.GetBytes(
+                    "\r\n\x1b[33m[출력이 없습니다 — 세션이 이미 종료됐거나 다른 프로세스가 사용 중일 수 있습니다. "
+                    + "입력을 시도하거나 '← 목록'으로 돌아가세요.]\x1b[0m\r\n");
+                foreach (var ctxId in s.Attached.Keys)
+                {
+                    var ctx = FindContext(ctxId);
+                    if (ctx != null) { try { await SendBytesSafe(ctx, notice); } catch { } }
+                }
+            }
+            catch (Exception ex) { LogService.Instance.Error(ex); }
         }
 
         private async Task OnSessionExited(string sessionId)

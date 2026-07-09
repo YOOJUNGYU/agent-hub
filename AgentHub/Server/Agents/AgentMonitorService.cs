@@ -58,6 +58,16 @@ namespace AgentHub.Server.Agents
             finally { _sendGate.Release(); }
         }
 
+        /// <summary>AskUserQuestion(질문+답변 목록)을 승인 기기에 push(폰이 답을 선택).</summary>
+        public static async void BroadcastElicit(string id, string project, object questions, string sessionId)
+        {
+            var msg = Json.Serialize(new { type = "elicit", id, project, questions, sessionId });
+            await _sendGate.WaitAsync();
+            try { if (_module != null) await _module.BroadcastMessageAsync(msg); }
+            catch (Exception ex) { LogService.Instance.Error(ex); }
+            finally { _sendGate.Release(); }
+        }
+
         /// <summary>응답할 승인 기기(폰)가 하나라도 연결돼 있는지.</summary>
         public static bool HasApprovedClient() => _module != null && _module.HasApprovedClient();
 

@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#181c2a" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="apple-touch-icon" href="/icons/icon-192.png" />
@@ -39,7 +39,6 @@
     <div id="askBanner" class="ask-banner" hidden>
       <div class="ask-text"><b id="askProject"></b> <span id="askMsg"></span></div>
       <div class="ask-actions">
-        <button id="askAnswer" data-i18n="ask.answer">답변하기</button>
         <button id="askDismiss" data-i18n="ask.dismiss">닫기</button>
       </div>
     </div>
@@ -76,7 +75,7 @@
     <!-- 모니터: 세션 리스트 -->
     <section id="monitor" class="screen" hidden>
       <div class="monitor-top">
-        <button id="termBtn" class="term-btn" hidden data-i18n="term.open">⌨ 터미널</button>
+        <button id="termBtn" class="term-btn" hidden data-i18n="term.open">⌨ 터미널 열기</button>
         <button id="notifyBtn" class="term-btn" data-i18n="notify.on">🔔 알림 켜기</button>
       </div>
       <div class="summary" id="summary"></div>
@@ -118,6 +117,21 @@
         <button class="key-btn" data-seq="&#x0d;">Enter</button>
       </div>
     </section>
+
+    <!-- 질문/답변(AskUserQuestion) 오버레이: Claude가 물으면 옵션을 골라 바로 답변 -->
+    <div id="elicit" class="elicit-overlay" hidden>
+      <div class="elicit-card">
+        <div class="elicit-progress" id="elicitProgress"></div>
+        <div class="elicit-header" id="elicitHeader"></div>
+        <div class="elicit-question" id="elicitQuestion"></div>
+        <div class="elicit-hint" id="elicitHint"></div>
+        <div class="elicit-options" id="elicitOptions"></div>
+        <div class="elicit-actions">
+          <button id="elicitBack" class="elicit-btn ghost"></button>
+          <button id="elicitNext" class="elicit-btn primary"></button>
+        </div>
+      </div>
+    </div>
   </main>
   <script src="/js/xterm.js"></script>
   <script src="/js/addon-fit.js"></script>
