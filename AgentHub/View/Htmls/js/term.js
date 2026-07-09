@@ -33,6 +33,9 @@
 
   function send(o) { try { tws && tws.readyState === 1 && tws.send(JSON.stringify(o)); } catch (_) {} }
 
+  // 로딩 오버레이: resume는 ready 직후 이력을 PTY 출력으로 재생하므로, 첫 출력 바이트가 올 때까지 표시.
+  function showLoading(on) { const el = document.getElementById('termLoading'); if (el) el.hidden = !on; }
+
   const DENY = { disabled: '터미널이 비활성화됨', unauthorized: '권한 없음', nosession: '세션 정보 없음', nocwd: '세션 폴더를 찾을 수 없음' };
 
   function connect(url, title) {
@@ -43,6 +46,7 @@
     if (tt) tt.textContent = title || '터미널';
     showScreen('terminal');
     history.pushState({ screen: 'terminal' }, '');
+    showLoading(true);
     setTimeout(doFit, 60);
     tws = new WebSocket(url);
     tws.binaryType = 'arraybuffer';
@@ -51,13 +55,14 @@
       if (typeof ev.data === 'string') {
         let m; try { m = JSON.parse(ev.data); } catch (_) { return; }
         if (m.type === 'ready') doFit();
-        else if (m.type === 'denied') term.write('\r\n[' + (DENY[m.reason] || '연결 거부') + ']\r\n');
-        else if (m.type === 'exit') term.write('\r\n[세션 종료]\r\n');
+        else if (m.type === 'denied') { showLoading(false); term.write('\r\n[' + (DENY[m.reason] || '연결 거부') + ']\r\n'); }
+        else if (m.type === 'exit') { showLoading(false); term.write('\r\n[세션 종료]\r\n'); }
       } else {
+        showLoading(false); // 첫 출력 바이트 = 이력 재생 시작
         term.write(new Uint8Array(ev.data));
       }
     };
-    tws.onclose = () => { /* 유지: 사용자가 뒤로가기로 정리 */ };
+    tws.onclose = () => { showLoading(false); /* 유지: 사용자가 뒤로가기로 정리 */ };
   }
 
   const wsBase = () => (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host;

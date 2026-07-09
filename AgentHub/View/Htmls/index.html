@@ -102,18 +102,20 @@
         <div class="detail-title" id="termTitle" data-i18n="term.title">터미널</div>
       </div>
       <p class="term-warn" data-i18n="term.warn">이 터미널은 PC에서 실제 명령을 실행합니다.</p>
-      <div id="termView"></div>
+      <div id="termViewWrap">
+        <div id="termView"></div>
+        <div id="termLoading" class="term-loading" hidden><span class="spinner"></span><span data-i18n="term.loading">이력 불러오는 중…</span></div>
+      </div>
       <!-- 모바일에서 입력하기 어려운 특수키를 버튼으로 (탭하면 PTY로 해당 시퀀스 전송) -->
       <div id="termKeys" class="term-keys">
         <button class="key-btn" data-seq="&#x1b;">Esc</button>
         <button class="key-btn" data-seq="&#x09;">Tab</button>
+        <button class="key-btn" data-seq="&#x1b;[Z">Shift-Tab</button>
         <button class="key-btn" data-seq="&#x1b;[A">↑</button>
         <button class="key-btn" data-seq="&#x1b;[B">↓</button>
         <button class="key-btn" data-seq="&#x1b;[D">←</button>
         <button class="key-btn" data-seq="&#x1b;[C">→</button>
         <button class="key-btn" data-seq="&#x0d;">Enter</button>
-        <button class="key-btn" data-seq="&#x03;">Ctrl-C</button>
-        <button class="key-btn" data-seq="&#x1a;">Ctrl-Z</button>
       </div>
     </section>
   </main>

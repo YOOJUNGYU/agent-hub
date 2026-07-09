@@ -188,17 +188,17 @@ body.host-shell #sessionterm.view.active{ display:flex; flex-direction:column; o
 .session-card { background: #1b2030; border: 1px solid #2a3145; border-radius: 12px; padding: 12px 14px; cursor: pointer; }
 .session-card:active { background: #222941; }
 .card-top { display: flex; align-items: center; gap: 8px; }
-.card-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.card-meta { color: #8b93a7; font-size: 12px; margin-top: 4px; }
-.card-task { color: #c9d1e4; font-size: 13px; margin-top: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card-title { font-weight: 600; min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
+.card-meta { color: #8b93a7; font-size: 12px; margin-top: 4px; overflow-wrap: anywhere; word-break: break-word; }
+.card-task { color: #c9d1e4; font-size: 13px; margin-top: 6px; overflow-wrap: anywhere; word-break: break-word; }
 .card-time { color: #6b7280; font-size: 11px; margin-top: 6px; text-align: right; }
 .badge-status { font-size: 11px; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; }
 .badge-status.active { background: #14532d; color: #4ade80; }
 .badge-status.idle { background: #3f3f16; color: #fde047; }
 .badge-status.ended { background: #3a2030; color: #9ca3af; }
 .detail-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-.back-btn { background: none; border: none; color: #7aa2ff; font-size: 15px; cursor: pointer; }
-.detail-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.back-btn { background: none; border: none; color: #7aa2ff; font-size: 15px; cursor: pointer; white-space: nowrap; }
+.detail-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; word-break: break-word; }
 .activity-feed { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
 .ev { background: #171b28; border-left: 3px solid #2a3145; border-radius: 8px; padding: 8px 10px; }
 .ev-tool_use { border-left-color: #7aa2ff; }
@@ -289,4 +289,7 @@ body:not(.host-shell) #authPending:not([hidden]){ flex:1 1 auto; min-height:0; o
 /* 터미널 화면: 헤드/경고/입력창 고정 + xterm이 남은 공간 채움 */
 body:not(.host-shell) #terminal:not([hidden]){ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
 #terminal .detail-head, #terminal .term-warn, #terminal #termKeys{ flex:0 0 auto; }
-#terminal #termView{ flex:1 1 auto; min-height:0; }
+#terminal #termViewWrap{ flex:1 1 auto; min-height:0; position:relative; }
+#terminal #termView{ width:100%; height:100%; }
+.term-loading{ position:absolute; inset:0; z-index:5; display:flex; align-items:center; justify-content:center;
+  gap:.5rem; background:#0b0f1a; color:var(--muted); font-size:.95rem; }

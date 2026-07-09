@@ -172,8 +172,9 @@ function rel(iso) {
 
 // ---- 세션 터미널 열기 (claude --resume attach) ----
 document.getElementById('openSessionTermBtn') && document.getElementById('openSessionTermBtn').addEventListener('click', () => {
-  if (currentSessionId && window.openSessionTerminal)
-    window.openSessionTerminal(currentSessionId, sessionsById[currentSessionId] && sessionsById[currentSessionId].title);
+  if (!currentSessionId || !window.openSessionTerminal) return;
+  if (!confirm(t('term.confirmOpen'))) return;
+  window.openSessionTerminal(currentSessionId, sessionsById[currentSessionId] && sessionsById[currentSessionId].title);
 });
 
 // ---- 알림 권한 ----
