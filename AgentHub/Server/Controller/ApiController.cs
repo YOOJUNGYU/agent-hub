@@ -25,7 +25,8 @@ namespace AgentHub.Server.Controller
                 Active = EmbedIOServer.IsRunning,
                 Host = EmbedIOServer.CurrentHost,
                 Port = EmbedIOServer.CurrentPort,
-                Url = EmbedIOServer.CurrentUrl
+                Url = EmbedIOServer.CurrentUrl,
+                CertHttpPort = EmbedIOServer.CurrentCertHttpPort
             };
             return SendJsonAsync(Json.Serialize(info));
         }
@@ -194,15 +195,21 @@ namespace AgentHub.Server.Controller
             {
                 var o = JObject.Parse(raw);
                 var ntype = ((string)o["notification_type"] ?? "").ToLowerInvariant();
-                // 비-actionable 타입만 무시, 그 외(및 미지정)는 알림
-                var skip = ntype == "auth_success" || ntype == "agent_completed"
-                        || ntype == "elicitation_complete" || ntype == "elicitation_response";
-                if (!skip)
+                var message = (string)o["message"] ?? "";
+                // 사용자가 직접 응답해야 하는 알림만 '대기중'으로 취급한다(allowlist).
+                // 서브에이전트 대기·진행상황·완료(agent_completed)·인증(auth_success) 등 사용자 개입이 필요 없는
+                // 알림은 제외 — 알릴 필요가 없다. (AskUserQuestion 선택/권한 허용·거부는 각각 elicit·permission 훅이 담당.)
+                var actionable =
+                    ntype == "permission_prompt" || ntype == "idle_prompt"
+                    || ntype == "agent_needs_input" || ntype == "elicitation_dialog"
+                    // notification_type 미제공(스톡 Claude Code)일 땐 '입력 대기' 메시지만 통과(서브에이전트/진행 메시지 제외).
+                    || (ntype.Length == 0 && message.IndexOf("input", StringComparison.OrdinalIgnoreCase) >= 0);
+                if (actionable)
                 {
-                    var cwd = (string)o["cwd"] ?? "";
-                    var project = LastSegment(cwd);
-                    var message = (string)o["message"] ?? "입력이 필요합니다";
-                    AgentMonitorService.BroadcastAsk(project, message, (string)o["session_id"]);
+                    var project = LastSegment((string)o["cwd"] ?? "");
+                    var msg = string.IsNullOrEmpty(message) ? "입력이 필요합니다" : message;
+                    AgentMonitorService.BroadcastAsk(project, msg, (string)o["session_id"]);
+                    AgentHub.Server.Push.PushService.NotifyDisconnected(project, msg, (string)o["session_id"]);
                 }
             }
             catch (Exception ex) { LogService.Instance.Error(ex); }
@@ -249,17 +256,24 @@ namespace AgentHub.Server.Controller
                 var o = JObject.Parse(raw);
                 var toolInput = o["tool_input"] as JObject;
                 var questions = toolInput?["questions"] as JArray;
-                if (questions != null && questions.Count > 0 && AgentMonitorService.HasApprovedClient())
+                if (questions != null && questions.Count > 0)
                 {
-                    var id = Guid.NewGuid().ToString("N");
                     var project = LastSegment((string)o["cwd"] ?? "");
-                    AgentMonitorService.BroadcastElicit(id, project, questions, (string)o["session_id"]);
-                    var answersJson = await AgentHub.Server.Hook.AskRegistry.AwaitAnswer(id, 110000);
-                    if (!string.IsNullOrEmpty(answersJson))
+                    var sessionId = (string)o["session_id"];
+                    // 앱이 꺼져 있어도(미연결 승인 기기) 알림. 연결된 기기엔 아래 broadcast가 담당(중복 없음).
+                    AgentHub.Server.Push.PushService.NotifyDisconnected(project, "질문에 답해 주세요", sessionId);
+                    if (AgentMonitorService.HasApprovedClient())
                     {
-                        var updated = (JObject)toolInput.DeepClone();
-                        updated["answers"] = JToken.Parse(answersJson);
-                        updatedInput = updated;
+                        var id = Guid.NewGuid().ToString("N");
+                        AgentMonitorService.BroadcastElicit(id, project, questions, sessionId);
+                        // 폰이 답변 화면을 닫아도 세션을 다시 열면(watch) 재전송할 수 있도록 sessionId·questions 보관.
+                        var answersJson = await AgentHub.Server.Hook.AskRegistry.AwaitAnswer(id, sessionId, questions.ToString(), 110000);
+                        if (!string.IsNullOrEmpty(answersJson))
+                        {
+                            var updated = (JObject)toolInput.DeepClone();
+                            updated["answers"] = JToken.Parse(answersJson);
+                            updatedInput = updated;
+                        }
                     }
                 }
             }
@@ -280,6 +294,53 @@ namespace AgentHub.Server.Controller
             }
             catch (Exception ex) { LogService.Instance.Error(ex); }
             await SendJsonAsync(Json.Serialize(new { ok = true }));
+        }
+
+        // ---- Web Push(앱 종료/백그라운드 상태 알림) ----
+
+        [Route(HttpVerbs.Get, "/push/vapid-key")]
+        public Task PushVapidKey()
+            => SendJsonAsync(Json.Serialize(new { key = AgentHub.Server.Push.Vapid.PublicKeyBase64Url }));
+
+        [Route(HttpVerbs.Post, "/push/subscribe")]
+        public async Task PushSubscribe()
+        {
+            var token = DeviceToken();
+            if (DeviceRegistry.StatusOf(token) != DeviceStatus.Approved)
+            {
+                HttpContext.Response.StatusCode = 401;
+                await SendJsonAsync(Json.Serialize(new { ok = false }));
+                return;
+            }
+            var raw = await HttpContext.GetRequestBodyAsStringAsync();
+            var ok = false;
+            try
+            {
+                var o = JObject.Parse(raw);
+                var endpoint = (string)o["endpoint"];
+                var keys = o["keys"] as JObject;
+                if (!string.IsNullOrEmpty(endpoint))
+                {
+                    AgentHub.Server.Push.PushSubscriptionRegistry.Save(DeviceRegistry.HashToken(token),
+                        new AgentHub.Server.Push.PushSubscription
+                        {
+                            Endpoint = endpoint,
+                            P256dh = (string)(keys?["p256dh"]),
+                            Auth = (string)(keys?["auth"])
+                        });
+                    ok = true; // 실제 저장 성공 시에만 true(클라가 무음 실패를 성공으로 오인하지 않도록)
+                }
+            }
+            catch (Exception ex) { LogService.Instance.Error(ex); }
+            if (!ok) HttpContext.Response.StatusCode = 400;
+            await SendJsonAsync(Json.Serialize(new { ok }));
+        }
+
+        [Route(HttpVerbs.Post, "/push/unsubscribe")]
+        public Task PushUnsubscribe()
+        {
+            AgentHub.Server.Push.PushSubscriptionRegistry.Remove(DeviceRegistry.HashToken(DeviceToken()));
+            return SendJsonAsync(Json.Serialize(new { ok = true }));
         }
 
         /// <summary>권한 카드에 보여줄 도구 요약(Bash→명령, 파일 도구→경로).</summary>
@@ -333,8 +394,12 @@ namespace AgentHub.Server.Controller
             }
         }
 
+        // BOM 없는 UTF-8. Encoding.UTF8은 preamble(BOM)을 가지며 SendStringAsync가 이를 응답 앞에 붙인다.
+        // 그 BOM이 훅(Node)의 JSON.parse를 깨뜨려 모바일 답변/권한 결정이 Claude로 전달되지 않았다.
+        private static readonly Encoding Utf8NoBom = new UTF8Encoding(false);
+
         private Task SendJsonAsync(string json)
-            => HttpContext.SendStringAsync(json, "application/json", Encoding.UTF8);
+            => HttpContext.SendStringAsync(json, "application/json", Utf8NoBom);
 
         private string DeviceToken() => HttpContext.Request.Headers["X-Device-Token"];
 

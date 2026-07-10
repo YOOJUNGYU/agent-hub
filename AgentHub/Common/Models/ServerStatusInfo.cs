@@ -7,5 +7,6 @@ namespace AgentHub.Common.Models
         public string Host { get; set; }
         public int Port { get; set; }
         public string Url { get; set; }
+        public int CertHttpPort { get; set; } // 인증서(.crt) 평문 HTTP 부트스트랩 포트(삭제/만료 후 재설치용). 0=비활성.
     }
 }

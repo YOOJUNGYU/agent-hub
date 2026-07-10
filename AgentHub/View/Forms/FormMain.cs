@@ -76,6 +76,9 @@ namespace AgentHub.View.Forms
             // 실행 시 창을 보여준다(트레이로 바로 숨지 않음 — 실행 확인 편의).
             SetShowWindow(true);
 
+            // clawd-on-desk 동시 실행 시 안내 후 종료 유도(이중 훅 응답 충돌 방지).
+            PromptClawdOnDeskIfRunning();
+
             // EmbedIO 서버를 먼저 시작한 뒤 호스트 콘솔(/host)을 로드한다.
             EmbedIOServer.StartServer();
             DeviceRegistry.StatusChanged += (hash, status) =>
@@ -165,6 +168,20 @@ namespace AgentHub.View.Forms
                 }
                 catch (Exception ex) { LogService.Instance.Error(ex); }
             });
+        }
+
+        // clawd-on-desk가 실행 중이면 안내하고, 사용자가 '예'를 고르면 강제 종료 후 계속한다.
+        // '아니오'면 그대로 두되(모바일 답변은 서버에서 차단), 시작만 계속한다.
+        private void PromptClawdOnDeskIfRunning()
+        {
+            try
+            {
+                if (!ClawdGuard.IsRunning()) return;
+                var r = MessageBox.Show(this, Messages.ClawdRunningPrompt, Messages.ClawdRunningTitle,
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button1);
+                if (r == DialogResult.Yes) ClawdGuard.KillAll();
+            }
+            catch (Exception ex) { LogService.Instance.Error(ex); }
         }
 
         // WebView2는 airspace 특성상 WinForms 패널로 덮이지 않으므로,

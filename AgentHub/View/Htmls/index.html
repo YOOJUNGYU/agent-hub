@@ -2,7 +2,8 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- interactive-widget: 가상 키보드가 뜰 때 레이아웃 뷰포트를 줄여, 하단 특수키 바/버튼이 키보드에 가리지 않게 한다. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content" />
   <meta name="theme-color" content="#181c2a" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="apple-touch-icon" href="/icons/icon-192.png" />
@@ -28,7 +29,9 @@
     </div>
     <div id="certPanel" class="cert-panel" hidden>
       <p class="cert-panel-title" data-i18n="cert.summary">📱 인증서 설치 (PWA 설치 · 보안경고 제거)</p>
-      <a class="cert-dl" href="/api/cert" data-i18n="cert.download">인증서 다운로드</a>
+      <!-- target=_blank: 설치된 앱(PWA)에서 인증서가 깨졌을 때 in-app 이동이 막히므로 시스템 브라우저로 넘겨 경고 통과·설치 가능하게 한다. -->
+      <a class="cert-dl" href="/api/cert" target="_blank" rel="noopener" data-i18n="cert.download">인증서 다운로드</a>
+      <p class="hint"><span data-i18n="cert.openInBrowser">앱에서 안 열리면 아래 주소를 휴대폰 브라우저로 열고 보안 경고를 계속 진행하세요:</span><br><span id="certPanelUrl" class="term-warn" style="word-break:break-all"></span></p>
       <p class="hint" data-i18n="cert.android">Android: …</p>
       <p class="hint" data-i18n="cert.ios">iOS: …</p>
       <p class="hint" id="iosInstallHint" hidden data-i18n="pwa.iosHint">iOS: 공유 버튼 → “홈 화면에 추가”로 앱으로 설치하세요.</p>
@@ -36,13 +39,7 @@
     </div>
   </header>
   <main>
-    <div id="askBanner" class="ask-banner" hidden>
-      <div class="ask-text"><b id="askProject"></b> <span id="askMsg"></span></div>
-      <div class="ask-actions">
-        <button id="askDismiss" data-i18n="ask.dismiss">닫기</button>
-      </div>
-    </div>
-
+    <!-- 질문/입력 대기 알림은 상단 배너 대신 세션 카드 색상(응답 대기중)으로 표시한다. -->
     <div id="permBanner" class="ask-banner perm" hidden>
       <div class="ask-text">🔐 <b id="permProject"></b> <span id="permTool"></span> <span data-i18n="perm.q">실행을 허용할까요?</span></div>
       <div class="perm-detail" id="permDetail"></div>
@@ -63,19 +60,23 @@
       </div>
     </section>
 
-    <!-- 승인 대기 화면 -->
+    <!-- 승인 대기 / 연결 상태 화면 (연결 전엔 '연결 확인 중', 연결 실패 시 '연결 불가' 안내) -->
     <section id="authPending" class="screen" hidden>
       <div class="auth-card">
-        <div class="loading"><span class="spinner"></span></div>
-        <h2 data-i18n="pending.title">승인 대기 중…</h2>
-        <p class="hint" data-i18n="pending.desc">PC(Agent Hub)에서 이 기기를 승인하면 자동으로 모니터 화면이 표시됩니다.</p>
+        <div class="loading" id="pendingSpinner"><span class="spinner"></span></div>
+        <!-- 문구는 app.js setPendingState가 전담(연결 상태별로 바뀜). data-i18n을 두면 I18n.apply가 pending.title로 되돌리므로 제외. -->
+        <h2 id="pendingTitle">승인 대기 중…</h2>
+        <p class="hint" id="pendingDesc">PC(Agent Hub)에서 이 기기를 승인하면 자동으로 모니터 화면이 표시됩니다.</p>
+        <p class="hint" id="pendingConn" hidden>
+          <a class="cert-dl" id="pendingCertLink" href="/api/cert" target="_blank" rel="noopener" data-i18n="pending.certBtn">새 인증서 설치</a>
+          <span id="pendingCertUrl" class="term-warn" style="display:block;margin-top:8px;word-break:break-all"></span>
+        </p>
       </div>
     </section>
 
     <!-- 모니터: 세션 리스트 -->
     <section id="monitor" class="screen" hidden>
       <div class="monitor-top">
-        <button id="termBtn" class="term-btn" hidden data-i18n="term.open">⌨ 터미널 열기</button>
         <button id="notifyBtn" class="term-btn" data-i18n="notify.on">🔔 알림 켜기</button>
       </div>
       <div class="summary" id="summary"></div>
@@ -89,12 +90,12 @@
       <div class="detail-head">
         <button id="backBtn" class="back-btn" data-i18n="detail.back">← 목록</button>
         <div class="detail-title" id="detailTitle"></div>
-        <button id="openSessionTermBtn" class="term-btn" data-i18n="term.openSession">⌨ 터미널</button>
+        <button id="openSessionTermBtn" class="term-btn" data-i18n="term.openSession">⌨ 터미널 열기</button>
       </div>
       <div class="activity-feed" id="activityFeed"></div>
     </section>
 
-    <!-- 모바일 웹 터미널 (xterm.js ⇄ /ws/term) -->
+    <!-- 모바일 세션 터미널 (xterm.js ⇄ /ws/session): 동작 중인 세션 쉘을 가져와 실시간 공유 -->
     <section id="terminal" class="screen" hidden>
       <div class="detail-head">
         <button id="termBack" class="back-btn" data-i18n="detail.back">← 목록</button>
@@ -129,6 +130,20 @@
         <div class="elicit-actions">
           <button id="elicitBack" class="elicit-btn ghost"></button>
           <button id="elicitNext" class="elicit-btn primary"></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 원격 답변 창이 지난 질문: 세션에 들어오면 질문을 읽기 전용으로 보여주고, 터미널/PC로 답하도록 안내 -->
+    <div id="askExpired" class="elicit-overlay" hidden>
+      <div class="elicit-card">
+        <div class="elicit-header" id="askExpiredHeader"></div>
+        <div class="elicit-question" id="askExpiredQuestion"></div>
+        <div class="elicit-options" id="askExpiredOptions"></div>
+        <div class="elicit-hint" id="askExpiredHint" data-i18n="askExpired.hint">이 질문은 지금 앱에서 바로 답할 수 없습니다. 세션 터미널을 열어 직접 답하거나 PC에서 답해 주세요.</div>
+        <div class="elicit-actions">
+          <button id="askExpiredClose" class="elicit-btn ghost" data-i18n="askExpired.close">닫기</button>
+          <button id="askExpiredOpenTerm" class="elicit-btn primary" data-i18n="askExpired.openTerm">⌨ 세션 터미널 열기</button>
         </div>
       </div>
     </div>

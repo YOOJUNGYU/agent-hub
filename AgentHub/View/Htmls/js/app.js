@@ -20,6 +20,23 @@ function getToken() {
 }
 const token = getToken();
 
+// 인증서 평문 HTTP 부트스트랩 URL. 자체서명 인증서를 삭제/만료하면 HTTPS로 .crt를 못 받으므로(신뢰 깨짐),
+// HTTP로 받도록 안내한다. 포트는 온라인일 때 캐시한 서버 값 우선, 없으면 HTTPS 포트+1로 폴백(서버 기본 규칙).
+function certHttpUrl() {
+  var p = null;
+  try { p = localStorage.getItem('agenthub.certHttpPort'); } catch (e) {}
+  if (!p) { var n = Number(location.port); p = n ? String(n + 1) : ''; }
+  return 'http://' + location.hostname + (p ? ':' + p : '') + '/cert';
+}
+// 인증서 URL을 패널·오프라인 화면 요소에 일괄 적용. 포트 캐시(/api/server/status)가 비동기로 갱신되므로 그 후 재호출한다.
+function applyCertUrls() {
+  var cu = certHttpUrl();
+  var pu = document.getElementById('certPanelUrl'); if (pu) pu.textContent = cu;
+  var pcu = document.getElementById('pendingCertUrl'); if (pcu) pcu.textContent = cu;
+  var dl = document.querySelector('#certPanel .cert-dl'); if (dl) dl.href = cu;
+  var pl = document.getElementById('pendingCertLink'); if (pl) pl.href = cu;
+}
+
 // ---- 화면 전환 ----
 function showScreen(name) {
   ['authRequest', 'authPending', 'monitor', 'detail', 'terminal'].forEach(id => {
@@ -38,9 +55,26 @@ function setBadge(on) {
 }
 
 // ---- auth 상태 → 화면 ----
+let authReceived = false;        // 서버 auth 상태를 한 번이라도 받았는지(연결 문제와 실제 승인 대기 구분용)
+let authApproved = false;        // 현재 승인 상태(푸시 구독은 승인된 기기만)
+let pendingMode = 'connecting';  // authPending 화면 모드: 'connecting' | 'offline' | 'pending'
+function setPendingState(mode) {
+  pendingMode = mode;
+  const keys = { connecting: ['pending.connecting', 'pending.connectingDesc'],
+                 offline:    ['pending.offline',    'pending.offlineDesc'],
+                 pending:    ['pending.title',      'pending.desc'] };
+  const [titleKey, descKey] = keys[mode] || keys.pending;
+  $('#pendingTitle').textContent = t(titleKey);
+  $('#pendingDesc').textContent = t(descKey);
+  $('#pendingConn').hidden = (mode !== 'offline');    // 연결 실패 시에만 인증서 재설치 안내 노출
+  $('#pendingSpinner').hidden = (mode === 'offline'); // 실패 상태에선 스피너 숨김
+  if (mode === 'offline') applyCertUrls(); // 인증서가 깨진 상태 → HTTPS 대신 HTTP(/cert) 주소로 링크·텍스트 갱신(경고 없이 받힘)
+}
 function applyAuth(status) {
-  if (status === 'approved') showScreen('monitor');
-  else if (status === 'pending') showScreen('authPending');
+  authReceived = true;
+  authApproved = (status === 'approved');
+  if (status === 'approved') { showScreen('monitor'); ensurePushSubscribed(); }
+  else if (status === 'pending') { setPendingState('pending'); showScreen('authPending'); }
   else showScreen('authRequest'); // none | revoked
 }
 
@@ -63,13 +97,21 @@ $('#requestBtn').addEventListener('click', async () => {
 });
 
 // ---- WebSocket ----
-let ws;
+let ws, connectTimer = null;
 function connect() {
   const url = (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host
     + '/ws/agents?token=' + encodeURIComponent(token);
   ws = new WebSocket(url);
-  ws.onopen = () => setBadge(true);
-  ws.onclose = () => { setBadge(false); setTimeout(connect, 3000); };
+  // 인증서 삭제/서버 다운 시 WSS가 열리지도 닫히지도 않고 CONNECTING에 멈춰 무한 '연결 중'이 될 수 있다
+  // (이때 auth 메시지를 못 받아 기기인증·오프라인 안내 어느 화면으로도 못 감). 일정 시간 응답이 없으면
+  // 연결을 강제 종료해 오프라인(인증서 재설치 안내) 흐름으로 넘긴다. onclose가 재접속을 예약한다.
+  if (connectTimer) clearTimeout(connectTimer);
+  connectTimer = setTimeout(() => {
+    if (!authReceived) { setBadge(false); setPendingState('offline'); }
+    try { ws.close(); } catch (e) { /* noop */ }
+  }, 7000);
+  ws.onopen = () => { if (connectTimer) { clearTimeout(connectTimer); connectTimer = null; } setBadge(true); if (!authReceived) setPendingState('connecting'); };
+  ws.onclose = () => { if (connectTimer) { clearTimeout(connectTimer); connectTimer = null; } setBadge(false); if (!authReceived) setPendingState('offline'); setTimeout(connect, 3000); };
   ws.onerror = () => { try { ws.close(); } catch (e) { /* noop */ } };
   ws.onmessage = ev => {
     try {
@@ -77,12 +119,13 @@ function connect() {
       if (m.type === 'auth') applyAuth(m.status);
       else if (m.type === 'sessions') {
         renderSessions(m.sessions);
-        if (currentSessionId === null && document.getElementById('terminal').hidden) { showScreen('monitor'); if (window.refreshTermButton) window.refreshTermButton(); refreshNotifyBtn(); }
+        if (currentSessionId === null && document.getElementById('terminal').hidden) { showScreen('monitor'); refreshNotifyBtn(); }
       }
       else if (m.type === 'activity') { renderActivity(m.sessionId, m.events); }
       else if (m.type === 'ask') { handleAsk(m); }
       else if (m.type === 'elicit') { handleElicit(m); }
       else if (m.type === 'permission') { handlePermission(m); }
+      else if (m.type === 'answerBlocked') { handleAnswerBlocked(m); }
     } catch (e) { /* ignore malformed */ }
   };
 }
@@ -90,29 +133,48 @@ function connect() {
 // ---- 세션 리스트 / 상세 활동 피드 ----
 let currentSessionId = null;
 let sessionsById = {};
+let lastSessions = [];          // 마지막 세션 스냅샷(대기 표시만 바뀔 때 재렌더용)
+const awaitingSet = new Set();  // '응답 대기중' 트랜지언트 신호(권한/일반 알림). 질문(AskUserQuestion)은 pendingAsk가 담당.
 let firstActivityRender = false; // 상세 진입 직후 첫 렌더는 무조건 최하단
 
 function renderSessions(sessions) {
+  lastSessions = sessions || [];
   const list = $('#sessionList');
   const sum = $('#summary');
-  if (!sessions || sessions.length === 0) {
+  if (lastSessions.length === 0) {
     list.innerHTML = '<div class="empty" data-i18n="monitor.empty">최근 활동한 세션이 없습니다.</div>';
     sum.textContent = '';
     if (window.I18n) I18n.apply();
     return;
   }
-  sessionsById = {}; (sessions || []).forEach(s => { sessionsById[s.id] = s; });
-  const active = sessions.filter(s => s.status === 'active').length;
-  sum.textContent = t('summary.count') + ': ' + sessions.length + ' · active ' + active;
-  list.innerHTML = sessions.map(cardHtml).join('');
+  sessionsById = {}; lastSessions.forEach(s => { sessionsById[s.id] = s; });
+  const active = lastSessions.filter(s => s.status === 'active').length;
+  sum.textContent = t('summary.count') + ': ' + lastSessions.length + ' · active ' + active;
+  list.innerHTML = lastSessions.map(cardHtml).join('');
   list.querySelectorAll('.session-card').forEach(el =>
     el.addEventListener('click', () => openDetail(el.getAttribute('data-id'))));
 }
 
+// 대기 표시만 바뀐 경우(권한/알림 수신) 목록 화면이면 다시 그린다.
+function rerenderSessions() {
+  if (!document.getElementById('monitor').hidden) renderSessions(lastSessions);
+}
+
+// '응답 대기중' 트랜지언트 표시 토글. 질문은 서버 스냅샷의 pendingAsk가 지속 신호로 담당한다.
+function setWaiting(id, on) {
+  if (!id) return;
+  if (on) awaitingSet.add(id); else awaitingSet.delete(id);
+  rerenderSessions();
+}
+
+function isWaiting(s) { return !!(s && (s.pendingAsk || awaitingSet.has(s.id))); }
+
 function cardHtml(s) {
+  const waiting = isWaiting(s);
   const badge = '<span class="badge-status ' + esc(s.status) + '">' + esc(s.status) + '</span>';
-  return '<div class="session-card" data-id="' + esc(s.id) + '">'
-    + '<div class="card-top">' + badge + '<span class="card-title">' + esc(s.title) + '</span></div>'
+  const waitPill = waiting ? '<span class="card-wait">' + esc(t('card.waiting')) + '</span>' : '';
+  return '<div class="session-card' + (waiting ? ' waiting' : '') + '" data-id="' + esc(s.id) + '">'
+    + '<div class="card-top">' + badge + '<span class="card-title">' + esc(s.title) + '</span>' + waitPill + '</div>'
     + '<div class="card-meta">' + esc(s.project || '') + (s.gitBranch ? ' · ' + esc(s.gitBranch) : '') + '</div>'
     + '<div class="card-task">' + esc(s.currentTask || '') + '</div>'
     + '<div class="card-time">' + rel(s.lastActivityAt) + '</div>'
@@ -120,6 +182,7 @@ function cardHtml(s) {
 }
 
 function openDetail(id) {
+  awaitingSet.delete(id); // 상세를 여는 순간 트랜지언트 대기 표시는 해제(사용자가 확인함)
   currentSessionId = id;
   firstActivityRender = true;
   document.getElementById('detailTitle').textContent = (sessionsById[id] && sessionsById[id].title) || '';
@@ -129,13 +192,16 @@ function openDetail(id) {
   // 히스토리 항목 추가 → 기기 뒤로가기가 앱 종료 대신 popstate로 목록 복귀
   history.pushState({ screen: 'detail', id }, '');
   send({ type: 'watch', sessionId: id });
+  scheduleAskExpiredGuidance(id); // 라이브 elicit이 재전송되면 취소, 아니면(창 경과) 안내 표시
 }
 
 // 상세 → 목록 복귀 (기기 back / 화면 버튼 공통 경로)
 function backToList() {
   send({ type: 'unwatch' });
+  closeAskExpired(); // 목록으로 나가면 만료 안내도 닫는다
   currentSessionId = null;
   showScreen('monitor');
+  rerenderSessions(); // openDetail에서 해제한 대기표시를 목록에 반영(다음 스냅샷 전 최신화)
 }
 
 function renderActivity(sessionId, events) {
@@ -183,6 +249,7 @@ function refreshNotifyBtn() {
   const b = document.getElementById('notifyBtn');
   if (!b || !('Notification' in window)) { if (b) b.hidden = true; return; }
   b.hidden = (Notification.permission === 'granted');
+  ensurePushSubscribed();
 }
 document.getElementById('notifyBtn') && document.getElementById('notifyBtn').addEventListener('click', async () => {
   if (!('Notification' in window)) return;
@@ -190,7 +257,42 @@ document.getElementById('notifyBtn') && document.getElementById('notifyBtn').add
   refreshNotifyBtn();
 });
 
-// ---- ask 배너(질문 알림) ----
+// ---- Web Push 구독(앱 종료/백그라운드 알림) ----
+// 승인 + 알림 권한이 있을 때 1회 구독하고 서버에 등록. 실패는 무시(연결 시 인앱 알림으로 폴백).
+let _pushSynced = false;
+function urlBase64ToUint8Array(b64) {
+  const pad = '='.repeat((4 - b64.length % 4) % 4);
+  const s = (b64 + pad).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(s);
+  const arr = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+  return arr;
+}
+function ensurePushSubscribed() {
+  if (_pushSynced || !authApproved) return;
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  _pushSynced = true;
+  (async () => {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        const r = await (await fetch('/api/push/vapid-key')).json();
+        if (!r || !r.key) { _pushSynced = false; return; }
+        sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(r.key) });
+      }
+      const res = await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Device-Token': token },
+        body: JSON.stringify(sub)
+      });
+      if (!res || !res.ok) _pushSynced = false; // 서버 저장 실패(401/500 등)는 fetch가 throw 안 하므로 직접 확인 → 재시도 여지
+    } catch (e) { _pushSynced = false; /* 다음 기회에 재시도 */ }
+  })();
+}
+
+// ---- 입력 필요 알림 → 세션 카드 '응답 대기중' 표시(상단 배너 폐지) + 시스템 푸시 ----
 function handleAsk(m) {
   if (('Notification' in window) && Notification.permission === 'granted') {
     var title = t('ask.title');
@@ -203,14 +305,8 @@ function handleAsk(m) {
       try { new Notification(title, opts); } catch (e) {}
     }
   }
-  const banner = document.getElementById('askBanner');
-  document.getElementById('askProject').textContent = m.project || '';
-  document.getElementById('askMsg').textContent = m.message || '';
-  banner.hidden = false;
+  setWaiting(m.sessionId, true); // 카드 색상으로 '응답 대기중' 표시
 }
-document.getElementById('askDismiss') && document.getElementById('askDismiss').addEventListener('click', () => {
-  document.getElementById('askBanner').hidden = true;
-});
 
 // ---- elicit 오버레이(AskUserQuestion 질문+답변 선택) ----
 // 서버 PermissionRequest 훅이 질문을 push하면 옵션을 골라 바로 답변한다(터미널 불필요).
@@ -220,9 +316,10 @@ const ELICIT_OTHER = '__other__';
 function handleElicit(m) {
   const qs = Array.isArray(m.questions) ? m.questions.filter(q => q && q.question) : [];
   if (qs.length === 0) return;
-  elicit = { id: m.id, questions: qs, step: 0, answers: {} };
-  document.getElementById('askBanner').hidden = true; // 같은 질문의 알림 배너가 오버레이 뒤에 남지 않도록
-  if (('Notification' in window) && Notification.permission === 'granted') {
+  clearAskExpiredTimer(); closeAskExpired(); // 라이브 답변 화면이 도착 → '만료 안내'를 대체
+  elicit = { id: m.id, sessionId: m.sessionId, questions: qs, step: 0, answers: {} };
+  // resent=서버가 세션 재오픈(watch) 시 다시 내려준 것 → 시스템 알림은 생략(중복 방지), 화면만 다시 띄운다.
+  if (!m.resent && ('Notification' in window) && Notification.permission === 'granted') {
     const opts = { body: (m.project ? '[' + m.project + '] ' : '') + qs[0].question, tag: 'elicit-' + m.id, requireInteraction: true };
     if (navigator.serviceWorker && navigator.serviceWorker.ready)
       navigator.serviceWorker.ready.then(r => r.showNotification(t('elicit.title'), opts)).catch(() => { try { new Notification(t('elicit.title'), opts); } catch (e) {} });
@@ -302,9 +399,55 @@ function collectElicitAnswer() {
 }
 
 function closeElicit() {
+  if (elicit) setWaiting(elicit.sessionId, false); // 취소 시 트랜지언트 해제(미답 상태면 pendingAsk가 계속 표시)
   document.getElementById('elicit').hidden = true;
   elicit = null;
 }
+
+// 서버가 답변 전달을 차단(clawd-on-desk 동시 실행 등)했을 때: 안내 후, 답 오버레이가 있으면 다시 열어 재시도 유도.
+function handleAnswerBlocked(m) {
+  alert(t('answer.blockedClawd'));
+  if (elicit) { document.getElementById('elicit').hidden = false; renderElicitStep(); }
+}
+
+// ---- 원격 답변 창이 지난 질문 안내 ----
+// 대기중 세션에 들어갔을 때 라이브 elicit(재전송)이 오면 답변 화면이 뜨고, 안 오면(창 경과·미등록)
+// 트랜스크립트의 질문을 읽기 전용으로 보여주며 "세션 터미널로 답하거나 PC에서 답하라"고 안내한다.
+let askExpiredTimer = null, askExpiredSession = null;
+function clearAskExpiredTimer() { if (askExpiredTimer) { clearTimeout(askExpiredTimer); askExpiredTimer = null; } }
+function scheduleAskExpiredGuidance(id) {
+  clearAskExpiredTimer();
+  const s = sessionsById[id];
+  if (!s || !s.pendingAsk) return; // 미답 질문(AskUserQuestion)이 있을 때만
+  askExpiredTimer = setTimeout(() => { askExpiredTimer = null; showAskExpired(id); }, 1200);
+}
+function showAskExpired(id) {
+  const s = sessionsById[id];
+  if (!s || !s.pendingAsk || currentSessionId !== id || elicit) return; // 화면 이동/라이브 답변중이면 취소
+  const pa = s.pendingAsk;
+  document.getElementById('askExpiredHeader').textContent = pa.header || '';
+  document.getElementById('askExpiredQuestion').textContent = pa.question || '';
+  const opts = Array.isArray(pa.options) ? pa.options : [];
+  document.getElementById('askExpiredOptions').innerHTML = opts.map(o =>
+    '<div class="elicit-opt" style="cursor:default"><span class="elicit-opt-body"><span class="elicit-opt-label">'
+    + esc(o) + '</span></span></div>').join('');
+  askExpiredSession = id;
+  document.getElementById('askExpired').hidden = false;
+  if (window.I18n) I18n.apply();
+}
+function closeAskExpired() {
+  clearAskExpiredTimer();
+  const el = document.getElementById('askExpired'); if (el) el.hidden = true;
+  askExpiredSession = null;
+}
+document.getElementById('askExpiredClose') && document.getElementById('askExpiredClose').addEventListener('click', closeAskExpired);
+document.getElementById('askExpiredOpenTerm') && document.getElementById('askExpiredOpenTerm').addEventListener('click', () => {
+  const id = askExpiredSession;
+  if (!id || !window.openSessionTerminal) return;
+  if (!confirm(t('term.confirmOpen'))) return;
+  closeAskExpired();
+  window.openSessionTerminal(id, sessionsById[id] && sessionsById[id].title);
+});
 
 document.getElementById('elicitNext') && document.getElementById('elicitNext').addEventListener('click', () => {
   if (!elicit) return;
@@ -314,7 +457,9 @@ document.getElementById('elicitNext') && document.getElementById('elicitNext').a
   elicit.answers[q.question] = ans;
   if (elicit.step < elicit.questions.length - 1) { elicit.step++; renderElicitStep(); return; }
   send({ type: 'elicitAnswer', id: elicit.id, answers: elicit.answers });
-  closeElicit();
+  setWaiting(elicit.sessionId, false); // 답변 전송 → 트랜지언트 대기표시 해제(미처리분은 서버 pendingAsk가 유지)
+  // 오버레이만 감추고 elicit은 유지 — clawd 실행 등으로 차단 회신(answerBlocked)이 오면 다시 열어 재시도.
+  document.getElementById('elicit').hidden = true;
 });
 document.getElementById('elicitBack') && document.getElementById('elicitBack').addEventListener('click', () => {
   if (!elicit) return;
@@ -324,8 +469,11 @@ document.getElementById('elicitBack') && document.getElementById('elicitBack').a
 
 // ---- 권한 요청(PreToolUse) 원격 승인 ----
 let currentPermId = null;
+let currentPermSession = null;
 function handlePermission(m) {
   currentPermId = m.id;
+  currentPermSession = m.sessionId || null;
+  setWaiting(m.sessionId, true);
   if (('Notification' in window) && Notification.permission === 'granted') {
     var title = t('perm.title');
     var opts = { body: (m.project ? '[' + m.project + '] ' : '') + (m.detail || m.tool || ''), tag: 'perm-' + m.id, requireInteraction: true };
@@ -340,7 +488,8 @@ function handlePermission(m) {
 }
 function sendPermission(decision) {
   if (currentPermId) send({ type: 'permissionDecision', id: currentPermId, decision });
-  currentPermId = null;
+  setWaiting(currentPermSession, false);
+  currentPermId = null; currentPermSession = null;
   document.getElementById('permBanner').hidden = true;
 }
 document.getElementById('permAllow') && document.getElementById('permAllow').addEventListener('click', () => sendPermission('allow'));
@@ -349,6 +498,7 @@ document.getElementById('permDeny') && document.getElementById('permDeny').addEv
 // ---- 언어 변경 시 동적 콘텐츠 재렌더 ----
 document.addEventListener('i18n:changed', () => {
   setBadge(wsConnected);
+  setPendingState(pendingMode); // 언어 변경 시 I18n.apply가 기본 문구로 되돌리므로 현재 모드로 재적용
 });
 
 // 화면 "← 목록" 버튼: 히스토리를 되돌려(popstate) 기기 back과 동일 경로로 처리
@@ -361,9 +511,20 @@ window.addEventListener('popstate', () => {
   if (currentSessionId !== null) backToList();
 });
 
-showScreen('authPending'); // 최초: WS 응답 전까지 대기 표시
+setPendingState('connecting'); // 최초: WS 응답 전까지 '연결 확인 중'(승인 대기로 오인 방지)
+showScreen('authPending');
 connect();
 refreshNotifyBtn();
+
+// 온라인일 때(인증서 정상) 인증서 HTTP 부트스트랩 포트를 캐시 — 이후 인증서가 깨져도 복구 주소를 정확히 안내.
+try {
+  fetch('/api/server/status').then(function (r) { return r.json(); }).then(function (s) {
+    if (s && s.certHttpPort) {
+      try { localStorage.setItem('agenthub.certHttpPort', String(s.certHttpPort)); } catch (e) {}
+      applyCertUrls(); // 실제 포트 확보 후 인증서 링크/주소 재적용(폴백 +1이 틀렸던 경우 보정)
+    }
+  }).catch(function () {});
+} catch (e) {}
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
@@ -384,16 +545,10 @@ if ('serviceWorker' in navigator) {
   var certPanel = document.getElementById('certPanel');
   var installBtn = document.getElementById('installBtn');
 
-  // 이미 앱(PWA)으로 설치·실행 중이면 인증서/설치 유도 숨김 (인증서는 이미 신뢰됨)
-  if (isStandalone) {
-    if (certBtn) certBtn.hidden = true;
-    if (installBtn) installBtn.hidden = true;
-    if (certPanel) certPanel.hidden = true;
-    return;
-  }
-
-  // 인증서 메뉴 토글(헤더 드롭다운)
+  // 인증서 메뉴 토글(헤더 드롭다운) — PWA로 실행 중이어도 항상 유지한다.
+  // (인증서는 삭제·만료될 수 있고, 그때 재설치 경로가 없으면 앱이 영영 연결 불가. 링크는 시스템 브라우저로 넘겨 경고 통과·설치.)
   if (certBtn && certPanel) {
+    applyCertUrls(); // 패널 다운로드 링크·주소를 HTTP(/cert)로 설정(인증서 삭제/미설치 상태에서도 경고 없이 동작)
     certBtn.addEventListener('click', function (e) {
       e.stopPropagation();
       var open = certPanel.hidden;
@@ -407,7 +562,9 @@ if ('serviceWorker' in navigator) {
     });
   }
 
-  // PWA 설치 유도: 브라우저로 접속했을 때만
+  // 설치 유도는 브라우저에서만(이미 설치된 앱에서는 설치 버튼 숨김).
+  if (isStandalone) { if (installBtn) installBtn.hidden = true; return; }
+
   var deferred = null;
   window.addEventListener('beforeinstallprompt', function (e) {
     e.preventDefault(); deferred = e; if (installBtn) installBtn.hidden = false;
@@ -424,9 +581,7 @@ if ('serviceWorker' in navigator) {
     }
   });
   window.addEventListener('appinstalled', function () {
-    if (installBtn) installBtn.hidden = true;
-    if (certBtn) certBtn.hidden = true;
-    if (certPanel) certPanel.hidden = true;
+    if (installBtn) installBtn.hidden = true; // 인증서 버튼은 유지(추후 재설치 대비)
   });
   // iOS Safari는 beforeinstallprompt가 없으므로 설치 버튼을 노출해 A2HS 안내로 유도
   if (isIOS && installBtn) installBtn.hidden = false;

@@ -71,6 +71,9 @@ namespace AgentHub.Server.Agents
         /// <summary>응답할 승인 기기(폰)가 하나라도 연결돼 있는지.</summary>
         public static bool HasApprovedClient() => _module != null && _module.HasApprovedClient();
 
+        /// <summary>해당 토큰해시의 기기가 현재 WS로 연결돼 있는지(푸시 대상 제외 판정).</summary>
+        public static bool IsDeviceConnected(string tokenHash) => _module != null && _module.IsConnected(tokenHash);
+
         /// <summary>PreToolUse 권한 요청을 승인 기기에 push(폰이 허용/거부 선택).</summary>
         public static async void BroadcastPermission(string id, string project, string tool, string detail, string sessionId)
         {

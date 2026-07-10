@@ -51,7 +51,7 @@ process.stdin.on('end', () => {
       session_id: p.session_id, cwd: p.cwd, tool_input: p.tool_input
     }, 118000, data => {
       try {
-        const r = JSON.parse(data || '{}');
+        const r = JSON.parse((data || '{}').replace(/^﻿/, '')); // 선행 BOM 제거(서버 응답에 BOM이 붙어도 안전)
         if (r.updatedInput) {
           // 폰에서 고른 답을 마치 사용자가 답한 것처럼 주입.
           process.stdout.write(JSON.stringify({
@@ -77,7 +77,7 @@ process.stdin.on('end', () => {
       permission_mode: p.permission_mode
     }, 118000, data => {
       try {
-        const r = JSON.parse(data || '{}');
+        const r = JSON.parse((data || '{}').replace(/^﻿/, '')); // 선행 BOM 제거(서버 응답에 BOM이 붙어도 안전)
         if (r.decision === 'allow' || r.decision === 'deny') {
           process.stdout.write(JSON.stringify({
             hookSpecificOutput: {

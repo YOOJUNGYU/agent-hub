@@ -28,10 +28,14 @@ namespace AgentHub.Server
     public static class EmbedIOServer
     {
         private static WebServer _server;
+        private static WebServer _certServer; // 인증서(.crt) 평문 HTTP 부트스트랩 전용(삭제/만료 후 재설치)
         private static CancellationTokenSource _cts;
 
         public static bool IsRunning => _server != null && _server.State == WebServerState.Listening;
         public static int CurrentPort { get; private set; }
+
+        /// <summary>인증서 평문 HTTP 부트스트랩 포트(자체서명이 깨져 HTTPS로 못 받을 때 .crt 재설치용). 0=비활성.</summary>
+        public static int CurrentCertHttpPort { get; private set; }
 
         /// <summary>표시/접속용 호스트 — 사설망(LAN) IPv4. 없으면 127.0.0.1.</summary>
         public static string CurrentHost { get; private set; } = "127.0.0.1";
@@ -238,6 +242,8 @@ namespace AgentHub.Server
                 _server.StateChanged += (s, e) => $"WebServer New State - {e.NewState}".Info("WebServer");
                 _server.RunAsync(_cts.Token).ConfigureAwait(false);
 
+                StartCertHttpServer();
+
                 AgentMonitorService.Start(agentModule);
             }
             catch (Exception ex)
@@ -299,6 +305,68 @@ namespace AgentHub.Server
             return ctx.SendStringAsync("Forbidden", "text/plain", Encoding.UTF8);
         }
 
+        /// <summary>
+        /// 인증서(.crt)를 평문 HTTP로도 서빙하는 최소 서버를 시작한다.
+        /// 자체서명 인증서를 삭제/만료해 HTTPS 신뢰가 깨지면 앱/브라우저가 HTTPS로 .crt를 다시 받을 수 없다
+        /// (닭-달걀). HTTP 부트스트랩으로 그 경로를 연다. 인증서는 공개 CA 공개키라 기밀정보는 아니나,
+        /// HTTP는 무결성 보장이 없어 LAN 상 능동적 MITM에 이론적으로 취약 — 신뢰된 LAN 전용 편의 기능이다.
+        /// 포트는 HTTPS 포트+1부터 빈 포트를 사용하며 /server/status로 노출한다. 실패해도 본 서버엔 영향 없음.
+        /// </summary>
+        private static void StartCertHttpServer()
+        {
+            try
+            {
+                CurrentCertHttpPort = ResolveCertHttpPort(CurrentPort);
+                if (CurrentCertHttpPort <= 0) return;
+                var prefix = $"http://+:{CurrentCertHttpPort}/";
+                _certServer = new WebServer(o => o.WithUrlPrefix(prefix).WithMode(HttpListenerMode.EmbedIO))
+                    .WithAction("/", HttpVerbs.Any, ServeCertAsync); // catch-all: 모든 경로에서 .crt 응답(/cert 포함)
+                // bind는 "빈 포트 확인 → 실제 bind" 사이 레이스로 비동기 실패할 수 있다. 그 경우
+                // 죽은 포트를 status로 광고하지 않도록 포트를 0으로 되돌린다(취소는 faulted 아님 → 해당 없음).
+                _certServer.RunAsync(_cts.Token).ContinueWith(t =>
+                {
+                    LogService.Instance.Error(t.Exception);
+                    CurrentCertHttpPort = 0;
+                }, TaskContinuationOptions.OnlyOnFaulted);
+            }
+            catch (Exception ex)
+            {
+                LogService.Instance.Error(ex);
+                CurrentCertHttpPort = 0;
+                _certServer = null;
+            }
+        }
+
+        private static int ResolveCertHttpPort(int httpsPort)
+        {
+            try
+            {
+                var active = IPGlobalProperties.GetIPGlobalProperties()
+                    .GetActiveTcpListeners().Select(p => p.Port).ToHashSet();
+                for (var p = httpsPort + 1; p <= httpsPort + 10 && p <= 65535; p++)
+                    if (!active.Contains(p)) return p;
+            }
+            catch (Exception ex) { LogService.Instance.Error(ex); }
+            return 0;
+        }
+
+        /// <summary>.crt 파일을 첨부(다운로드)로 응답. 평문 HTTP(인증 게이트 없음 — 공개키).</summary>
+        private static async Task ServeCertAsync(EmbedIO.IHttpContext ctx)
+        {
+            var path = Path.Combine(SelfSigned.CertFilePath, SelfSigned.CrtFileName);
+            if (!File.Exists(path))
+            {
+                ctx.Response.StatusCode = 404;
+                await ctx.SendStringAsync("cert not found", "text/plain", Encoding.UTF8);
+                return;
+            }
+            var bytes = File.ReadAllBytes(path);
+            ctx.Response.ContentType = "application/x-x509-ca-cert";
+            ctx.Response.Headers.Add(HttpHeaderNames.ContentDisposition, "attachment; filename=\"AgentHub.crt\"");
+            ctx.Response.ContentLength64 = bytes.Length;
+            await ctx.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
+        }
+
         public static void StopServer()
         {
             try
@@ -307,7 +375,8 @@ namespace AgentHub.Server
                 Socket.TerminalModule.DisableAllInstances();
                 Socket.SessionTerminalModule.DisableAllInstances();
                 _cts?.Cancel();
-                _server?.Dispose();
+                try { _server?.Dispose(); } catch (Exception ex) { LogService.Instance.Error(ex); }
+                try { _certServer?.Dispose(); } catch (Exception ex) { LogService.Instance.Error(ex); } // 앞 dispose 예외에도 반드시 정리
             }
             catch (Exception ex)
             {
@@ -316,6 +385,8 @@ namespace AgentHub.Server
             finally
             {
                 _server = null;
+                _certServer = null;
+                CurrentCertHttpPort = 0;
                 _cts = null;
             }
         }

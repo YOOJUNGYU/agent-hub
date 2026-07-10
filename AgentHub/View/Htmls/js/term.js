@@ -1,20 +1,8 @@
-// 터미널 화면: xterm.js ⇄ WebSocket(ConPTY). 두 종류를 다룬다.
-//  - 세션 터미널: /ws/session?session=<id> → claude --resume <id> (승인 기기면 항상 허용)
-//  - 범용 셸:    /ws/term            → cmd.exe (웹 터미널 토글 ON일 때만)
+// 세션 터미널 화면: xterm.js ⇄ WebSocket(/ws/session?session=<id> → claude --resume <id>).
+// 세션별로 동작 중인 쉘을 Agent Hub가 가져와 여러 클라이언트(PC·승인된 폰)가 실시간 공유한다.
 // app.js의 showScreen/getToken 재사용.
 (function () {
   let term, fit, tws, opened = false;
-
-  async function terminalEnabled() {
-    try { const s = await (await fetch('/api/terminal/status')).json(); return !!s.enabled; }
-    catch (_) { return false; }
-  }
-
-  // 모니터 진입 시 범용 셸 버튼 노출 여부 갱신 (app.js에서 호출). 세션 터미널 버튼은 상세에서 상시 노출.
-  window.refreshTermButton = async function () {
-    const btn = document.getElementById('termBtn');
-    if (btn) btn.hidden = !(await terminalEnabled());
-  };
 
   function ensureTerm() {
     if (term) return;
@@ -23,11 +11,32 @@
     term.loadAddon(fit);
     term.open(document.getElementById('termView'));
     term.onData(d => send({ t: 'i', d }));
-    window.addEventListener('resize', doFit);
+    window.addEventListener('resize', scheduleFit);
+    // 가상 키보드/브라우저 UI로 뷰포트가 바뀌면 다시 맞춘다(하단 특수키 바가 가리지 않게 + 열 폭 재계산).
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', scheduleFit);
+      window.visualViewport.addEventListener('scroll', scheduleFit);
+    }
+    // 컨테이너 크기 변화(화면 전환/회전/키보드)에 반응해 xterm을 정확히 맞춘다 — 초기 렌더 깨짐 방지.
+    if (window.ResizeObserver) {
+      const wrap = document.getElementById('termViewWrap');
+      if (wrap) new ResizeObserver(scheduleFit).observe(wrap);
+    }
+  }
+
+  // 여러 이벤트가 몰릴 때 rAF로 한 번만 fit(서버 resize 메시지 폭주 방지).
+  let fitScheduled = false;
+  function scheduleFit() {
+    if (fitScheduled) return;
+    fitScheduled = true;
+    requestAnimationFrame(() => { fitScheduled = false; doFit(); });
   }
 
   function doFit() {
     if (!term || !fit) return;
+    // 컨테이너가 아직 0 크기(숨김/레이아웃 전)면 잘못된 1x1 등으로 맞춰 깨지므로 건너뛴다(다음 관측에서 재시도).
+    const wrap = document.getElementById('termViewWrap');
+    if (wrap && (wrap.clientWidth < 2 || wrap.clientHeight < 2)) return;
     try { fit.fit(); send({ t: 'r', cols: term.cols, rows: term.rows }); } catch (_) {}
   }
 
@@ -76,11 +85,6 @@
 
   const wsBase = () => (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host;
 
-  // 범용 셸 (웹 터미널 토글)
-  window.openTerminal = function () {
-    connect(wsBase() + '/ws/term?token=' + encodeURIComponent(getToken()), '터미널');
-  };
-
   // 세션 터미널 (claude --resume attach)
   window.openSessionTerminal = function (sessionId, title) {
     if (!sessionId) return;
@@ -93,7 +97,6 @@
     tws = null; opened = false;
   }
 
-  document.getElementById('termBtn') && document.getElementById('termBtn').addEventListener('click', () => window.openTerminal());
   document.getElementById('termBack') && document.getElementById('termBack').addEventListener('click', () => { if (opened) history.back(); });
 
   // 특수키 버튼 → PTY로 해당 시퀀스 전송 (모바일 키보드로 못 넣는 Esc/Tab/방향키/Ctrl 등)

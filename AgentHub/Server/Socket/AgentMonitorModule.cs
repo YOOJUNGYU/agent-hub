@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Threading;
 using System.Threading.Tasks;
 using EmbedIO.WebSockets;
 using AgentHub.Common.Models;
@@ -24,6 +25,11 @@ namespace AgentHub.Server.Socket
         private readonly ConcurrentDictionary<string, string> _watching =
             new ConcurrentDictionary<string, string>();
 
+        // contextId -> 전송 직렬화 락. SslStream은 동시 write를 허용하지 않으므로(BeginWrite 예외),
+        // 브로드캐스트·activity push·연결/승인 응답이 겹쳐도 소켓별로 write를 직렬화한다.
+        private readonly ConcurrentDictionary<string, SemaphoreSlim> _sendLocks =
+            new ConcurrentDictionary<string, SemaphoreSlim>();
+
         public AgentMonitorModule(string urlPath) : base(urlPath, true)
         {
             DeviceRegistry.StatusChanged += OnDeviceStatusChanged;
@@ -36,7 +42,7 @@ namespace AgentHub.Server.Socket
             if (!string.IsNullOrEmpty(token))
                 _tokens[context.Id] = DeviceRegistry.HashToken(token);
 
-            await SendAsync(context, AuthMessage(status));
+            await SendSafe(context, AuthMessage(status));
 
             if (status == DeviceStatus.Approved)
                 await ActivateAsync(context, token);
@@ -46,6 +52,7 @@ namespace AgentHub.Server.Socket
         {
             _tokens.TryRemove(context.Id, out _);
             _watching.TryRemove(context.Id, out _);
+            _sendLocks.TryRemove(context.Id, out _);
             MonitorClientRegistry.Remove(context.Id);
             return Task.CompletedTask;
         }
@@ -64,7 +71,12 @@ namespace AgentHub.Server.Socket
                 if (msg.Type == "watch" && !string.IsNullOrEmpty(msg.SessionId))
                 {
                     _watching[context.Id] = msg.SessionId;
-                    await SendAsync(context, AgentMonitorService.ActivityMessage(msg.SessionId));
+                    await SendSafe(context, AgentMonitorService.ActivityMessage(msg.SessionId));
+                    // 이 세션에 아직 미답 elicit이 있으면 답변 화면을 다시 띄울 수 있도록 재전송
+                    // (폰이 답변 화면을 닫았거나 새로고침해 잃어버린 경우 복구).
+                    if (AgentHub.Server.Hook.AskRegistry.TryGetPendingForSession(msg.SessionId, out var eid, out var qsJson))
+                        await SendSafe(context, Json.Serialize(new { type = "elicit", id = eid,
+                            questions = Newtonsoft.Json.Linq.JToken.Parse(qsJson), sessionId = msg.SessionId, resent = true }));
                 }
                 else if (msg.Type == "unwatch")
                 {
@@ -78,8 +90,13 @@ namespace AgentHub.Server.Socket
                 }
                 else if (msg.Type == "elicitAnswer")
                 {
+                    // clawd-on-desk 동시 실행 시: 두 앱이 같은 훅을 잡아 답변이 전달되지 않으므로
+                    // 여기서 차단하고 폰에 안내(사용자가 clawd 종료 후 재시도하도록).
+                    if (AgentHub.Common.Util.ClawdGuard.IsRunning())
+                        await SendSafe(context, Json.Serialize(new { type = "answerBlocked",
+                            reason = "clawd", message = "answer.blockedClawd" }));
                     // 폰에서 고른 AskUserQuestion 답변 → 대기 중인 PermissionRequest 훅 해제.
-                    if (!string.IsNullOrEmpty(msg.Id) && msg.Answers != null)
+                    else if (!string.IsNullOrEmpty(msg.Id) && msg.Answers != null)
                         AgentHub.Server.Hook.AskRegistry.Resolve(msg.Id, msg.Answers.ToString());
                 }
                 // 세션 제어(프롬프트/슬래시/답변)는 /ws/session 대화형 터미널에서 수행한다.
@@ -96,23 +113,41 @@ namespace AgentHub.Server.Socket
             return false;
         }
 
-        /// <summary>변경 발생 시 각 구독 소켓에 해당 세션 활동을 push.</summary>
-        public async Task PushActivityToWatchers()
+        /// <summary>해당 토큰해시의 기기가 현재 WS로 연결돼 있는지(푸시 대상에서 제외 판정용).</summary>
+        public bool IsConnected(string tokenHash)
         {
+            if (string.IsNullOrEmpty(tokenHash)) return false;
+            foreach (var ctx in ActiveContexts)
+                if (_tokens.TryGetValue(ctx.Id, out var h) && h == tokenHash) return true;
+            return false;
+        }
+
+        /// <summary>변경 발생 시 각 구독 소켓에 해당 세션 활동을 push.</summary>
+        public Task PushActivityToWatchers()
+        {
+            // 소켓별 직렬화는 SendSafe 세마포어가 담당. 소켓 간에는 병렬로 보내 느린 한 소켓이
+            // 나머지 전송을 막지 않게 한다(head-of-line blocking 방지).
+            var tasks = new System.Collections.Generic.List<Task>();
             foreach (var ctx in ActiveContexts)
             {
                 if (!_watching.TryGetValue(ctx.Id, out var sid) || string.IsNullOrEmpty(sid)) continue;
                 if (!_tokens.TryGetValue(ctx.Id, out var h) || DeviceRegistry.StatusByHash(h) != DeviceStatus.Approved) continue;
-                try { await SendAsync(ctx, AgentMonitorService.ActivityMessage(sid)); }
-                catch { /* per-socket 실패 무시 */ }
+                tasks.Add(SendSafe(ctx, AgentMonitorService.ActivityMessage(sid)));
             }
+            return Task.WhenAll(tasks);
         }
 
-        /// <summary>서비스에서 호출 — 승인된 소켓에만 broadcast.</summary>
+        /// <summary>서비스에서 호출 — 승인된 소켓에만 broadcast(소켓별 write는 직렬화, 소켓 간에는 병렬).</summary>
         public Task BroadcastMessageAsync(string message)
-            => BroadcastAsync(message, ctx =>
-                _tokens.TryGetValue(ctx.Id, out var h)
-                && DeviceRegistry.StatusByHash(h) == DeviceStatus.Approved);
+        {
+            var tasks = new System.Collections.Generic.List<Task>();
+            foreach (var ctx in ActiveContexts)
+            {
+                if (!_tokens.TryGetValue(ctx.Id, out var h) || DeviceRegistry.StatusByHash(h) != DeviceStatus.Approved) continue;
+                tasks.Add(SendSafe(ctx, message));
+            }
+            return Task.WhenAll(tasks);
+        }
 
         private async void OnDeviceStatusChanged(string hash, string status)
         {
@@ -121,7 +156,7 @@ namespace AgentHub.Server.Socket
                 if (!_tokens.TryGetValue(ctx.Id, out var h) || h != hash) continue;
                 try
                 {
-                    await SendAsync(ctx, AuthMessage(status));
+                    await SendSafe(ctx, AuthMessage(status));
                     if (status == DeviceStatus.Approved)
                         await ActivateAsync(ctx, null);
                     else
@@ -137,7 +172,19 @@ namespace AgentHub.Server.Socket
             var ip = context.RemoteEndPoint?.Address?.ToString() ?? "unknown";
             var ua = context.Headers?["User-Agent"] ?? "unknown";
             MonitorClientRegistry.Add(context.Id, ip, ua);
-            await SendAsync(context, AgentMonitorService.CurrentSessionsMessage());
+            await SendSafe(context, AgentMonitorService.CurrentSessionsMessage());
+        }
+
+        // SslStream 동시 write 금지 대응: contextId별 세마포어로 write를 직렬화한다.
+        private SemaphoreSlim SendLock(string id) => _sendLocks.GetOrAdd(id, _ => new SemaphoreSlim(1, 1));
+
+        private async Task SendSafe(IWebSocketContext ctx, string message)
+        {
+            var g = SendLock(ctx.Id);
+            await g.WaitAsync();
+            try { await SendAsync(ctx, message); }
+            catch { /* per-socket 실패 무시(끊김 등) */ }
+            finally { try { g.Release(); } catch { } }
         }
 
         private static string GetToken(IWebSocketContext ctx)

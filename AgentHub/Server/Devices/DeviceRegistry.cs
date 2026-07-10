@@ -107,6 +107,7 @@ namespace AgentHub.Server.Devices
             var entry = ByHash.FirstOrDefault(kv => kv.Value.Id == id);
             if (entry.Value == null) return false;
             if (!ByHash.TryRemove(entry.Key, out _)) return false;
+            AgentHub.Server.Push.PushSubscriptionRegistry.Remove(entry.Key); // 기기 삭제 → 푸시 구독도 정리
             Save();
             Changed?.Invoke();
             StatusChanged?.Invoke(entry.Key, DeviceStatus.Revoked); // 접속 차단
@@ -136,6 +137,7 @@ namespace AgentHub.Server.Devices
             if (d == null) return false;
             d.Status = status;
             if (status == DeviceStatus.Approved) d.ApprovedAt = DateTime.UtcNow.ToString("o");
+            else if (status == DeviceStatus.Revoked) AgentHub.Server.Push.PushSubscriptionRegistry.Remove(d.TokenHash); // 승인취소 → 푸시 구독 정리
             Save();
             Changed?.Invoke();
             StatusChanged?.Invoke(d.TokenHash, status);

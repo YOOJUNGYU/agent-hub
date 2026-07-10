@@ -20,6 +20,17 @@ self.addEventListener('fetch', e => {
   e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
 });
 
+// Web Push: 앱이 꺼져 있어도 응답 대기 알림 표시. payload 없이 오므로 일반 문구 사용
+// (탭하면 앱이 열리고 어느 세션인지는 카드의 '응답 대기중'으로 확인). 같은 tag로 스팸 방지.
+self.addEventListener('push', function (e) {
+  var title = 'Agent Hub';
+  var body = '응답 대기 중인 세션이 있습니다';
+  if (e.data) { try { var d = e.data.json(); if (d.title) title = d.title; if (d.body) body = d.body; } catch (_) { var tx = e.data.text(); if (tx) body = tx; } }
+  e.waitUntil(self.registration.showNotification(title, {
+    body: body, tag: 'agenthub-ask', renotify: true, icon: '/icons/icon-192.png', data: { url: '/' }
+  }));
+});
+
 self.addEventListener('notificationclick', function (e) {
   e.notification.close();
   e.waitUntil((async function () {

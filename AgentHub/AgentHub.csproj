@@ -124,6 +124,7 @@
     <Compile Include="Common\Models\ActivityEvent.cs" />
     <Compile Include="Common\Util\AppSettingsProvider.cs" />
     <Compile Include="Common\Util\ApiLogger.cs" />
+    <Compile Include="Common\Util\ClawdGuard.cs" />
     <Compile Include="Common\Util\EtcUtil.cs" />
     <Compile Include="Common\Util\Json.cs" />
     <Compile Include="Common\Util\NetUtil.cs" />
@@ -136,6 +137,9 @@
     <Compile Include="Server\Agents\ClaudeSessionReader.cs" />
     <Compile Include="Server\Agents\TranscriptParser.cs" />
     <Compile Include="Server\Controller\ApiController.cs" />
+    <Compile Include="Server\Push\Vapid.cs" />
+    <Compile Include="Server\Push\PushSubscriptionRegistry.cs" />
+    <Compile Include="Server\Push\PushService.cs" />
     <Compile Include="Server\Devices\DeviceRegistry.cs" />
     <Compile Include="Server\EmbedIOServer.cs" />
     <Compile Include="Server\Socket\AgentMonitorModule.cs" />

@@ -187,6 +187,10 @@ body.host-shell #sessionterm.view.active{ display:flex; flex-direction:column; o
 .session-list { display: flex; flex-direction: column; gap: 10px; }
 .session-card { background: #1b2030; border: 1px solid #2a3145; border-radius: 12px; padding: 12px 14px; cursor: pointer; }
 .session-card:active { background: #222941; }
+/* 응답 대기중: 카드를 앰버로 강조해 목록에서 바로 눈에 띄게 한다(상단 배너 대체). */
+.session-card.waiting { border-color: #f5c451; background: #2a2413; box-shadow: 0 0 0 1px rgba(245,196,81,.35); }
+.card-wait { margin-left: auto; flex: 0 0 auto; font-size: 11px; font-weight: 700; padding: 2px 8px;
+  border-radius: 999px; background: #f5c451; color: #1a1400; white-space: nowrap; }
 .card-top { display: flex; align-items: center; gap: 8px; }
 .card-title { font-weight: 600; min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
 .card-meta { color: #8b93a7; font-size: 12px; margin-top: 4px; overflow-wrap: anywhere; word-break: break-word; }
@@ -232,8 +236,6 @@ body.host-shell #sessionterm.view.active{ display:flex; flex-direction:column; o
 .ask-text { color: #fde68a; font-size: 13px; word-break: break-word; }
 .ask-actions { display: flex; gap: 8px; }
 .ask-actions button { flex: 1; padding: 8px; border-radius: 8px; border: none; cursor: pointer; }
-#askAnswer { background: #7aa2ff; color: #0b0f1a; font-weight: 600; }
-#askDismiss { background: #2a3145; color: #c9d1e4; }
 
 /* ---- 질문/답변(AskUserQuestion) 오버레이 ---- */
 .elicit-overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end;
@@ -244,7 +246,7 @@ body.host-shell #sessionterm.view.active{ display:flex; flex-direction:column; o
   box-shadow: 0 24px 60px -20px rgba(0,0,0,.8); }
 .elicit-progress { color: #8b93a7; font-size: 12px; }
 .elicit-progress:empty { display: none; }
-.elicit-header { color: var(--accent); font-weight: 700; font-size: 13px; margin: 2px 0 6px; }
+.elicit-header { color: var(--accent); font-weight: 700; font-size: 13px; margin: 2px 0 6px; overflow-wrap: anywhere; }
 .elicit-question { color: #e6e9f2; font-size: 15px; line-height: 1.5; word-break: break-word; }
 .elicit-hint { color: #8b93a7; font-size: 12px; margin: 6px 0 10px; }
 .elicit-options { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden;
@@ -267,12 +269,13 @@ body.host-shell #sessionterm.view.active{ display:flex; flex-direction:column; o
 /* 권한 요청 배너(PreToolUse 원격 승인) */
 .ask-banner.perm { background: #2a1f14; border-color: #7a4a1e; }
 .ask-banner.perm .ask-text { color: #fdba74; }
-.perm-detail { font-family: Consolas,'D2Coding',monospace; font-size: 12px; color: #e6e9f2; background: #0d0f17; border: 1px solid #2a3145; border-radius: 8px; padding: 8px 10px; word-break: break-all; max-height: 8em; overflow: auto; }
+.perm-detail { font-family: Consolas,'D2Coding',monospace; font-size: 12px; color: #e6e9f2; background: #0d0f17; border: 1px solid #2a3145; border-radius: 8px; padding: 8px 10px; word-break: break-all; overflow-wrap: anywhere; max-height: 8em; overflow-y: auto; overflow-x: hidden; }
 #permAllow { background: #2e9e5b; color: #08130c; font-weight: 700; }
 #permDeny { background: #b3423a; color: #fff; font-weight: 700; }
 
 /* ---- 터미널 특수키 바 (모바일에서 못 넣는 키를 버튼으로) ---- */
-.term-keys { display: flex; gap: 6px; padding: 8px 0 2px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+/* 특수키 바: 가로 스크롤 대신 줄바꿈 — 좁은 화면에서도 모든 키가 잘리거나 가로 스크롤 없이 보이게. */
+.term-keys { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0 calc(2px + env(safe-area-inset-bottom)); }
 .key-btn { flex: 0 0 auto; min-width: 44px; padding: 9px 12px; font-size: 13px; font-weight: 600;
   background: #222941; color: #c9d1e4; border: 1px solid #2a3145; border-radius: 8px; cursor: pointer; }
 .key-btn:active { background: #2a3350; }
@@ -304,10 +307,10 @@ body:not(.host-shell) main{ flex:1 1 auto; min-height:0; display:flex; flex-dire
   /* 뷰포트를 시스템 바 안쪽(safe area)에 두어 하단 내비게이션/홈 인디케이터가 콘텐츠를 가리지 않게 한다.
      env(safe-area-inset-bottom)은 안드로이드에서 0으로 보고되는 경우가 많아, 최소 여백을 함께 확보한다. */
   padding-bottom:calc(1rem + env(safe-area-inset-bottom)); }
-body:not(.host-shell) #askBanner, body:not(.host-shell) #permBanner{ flex:0 0 auto; }
+body:not(.host-shell) #permBanner{ flex:0 0 auto; }
 
 /* 모니터: 스크롤 컨테이너 + '새 세션' 하단(짧으면 카드 아래, 길면 sticky) */
-body:not(.host-shell) #monitor:not([hidden]){ flex:1 1 auto; min-height:0; display:block; overflow-y:auto; }
+body:not(.host-shell) #monitor:not([hidden]){ flex:1 1 auto; min-height:0; display:block; overflow-y:auto; overflow-x:hidden; }
 .monitor-top{ display:flex; gap:8px; flex-wrap:wrap; }
 
 /* 상세: 헤드 고정 + 피드 스크롤(flex:1). 헤드의 '터미널 열기'는 우측 정렬 */
@@ -320,7 +323,7 @@ body:not(.host-shell) #detail:not([hidden]){ flex:1 1 auto; min-height:0; displa
 
 /* 인증 화면은 스크롤 허용 */
 body:not(.host-shell) #authRequest:not([hidden]),
-body:not(.host-shell) #authPending:not([hidden]){ flex:1 1 auto; min-height:0; overflow-y:auto; }
+body:not(.host-shell) #authPending:not([hidden]){ flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; }
 
 /* 터미널 화면: 헤드/경고/입력창 고정 + xterm이 남은 공간 채움 */
 body:not(.host-shell) #terminal:not([hidden]){ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
@@ -329,3 +332,5 @@ body:not(.host-shell) #terminal:not([hidden]){ flex:1 1 auto; min-height:0; disp
 #terminal #termView{ width:100%; height:100%; }
 .term-loading{ position:absolute; inset:0; z-index:5; display:flex; align-items:center; justify-content:center;
   gap:.5rem; background:#0b0f1a; color:var(--muted); font-size:.95rem; }
+/* [hidden] 속성이 위 display:flex(author 규칙)를 이기도록 명시 — 로딩 완료(첫 출력 바이트) 시 오버레이를 확실히 숨긴다. */
+.term-loading[hidden]{ display:none; }
