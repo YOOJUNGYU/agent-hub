@@ -100,9 +100,24 @@ process.stdin.on('end', () => {
   }
 
   if (p.hook_event_name === 'Stop') {
-    // 세션이 응답(턴)을 끝냄 → '작업 완료' 알림(fire-and-forget).
-    post(port, '/api/hook/stop', { session_id: p.session_id, cwd: p.cwd }, 3000, () => process.exit(0));
-    setTimeout(() => process.exit(0), 4000); // 안전망
+    // 세션이 턴을 끝냄. 폰이 이 세션을 보고 있으면 서버가 답장을 기다렸다가 돌려준다(블로킹).
+    // 답장을 받으면 세션에 주입해 대화를 잇고, 없으면(무응답/닫기/타임아웃/미watch) 정상 종료.
+    const windowSec = Number(process.argv[2]) || 600;
+    const budgetMs = Math.max((windowSec - 5) * 1000, 1000);
+    post(port, '/api/hook/stop', {
+      session_id: p.session_id, cwd: p.cwd, waitMs: budgetMs
+    }, budgetMs + 2000, data => {
+      try {
+        const r = JSON.parse((data || '{}').replace(/^﻿/, '')); // 선행 BOM 제거
+        if (r.reply) {
+          // 폰 답장을 세션에 주입: 중단을 막고 그 텍스트로 이어가게 한다.
+          process.stdout.write(JSON.stringify({ decision: 'block', reason: r.reply }));
+        }
+        // reply 없음 → 출력 없음 = 정상 종료.
+      } catch (e) {}
+      process.exit(0);
+    });
+    setTimeout(() => process.exit(0), budgetMs + 4000); // 안전망(Claude 훅 timeout 이내)
     return;
   }
 
