@@ -120,6 +120,22 @@ namespace AgentHub.Server.Agents
             catch (Exception ex) { LogService.Instance.Error(ex); return null; }
         }
 
+        /// <summary>세션의 마지막 어시스턴트 텍스트(알림·답장 카드 표시용). 실패 시 null.</summary>
+        public static string LastAssistantTextOf(string sessionId)
+        {
+            try
+            {
+                if (!_paths.TryGetValue(sessionId, out var path) || !File.Exists(path))
+                {
+                    path = FindSessionFile(sessionId);
+                    if (path == null) return null;
+                    _paths[sessionId] = path;
+                }
+                return TranscriptParser.LastAssistantText(ReadAllLinesShared(path));
+            }
+            catch (Exception ex) { LogService.Instance.Error(ex); return null; }
+        }
+
         private static string FindSessionFile(string sessionId)
         {
             var root = ProjectsRoot;

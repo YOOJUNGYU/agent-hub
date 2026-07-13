@@ -39,6 +39,36 @@ namespace AgentHub.Server.Agents
             return t != null && (t.Type == JTokenType.Integer || t.Type == JTokenType.Float) ? t.Value<long>() : 0;
         }
 
+        /// <summary>마지막 어시스턴트 메시지의 text 블록(여러 개면 개행 결합). 없으면 null. 알림/카드 표시용 truncate.</summary>
+        public static string LastAssistantText(IReadOnlyList<string> lines, int max = 300)
+        {
+            JObject lastAssistant = null;
+            foreach (var line in lines)
+            {
+                var o = TryParse(line);
+                if (o == null) continue;
+                if (Str(o["type"]) == "assistant") lastAssistant = o;
+            }
+            if (lastAssistant == null) return null;
+
+            var content = lastAssistant["message"]?["content"];
+            string text = null;
+            if (content is JArray arr)
+            {
+                var parts = new List<string>();
+                foreach (var b in arr.OfType<JObject>())
+                    if (Str(b["type"]) == "text")
+                    {
+                        var tx = Str(b["text"]);
+                        if (!string.IsNullOrWhiteSpace(tx)) parts.Add(tx.Trim());
+                    }
+                if (parts.Count > 0) text = string.Join("\n", parts);
+            }
+            else if (content?.Type == JTokenType.String) text = content.Value<string>();
+
+            return string.IsNullOrWhiteSpace(text) ? null : Truncate(text, max);
+        }
+
         public static PendingAsk ExtractPendingAsk(IReadOnlyList<string> lines)
         {
             JObject lastAsk = null; string askId = null;
