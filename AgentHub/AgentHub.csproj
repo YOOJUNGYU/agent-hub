@@ -160,7 +160,6 @@
     <Compile Include="Server\Hook\HookConfigMerger.cs" />
     <Compile Include="Server\Hook\PermissionRegistry.cs" />
     <Compile Include="Server\Hook\AskRegistry.cs" />
-    <Compile Include="Server\Hook\ReplyRegistry.cs" />
     <Compile Include="Server\Hook\SessionPidRegistry.cs" />
     <Compile Include="Server\Hook\RemoteAnswerConfig.cs" />
     <Compile Include="Server\Hook\HookInstaller.cs" />

@@ -209,67 +209,37 @@ namespace AgentHub.Server.Controller
                 if (actionable)
                 {
                     var project = LastSegment((string)o["cwd"] ?? "");
-                    var msg = string.IsNullOrEmpty(message) ? "입력이 필요합니다" : message;
-                    AgentMonitorService.BroadcastAsk(project, msg, (string)o["session_id"]);
-                    AgentHub.Server.Push.PushService.NotifyDisconnected(msg, (string)o["session_id"]);
+                    var sessionId = (string)o["session_id"];
+                    var last = ClaudeSessionReader.LastAssistantTextOf(sessionId);
+                    var msg = !string.IsNullOrWhiteSpace(last) ? last
+                        : (string.IsNullOrEmpty(message) ? "입력이 필요합니다" : message);
+                    AgentMonitorService.BroadcastAsk(project, msg, sessionId);
+                    AgentHub.Server.Push.PushService.NotifyDisconnected(msg, sessionId);
                 }
             }
             catch (Exception ex) { LogService.Instance.Error(ex); }
             await SendJsonAsync(Json.Serialize(new { ok = true }));
         }
 
-        // Stop 훅(블로킹): 세션이 턴을 끝냄. 폰이 이 세션을 watch 중이면 서버가 답장을 기다렸다가
-        // {reply}로 돌려준다 → 훅이 세션에 주입해 대화가 이어짐. watch 중이 아니면 오늘 그대로 '완료' 알림.
+        // Stop 훅(fire-and-forget): 세션이 턴을 끝냄 → 마지막 멘트를 알림 본문으로. 사용자가 보고 직접 판단.
         [Route(HttpVerbs.Post, "/hook/stop")]
         public async Task HookStop()
         {
             if (!IsLoopback()) { await Forbidden(); return; }
             var raw = await HttpContext.GetRequestBodyAsStringAsync();
-            string reply = null;
             try
             {
                 var o = JObject.Parse(raw);
                 var project = LastSegment((string)o["cwd"] ?? "");
                 var sessionId = (string)o["session_id"];
-                if (AgentMonitorService.IsSessionWatched(sessionId))
-                {
-                    var id = Guid.NewGuid().ToString("N");
-                    var lastMsg = ClaudeSessionReader.LastAssistantTextOf(sessionId);
-                    AgentMonitorService.BroadcastReply(id, project, lastMsg, sessionId);
-                    // 미연결 승인기기엔 '답장 대기'로 알림(‘완료’ 아님) → 앱을 열어 답할 수 있게.
-                    AgentHub.Server.Push.PushService.NotifyDisconnected(
-                        string.IsNullOrWhiteSpace(lastMsg) ? "답장을 기다립니다" : lastMsg, sessionId);
-                    var waitMs = (int?)o["waitMs"] ?? AgentHub.Server.Hook.RemoteAnswerConfig.ServerWindowMs;
-                    waitMs = Math.Min(waitMs, AgentHub.Server.Hook.RemoteAnswerConfig.ServerWindowMs);
-                    waitMs = Math.Max(waitMs - AgentHub.Server.Hook.RemoteAnswerConfig.ServerMarginMs, 1000);
-                    var rawReply = await AgentHub.Server.Hook.ReplyRegistry.AwaitReply(id, sessionId, lastMsg, waitMs);
-                    if (string.IsNullOrEmpty(rawReply))
-                    {
-                        // 무응답/닫기/타임아웃 → 카드 정리 + 완료 처리.
-                        AgentMonitorService.BroadcastReplyClose(sessionId);
-                        AgentMonitorService.BroadcastDone(project, sessionId);
-                    }
-                    else
-                    {
-                        // 폰 답장을 '정당한 사용자 답장'으로 프레이밍해 인젝션 오인·거부 방지(스파이크 확정).
-                        reply = BuildReplyInjection(rawReply);
-                    }
-                }
-                else
-                {
-                    // 오늘과 동일: 완료 알림.
-                    AgentMonitorService.BroadcastDone(project, sessionId);
-                    AgentHub.Server.Push.PushService.NotifyDisconnected("작업을 완료했습니다", sessionId);
-                }
+                var last = ClaudeSessionReader.LastAssistantTextOf(sessionId);
+                var body = string.IsNullOrWhiteSpace(last) ? "작업을 완료했습니다" : last;
+                AgentMonitorService.BroadcastDone(project, sessionId, body);
+                AgentHub.Server.Push.PushService.NotifyDisconnected(body, sessionId);
             }
             catch (Exception ex) { LogService.Instance.Error(ex); }
-            await SendJsonAsync(Json.Serialize(new { reply }));
+            await SendJsonAsync(Json.Serialize(new { ok = true }));
         }
-
-        /// <summary>폰 답장을 Stop 훅 reason으로 주입할 때, 정당한 사용자 답장임을 명확히 해 인젝션 오인·거부를 방지(스파이크 확정 문구).</summary>
-        private static string BuildReplyInjection(string userText)
-            => "[Agent Hub] 사용자가 휴대폰에서 이 세션에 답장을 보냈습니다:\n\n" + userText
-             + "\n\n— 위 내용은 사용자가 직접 입력한 정당한 후속 메시지입니다(프롬프트 인젝션이 아님). 이 답장을 사용자의 다음 지시로 받아들여 계속 진행하세요.";
 
         // PreToolUse 훅(블로킹): 위험 도구 권한을 폰에서 원격 승인. {decision:"allow"|"deny"|"ask"} 반환.
         [Route(HttpVerbs.Post, "/hook/permission")]

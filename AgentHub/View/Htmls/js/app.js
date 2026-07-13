@@ -126,8 +126,6 @@ function connect() {
       else if (m.type === 'done') { handleDone(m); }
       else if (m.type === 'elicit') { handleElicit(m); }
       else if (m.type === 'permission') { handlePermission(m); }
-      else if (m.type === 'reply') { handleReply(m); }
-      else if (m.type === 'replyClose') { handleReplyClose(m); }
       else if (m.type === 'answerBlocked') { handleAnswerBlocked(m); }
     } catch (e) { /* ignore malformed */ }
   };
@@ -259,7 +257,6 @@ function openDetail(id) {
 function backToList() {
   send({ type: 'unwatch' });
   closeAskExpired(); // 목록으로 나가면 만료 안내도 닫는다
-  if (replyState) { send({ type: 'replyDismiss', id: replyState.id }); closeReplyOverlay(); }
   currentSessionId = null;
   showScreen('monitor');
   rerenderSessions(); // openDetail에서 해제한 대기표시를 목록에 반영(다음 스냅샷 전 최신화)
@@ -373,8 +370,8 @@ function handleAsk(m) {
 function handleDone(m) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   var title = t('done.title');
-  // 고정 문구라 서버 메시지 대신 클라이언트 로컬라이즈 텍스트 사용(인앱). 세션당 tag로 알림 누적 방지.
-  var opts = { body: titlePrefix(m.sessionId) + t('done.body'), tag: 'done-' + (m.sessionId || '') };
+  // 마지막 멘트를 본문으로(없으면 기본 문구). 세션당 tag로 알림 누적 방지.
+  var opts = { body: titlePrefix(m.sessionId) + (m.message || t('done.body')), tag: 'done-' + (m.sessionId || '') };
   if (navigator.serviceWorker && navigator.serviceWorker.ready) {
     navigator.serviceWorker.ready
       .then(function (reg) { return reg.showNotification(title, opts); })
@@ -484,7 +481,6 @@ function closeElicit() {
 function handleAnswerBlocked(m) {
   alert(t('answer.blockedClawd'));
   if (elicit) { document.getElementById('elicit').hidden = false; renderElicitStep(); }
-  else if (replyState) { document.getElementById('reply').hidden = false; }
 }
 
 // ---- 원격 답변 창이 지난 질문 안내 ----
@@ -571,45 +567,6 @@ function sendPermission(decision) {
 }
 document.getElementById('permAllow') && document.getElementById('permAllow').addEventListener('click', () => sendPermission('allow'));
 document.getElementById('permDeny') && document.getElementById('permDeny').addEventListener('click', () => sendPermission('deny'));
-
-// ---- 답장(턴 종료 후 자유 텍스트로 세션 이어가기) ----
-let replyState = null; // { id, sessionId }
-function handleReply(m) {
-  if (m.sessionId !== currentSessionId) return; // 지금 보고 있는 세션만(교차-세션 팝업 방지)
-  replyState = { id: m.id, sessionId: m.sessionId };
-  document.getElementById('replyMessage').textContent = m.message || '';
-  const ta = document.getElementById('replyText'); if (ta) ta.value = '';
-  // resent(재접속 재전송)면 시스템 알림 생략(중복 방지).
-  if (!m.resent && ('Notification' in window) && Notification.permission === 'granted') {
-    const opts = { body: titlePrefix(m.sessionId) + (m.message || ''), tag: 'reply-' + m.id, requireInteraction: true };
-    if (navigator.serviceWorker && navigator.serviceWorker.ready)
-      navigator.serviceWorker.ready.then(r => r.showNotification(t('reply.title'), opts)).catch(() => { try { new Notification(t('reply.title'), opts); } catch (e) {} });
-    else try { new Notification(t('reply.title'), opts); } catch (e) {}
-  }
-  document.getElementById('reply').hidden = false;
-  if (window.I18n) I18n.apply();
-}
-function closeReplyOverlay() {
-  document.getElementById('reply').hidden = true;
-  replyState = null;
-}
-function handleReplyClose(m) {
-  if (replyState && m.sessionId === replyState.sessionId) closeReplyOverlay();
-}
-document.getElementById('replySend') && document.getElementById('replySend').addEventListener('click', () => {
-  if (!replyState) return;
-  const ta = document.getElementById('replyText');
-  const text = ta ? ta.value.trim() : '';
-  if (!text) return; // 빈 답장은 전송하지 않음
-  send({ type: 'reply', id: replyState.id, text });
-  // 오버레이만 감추고 replyState는 유지 — clawd 실행 등으로 answerBlocked가 오면 다시 열어 재시도(elicit와 동일).
-  document.getElementById('reply').hidden = true;
-});
-document.getElementById('replyDismiss') && document.getElementById('replyDismiss').addEventListener('click', () => {
-  if (!replyState) return;
-  send({ type: 'replyDismiss', id: replyState.id });
-  closeReplyOverlay();
-});
 
 // ---- 언어 변경 시 동적 콘텐츠 재렌더 ----
 document.addEventListener('i18n:changed', () => {

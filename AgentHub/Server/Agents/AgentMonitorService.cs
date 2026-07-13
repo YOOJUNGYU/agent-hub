@@ -58,13 +58,14 @@ namespace AgentHub.Server.Agents
             finally { _sendGate.Release(); }
         }
 
-        /// <summary>세션이 응답(턴)을 끝냄 → '작업 완료' 알림(인앱, 대기 카드 아님). 연결된 기기만 수신. 문구는 클라가 로컬라이즈.</summary>
-        public static async void BroadcastDone(string project, string sessionId)
+        /// <summary>세션이 턴을 끝냄 → 마지막 멘트를 알림 본문으로 push. 사용자가 보고 직접 판단.</summary>
+        public static async void BroadcastDone(string project, string sessionId, string message)
         {
             var msg = Json.Serialize(new
             {
                 type = "done",
                 project,
+                message,
                 sessionId,
                 at = DateTime.UtcNow.ToString("o")
             });
@@ -83,29 +84,6 @@ namespace AgentHub.Server.Agents
             catch (Exception ex) { LogService.Instance.Error(ex); }
             finally { _sendGate.Release(); }
         }
-
-        /// <summary>턴 종료 후 답장 카드를 승인 기기에 push(폰이 그 세션을 볼 때만 표시).</summary>
-        public static async void BroadcastReply(string id, string project, string message, string sessionId)
-        {
-            var msg = Json.Serialize(new { type = "reply", id, project, message, sessionId });
-            await _sendGate.WaitAsync();
-            try { if (_module != null) await _module.BroadcastMessageAsync(msg); }
-            catch (Exception ex) { LogService.Instance.Error(ex); }
-            finally { _sendGate.Release(); }
-        }
-
-        /// <summary>답장 카드 닫기(답변/닫기/타임아웃 후 다른 기기 카드 정리).</summary>
-        public static async void BroadcastReplyClose(string sessionId)
-        {
-            var msg = Json.Serialize(new { type = "replyClose", sessionId });
-            await _sendGate.WaitAsync();
-            try { if (_module != null) await _module.BroadcastMessageAsync(msg); }
-            catch (Exception ex) { LogService.Instance.Error(ex); }
-            finally { _sendGate.Release(); }
-        }
-
-        /// <summary>승인된 폰이 그 세션을 watch(상세 보기) 중인지 — 턴 붙듦 게이트.</summary>
-        public static bool IsSessionWatched(string sessionId) => _module != null && _module.IsSessionWatched(sessionId);
 
         /// <summary>응답할 승인 기기(폰)가 하나라도 연결돼 있는지.</summary>
         public static bool HasApprovedClient() => _module != null && _module.HasApprovedClient();

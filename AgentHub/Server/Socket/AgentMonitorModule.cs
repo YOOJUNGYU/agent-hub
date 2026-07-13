@@ -77,9 +77,6 @@ namespace AgentHub.Server.Socket
                     if (AgentHub.Server.Hook.AskRegistry.TryGetPendingForSession(msg.SessionId, out var eid, out var qsJson))
                         await SendSafe(context, Json.Serialize(new { type = "elicit", id = eid,
                             questions = Newtonsoft.Json.Linq.JToken.Parse(qsJson), sessionId = msg.SessionId, resent = true }));
-                    if (AgentHub.Server.Hook.ReplyRegistry.TryGetPendingForSession(msg.SessionId, out var rid, out var rlast))
-                        await SendSafe(context, Json.Serialize(new { type = "reply", id = rid,
-                            message = rlast, sessionId = msg.SessionId, resent = true }));
                 }
                 else if (msg.Type == "unwatch")
                 {
@@ -102,21 +99,6 @@ namespace AgentHub.Server.Socket
                     else if (!string.IsNullOrEmpty(msg.Id) && msg.Answers != null)
                         AgentHub.Server.Hook.AskRegistry.Resolve(msg.Id, msg.Answers.ToString());
                 }
-                else if (msg.Type == "reply")
-                {
-                    // 폰 [전송] → 대기 중인 Stop 훅 해제. clawd 동시 실행 시 차단 안내.
-                    if (AgentHub.Common.Util.ClawdGuard.IsRunning())
-                        await SendSafe(context, Json.Serialize(new { type = "answerBlocked",
-                            reason = "clawd", message = "answer.blockedClawd" }));
-                    else if (!string.IsNullOrEmpty(msg.Id) && !string.IsNullOrWhiteSpace(msg.Text))
-                        AgentHub.Server.Hook.ReplyRegistry.Resolve(msg.Id, msg.Text);
-                }
-                else if (msg.Type == "replyDismiss")
-                {
-                    // 폰 [완료(닫기)] → 대기 해제(정상 종료).
-                    if (!string.IsNullOrEmpty(msg.Id))
-                        AgentHub.Server.Hook.ReplyRegistry.Dismiss(msg.Id);
-                }
                 // 세션 제어(프롬프트/슬래시/답변)는 /ws/session 대화형 터미널에서 수행한다.
             }
             catch (Exception ex) { LogService.Instance.Error(ex); }
@@ -137,19 +119,6 @@ namespace AgentHub.Server.Socket
             if (string.IsNullOrEmpty(tokenHash)) return false;
             foreach (var ctx in ActiveContexts)
                 if (_tokens.TryGetValue(ctx.Id, out var h) && h == tokenHash) return true;
-            return false;
-        }
-
-        /// <summary>승인된 소켓 중 그 세션을 watch 중인 것이 있는지.</summary>
-        public bool IsSessionWatched(string sessionId)
-        {
-            if (string.IsNullOrEmpty(sessionId)) return false;
-            foreach (var kv in _watching)
-            {
-                if (kv.Value != sessionId) continue;
-                if (_tokens.TryGetValue(kv.Key, out var h) && DeviceRegistry.StatusByHash(h) == DeviceStatus.Approved)
-                    return true;
-            }
             return false;
         }
 
@@ -248,6 +217,5 @@ namespace AgentHub.Server.Socket
         public string Id { get; set; }        // permissionDecision / elicitAnswer 대상 id
         public string Decision { get; set; }  // "allow" | "deny"
         public Newtonsoft.Json.Linq.JObject Answers { get; set; }  // elicitAnswer: { [질문텍스트]: 라벨/배열 }
-        public string Text { get; set; }          // reply: 폰이 보낸 자유 텍스트 답장
     }
 }

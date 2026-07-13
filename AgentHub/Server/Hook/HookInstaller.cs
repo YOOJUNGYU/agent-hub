@@ -84,8 +84,7 @@ namespace AgentHub.Server.Hook
                         ["timeout"] = 5
                     }}
                 };
-                // Stop: 세션이 턴을 끝낼 때 폰이 그 세션을 보고 있으면 답장을 원격 대기(블로킹).
-                // 답장을 받으면 그 텍스트로 대화가 이어지고, 없으면 정상 종료('완료' 알림).
+                // Stop: 세션이 턴을 끝냄 → '완료/마지막 멘트' 알림. fire-and-forget.
                 var stopEntry = new JObject
                 {
                     ["matcher"] = "",
@@ -93,9 +92,9 @@ namespace AgentHub.Server.Hook
                     {
                         ["type"] = "command",
                         ["command"] = ResolveNode(),
-                        // 두 번째 인자로 대기창(초)을 훅에 전달(PermissionRequest와 동일).
-                        ["args"] = new JArray { ScriptPath, RemoteAnswerConfig.WindowSeconds.ToString() },
-                        ["timeout"] = RemoteAnswerConfig.WindowSeconds
+                        ["args"] = new JArray { ScriptPath },
+                        ["async"] = true,
+                        ["timeout"] = 5
                     }}
                 };
                 var merged = HookConfigMerger.AddHook(existing, "Notification", notifyEntry, Marker);
