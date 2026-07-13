@@ -37,7 +37,35 @@ namespace AgentHub.Common.Util
             return xmlDoc;
         }
 
-        private static string ApplicationSettingsFile => Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location) ?? throw new InvalidOperationException(), "app.config");
+        // 설정은 LocalAppData\AgentHub\app.config 에 보관한다. (기존엔 설치 폴더에 저장돼
+        // 재설치·업데이트 시 통째로 교체되며 사라졌고, 그 결과 포트·인증서 비밀번호 등이 초기화됐다.)
+        private static string ApplicationSettingsFile => Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AgentHub", "app.config");
+
+        // 설치 폴더에 있던 구버전 설정 파일(최초 1회 이관 원본).
+        private static string LegacySettingsFile
+        {
+            get
+            {
+                var dir = Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location);
+                return string.IsNullOrEmpty(dir) ? null : Path.Combine(dir, "app.config");
+            }
+        }
+
+        // 설치 폴더의 옛 설정을 LocalAppData로 1회 이관(포트 등 기존 설정 유지). 대상이 이미 있으면 건너뜀.
+        private static void MigrateLegacySettings()
+        {
+            try
+            {
+                var target = ApplicationSettingsFile;
+                var dir = Path.GetDirectoryName(target);
+                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                if (File.Exists(target)) return; // 이미 이관됨/신규 저장됨
+                var legacy = LegacySettingsFile;
+                if (legacy != null && File.Exists(legacy)) File.Copy(legacy, target);
+            }
+            catch { /* 이관 실패 시 기본값으로 시작 */ }
+        }
 
         public override string ApplicationName { get => Assembly.GetExecutingAssembly().GetName().Name; set { } }
 
@@ -55,6 +83,7 @@ namespace AgentHub.Common.Util
         /// <param name="settingsList">An array of settings.</param>
         public static void ApplyProvider(params ApplicationSettingsBase[] settingsList)
         {
+            MigrateLegacySettings(); // 설치 폴더 → LocalAppData 1회 이관(포트 등 유지)
             foreach (var settings in settingsList)
             {
                 var provider = new AppSettingsProvider();
@@ -106,13 +135,15 @@ namespace AgentHub.Common.Util
             }
             try
             {
+                var dir = Path.GetDirectoryName(ApplicationSettingsFile);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
                 // Make sure that special chars such as '\r\n' are preserved by replacing them with char entities.
                 using var writer = XmlWriter.Create(ApplicationSettingsFile, new XmlWriterSettings { NewLineHandling = NewLineHandling.Entitize, Indent = true });
                 xmlDoc.Save(writer);
             }
             catch (Exception ex)
             {
-                
+
             }
         }
 

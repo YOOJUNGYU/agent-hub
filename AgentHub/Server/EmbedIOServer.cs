@@ -151,16 +151,42 @@ namespace AgentHub.Server
             }
         }
 
-        /// <summary>인증서 pfx 보호용 비밀번호. 최초 1회 생성해 사용자 설정에 저장·재사용(하드코딩 없음).</summary>
+        /// <summary>
+        /// 인증서 pfx 보호용 비밀번호. LocalAppData\AgentHub\Certificate\cert.pw 에 영속한다.
+        /// .NET 사용자 설정(user.config)은 설치 경로·버전별로 폴더가 갈려 재설치·업데이트 시 값이 사라지고,
+        /// 그러면 남아있는 pfx를 복호화하지 못해 인증서가 재발급된다(폰의 신뢰가 깨짐). 파일로 영속하면
+        /// 경로/버전이 바뀌어도 같은 pfx를 계속 복호화·재사용해 인증서와 기기 승인이 그대로 유지된다.
+        /// 최초 실행 시 구버전의 사용자 설정 값이 있으면 마이그레이션해 기존 인증서를 보존한다.
+        /// </summary>
         private static string GetCertPassword()
         {
+            var pwFile = Path.Combine(SelfSigned.CertFilePath, "cert.pw");
+            try
+            {
+                if (File.Exists(pwFile))
+                {
+                    var saved = File.ReadAllText(pwFile).Trim();
+                    if (!string.IsNullOrEmpty(saved)) return saved;
+                }
+            }
+            catch (Exception ex) { LogService.Instance.Error(ex); }
+
+            // 영속 파일 없음 → 구버전 사용자 설정 값 마이그레이션, 없으면 신규 생성.
             var pw = Properties.Settings.Default.ServerCertPassword;
             if (string.IsNullOrEmpty(pw))
             {
                 pw = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N");
-                Properties.Settings.Default.ServerCertPassword = pw;
-                Properties.Settings.Default.Save();
+                try { Properties.Settings.Default.ServerCertPassword = pw; Properties.Settings.Default.Save(); }
+                catch (Exception ex) { LogService.Instance.Error(ex); }
             }
+            try
+            {
+                if (!Directory.Exists(SelfSigned.CertFilePath)) Directory.CreateDirectory(SelfSigned.CertFilePath);
+                if (File.Exists(pwFile)) File.SetAttributes(pwFile, FileAttributes.Normal); // Hidden이면 덮어쓰기 거부되므로 해제
+                File.WriteAllText(pwFile, pw);
+                File.SetAttributes(pwFile, File.GetAttributes(pwFile) | FileAttributes.Hidden);
+            }
+            catch (Exception ex) { LogService.Instance.Error(ex); }
             return pw;
         }
 
