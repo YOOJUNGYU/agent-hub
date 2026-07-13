@@ -25,74 +25,14 @@ function post(port, apiPath, payload, timeoutMs, onDone) {
   req.write(body); req.end();
 }
 
-// PermissionRequest(AskUserQuestion) 전용: deadline까지 서버 접속을 폴링하며 답변을 대기한다.
-// 서버 미기동/연결거부/연결끊김(서버 재시작)은 deadline 전이면 재시도한다(앱을 창 안에 켜면 붙는다).
-function awaitElicit(p) {
-  const windowSec = Number(process.argv[2]) || 600;
-  const budgetMs = (windowSec - 5) * 1000;     // Claude 훅 timeout보다 짧게(먼저 스스로 종료)
-  const deadline = Date.now() + budgetMs;
-  const safety = setTimeout(() => process.exit(0), budgetMs); // 절대 안전망
-
-  function finish(data) {
-    clearTimeout(safety);
-    try {
-      const r = JSON.parse((data || '{}').replace(/^\uFEFF/, '')); // 선행 BOM 제거
-      if (r.updatedInput) {
-        process.stdout.write(JSON.stringify({
-          hookSpecificOutput: {
-            hookEventName: 'PermissionRequest',
-            decision: { behavior: 'allow', updatedInput: r.updatedInput }
-          }
-        }));
-      }
-      // updatedInput 없음(무응답/타임아웃) → 출력 없음 = 기존 흐름(PC 프롬프트)으로 폴백.
-    } catch (e) {}
-    process.exit(0);
-  }
-
-  function attempt() {
-    const now = Date.now();
-    if (now >= deadline) { finish(null); return; }
-    const port = readPort();                    // 매 시도 재읽기(앱이 켜지며 기록/변경될 수 있음)
-    if (!port) { setTimeout(attempt, 700); return; }
-    const remaining = deadline - now;
-    const body = JSON.stringify({
-      session_id: p.session_id, cwd: p.cwd, tool_input: p.tool_input, waitMs: remaining
-    });
-    let settled = false;
-    const req = https.request({
-      host: '127.0.0.1', port: Number(port), path: '/api/hook/elicit', method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
-      rejectUnauthorized: false, timeout: remaining + 2000
-    }, res => {
-      let data = '';
-      res.on('data', d => (data += d));
-      res.on('end', () => { if (!settled) { settled = true; finish(data); } });
-    });
-    req.on('error', e => {
-      if (settled) return; settled = true;
-      // 접속 불가/연결 끊김(서버 미기동·재시작)은 deadline 전이면 재시도.
-      const retryable = e && (e.code === 'ECONNREFUSED' || e.code === 'ECONNRESET'
-        || e.code === 'ENOENT' || e.code === 'ECONNABORTED');
-      if (retryable && Date.now() < deadline) setTimeout(attempt, 700);
-      else finish(null);
-    });
-    req.on('timeout', () => { try { req.destroy(); } catch (e) {} if (!settled) { settled = true; finish(null); } });
-    req.write(body); req.end();
-  }
-  attempt();
-}
-
 let raw = '';
 process.stdin.on('data', d => (raw += d));
 process.stdin.on('error', () => process.exit(0));
 process.stdin.on('end', () => {
   let p;
   try { p = JSON.parse(raw || '{}'); } catch (e) { process.exit(0); }
-  // AskUserQuestion 원격 답변은 앱이 꺼져 있어도 창 안에 앱을 켜면 받도록 폴링한다(포트 없어도 진행).
-  const isElicit = p.hook_event_name === 'PermissionRequest' && p.tool_name === 'AskUserQuestion';
   const port = readPort();
-  if (!port && !isElicit) process.exit(0);
+  if (!port) process.exit(0);
 
   // 세션↔PID 지도용 보고(모바일이 세션을 가져올 때 원본 프로세스 종료에 사용).
   // process.ppid = 이 훅을 띄운 claude 프로세스 PID.
@@ -101,12 +41,35 @@ process.stdin.on('end', () => {
     setTimeout(() => process.exit(0), 3000);
     return;
   }
-  if (port) post(port, '/api/hook/session-pid', { session_id: p.session_id, pid: process.ppid }, 2000, () => {}); // fire-and-forget(포트 없으면 생략)
+  post(port, '/api/hook/session-pid', { session_id: p.session_id, pid: process.ppid }, 2000, () => {}); // fire-and-forget
 
   if (p.hook_event_name === 'PermissionRequest') {
-    // AskUserQuestion만 폰으로 넘겨 원격 답변받는다. 그 외 권한요청은 출력 없이 통과.
-    if (!isElicit) { process.exit(0); return; }
-    awaitElicit(p);
+    // AskUserQuestion(질문+답변 목록)만 폰으로 넘겨 원격 답변받는다. 그 외 권한요청은
+    // 출력 없이 통과시켜 기존 PreToolUse 권한 흐름을 그대로 둔다.
+    if (p.tool_name !== 'AskUserQuestion') { process.exit(0); return; }
+    // agent-hub.exe(서버)는 상시 실행 전제. 폰의 PWA가 닫혀 있어도 서버가 질문을 붙들고 대기하므로,
+    // 창(argv[2] 초, 기본 600) 동안 HTTP 요청을 열어 둔다 → push 받고 PWA를 열어 답할 시간 확보.
+    const windowSec = Number(process.argv[2]) || 600;
+    const budgetMs = Math.max((windowSec - 5) * 1000, 1000);
+    post(port, '/api/hook/elicit', {
+      session_id: p.session_id, cwd: p.cwd, tool_input: p.tool_input, waitMs: budgetMs
+    }, budgetMs + 2000, data => {
+      try {
+        const r = JSON.parse((data || '{}').replace(/^﻿/, '')); // 선행 BOM 제거(서버 응답에 BOM이 붙어도 안전)
+        if (r.updatedInput) {
+          // 폰에서 고른 답을 마치 사용자가 답한 것처럼 주입.
+          process.stdout.write(JSON.stringify({
+            hookSpecificOutput: {
+              hookEventName: 'PermissionRequest',
+              decision: { behavior: 'allow', updatedInput: r.updatedInput }
+            }
+          }));
+        }
+        // updatedInput 없음(무응답/타임아웃/미승인) → 출력 없음 = 기존 흐름(PC 프롬프트)으로 폴백.
+      } catch (e) {}
+      process.exit(0);
+    });
+    setTimeout(() => process.exit(0), budgetMs + 4000); // 안전망(Claude 훅 timeout 이내)
     return;
   }
 
