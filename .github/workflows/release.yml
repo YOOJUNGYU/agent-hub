@@ -63,5 +63,13 @@ jobs:
           wait-for-completion: true
           output-artifact-directory: Releases   # 서명된 Setup.exe로 덮어써 업로드에 반영
 
+      # 자동 업데이트에 필요한 자산만 남긴다: Setup.exe + *-full.nupkg + releases.win.json/RELEASES.
+      # 포터블(zip)은 자동 업데이트에 불필요하므로 업로드 전에 제거해 릴리스 자산을 최소화.
+      - name: Drop portable (keep only auto-update assets)
+        shell: pwsh
+        run: |
+          Remove-Item -Path "Releases\*Portable*.zip" -Force -ErrorAction SilentlyContinue
+          "남은 릴리스 자산:"; Get-ChildItem Releases -File | Select-Object -ExpandProperty Name
+
       - name: Upload to GitHub Release
         run: vpk upload github --repoUrl https://github.com/YOOJUNGYU/agent-hub --token ${{ secrets.GITHUB_TOKEN }} --publish --releaseName "Agent Hub ${{ steps.ver.outputs.version }}" --tag ${{ github.ref_name }}
