@@ -6,12 +6,12 @@ using AgentHub.Common.Util;
 
 namespace AgentHub.Server.Push
 {
-    /// <summary>Web Push 구독(브라우저 pushManager.subscribe 결과). payload-less라 endpoint만 있으면 전송 가능.</summary>
+    /// <summary>Web Push 구독(브라우저 pushManager.subscribe 결과). endpoint + p256dh/auth로 암호화 payload 전송.</summary>
     public class PushSubscription
     {
         public string Endpoint { get; set; }
-        public string P256dh { get; set; } // 미사용(payload 암호화 안 함) — 향후 호환 위해 보관
-        public string Auth { get; set; }
+        public string P256dh { get; set; } // 클라 공개키 — payload 암호화(RFC 8291)용
+        public string Auth { get; set; }   // 인증 시크릿 — payload 암호화용
     }
 
     /// <summary>기기 토큰해시 → Web Push 구독. 디스크 영속(재시작 후에도 유지).</summary>

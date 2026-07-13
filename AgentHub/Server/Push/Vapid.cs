@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Security.Cryptography;
-using System.Text;
 using AgentHub.Common.Util;
 using Newtonsoft.Json;
 
@@ -84,27 +83,8 @@ namespace AgentHub.Server.Push
         /// <summary>클라이언트 subscribe에 쓸 VAPID 공개키(base64url). 실패 시 null.</summary>
         public static string PublicKeyBase64Url { get { EnsureLoaded(); return _publicB64; } }
 
-        /// <summary>주어진 push endpoint에 대한 Authorization 헤더 값: "vapid t=&lt;JWT&gt;, k=&lt;pub&gt;".</summary>
-        public static string AuthorizationHeader(string endpoint)
-        {
-            EnsureLoaded();
-            if (_publicB64 == null) return null;
-            var uri = new Uri(endpoint);
-            var aud = uri.Scheme + "://" + uri.Host + (uri.IsDefaultPort ? "" : ":" + uri.Port);
-            return "vapid t=" + CreateJwt(aud) + ", k=" + _publicB64;
-        }
-
-        private static string CreateJwt(string aud)
-        {
-            var header = "{\"typ\":\"JWT\",\"alg\":\"ES256\"}";
-            var exp = DateTimeOffset.UtcNow.AddHours(12).ToUnixTimeSeconds();
-            var payload = "{\"aud\":\"" + aud + "\",\"exp\":" + exp + ",\"sub\":\"mailto:noreply@agenthub.local\"}";
-            var signingInput = ToB64Url(Encoding.UTF8.GetBytes(header)) + "." + ToB64Url(Encoding.UTF8.GetBytes(payload));
-            byte[] sig;
-            using (var ec = ECDsa.Create(_params))
-                sig = ec.SignData(Encoding.ASCII.GetBytes(signingInput), HashAlgorithmName.SHA256); // ES256: r||s (64B)
-            return signingInput + "." + ToB64Url(sig);
-        }
+        /// <summary>VAPID 개인키 D(base64url, 32B). 암호화 payload 전송(WebPush)의 VAPID 서명용. 실패 시 null.</summary>
+        public static string PrivateKeyBase64Url { get { EnsureLoaded(); return _publicB64 == null ? null : ToB64Url(_params.D); } }
 
         private static string ToB64Url(byte[] b)
             => Convert.ToBase64String(b).TrimEnd('=').Replace('+', '-').Replace('/', '_');

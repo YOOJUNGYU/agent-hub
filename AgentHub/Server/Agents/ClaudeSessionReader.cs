@@ -101,6 +101,25 @@ namespace AgentHub.Server.Agents
             catch (Exception ex) { LogService.Instance.Error(ex); return null; }
         }
 
+        /// <summary>세션 제목을 트랜스크립트에서 조회(알림 표시용). 실제 제목이 없으면(sessionId 폴백) null.</summary>
+        public static string TitleOf(string sessionId)
+        {
+            try
+            {
+                if (!_paths.TryGetValue(sessionId, out var path) || !File.Exists(path))
+                {
+                    path = FindSessionFile(sessionId);
+                    if (path == null) return null;
+                    _paths[sessionId] = path;
+                }
+                var lines = ReadAllLinesShared(path);
+                var s = TranscriptParser.Summarize(sessionId, lines, DateTime.UtcNow);
+                // Summarize는 제목이 없으면 sessionId로 폴백 → 그 경우 '제목 없음'으로 취급.
+                return s.Title == sessionId ? null : s.Title;
+            }
+            catch (Exception ex) { LogService.Instance.Error(ex); return null; }
+        }
+
         private static string FindSessionFile(string sessionId)
         {
             var root = ProjectsRoot;

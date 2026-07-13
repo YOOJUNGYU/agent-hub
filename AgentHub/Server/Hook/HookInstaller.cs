@@ -83,10 +83,24 @@ namespace AgentHub.Server.Hook
                         ["timeout"] = 5
                     }}
                 };
+                // Stop: 세션이 응답(턴)을 끝낼 때마다 '작업 완료' 알림. fire-and-forget.
+                var stopEntry = new JObject
+                {
+                    ["matcher"] = "",
+                    ["hooks"] = new JArray { new JObject
+                    {
+                        ["type"] = "command",
+                        ["command"] = ResolveNode(),
+                        ["args"] = new JArray { ScriptPath },
+                        ["async"] = true,
+                        ["timeout"] = 5
+                    }}
+                };
                 var merged = HookConfigMerger.AddHook(existing, "Notification", notifyEntry, Marker);
                 merged = HookConfigMerger.AddHook(merged, "PreToolUse", permEntry, Marker);
                 merged = HookConfigMerger.AddHook(merged, "PermissionRequest", permReqEntry, Marker);
                 merged = HookConfigMerger.AddHook(merged, "SessionStart", startEntry, Marker);
+                merged = HookConfigMerger.AddHook(merged, "Stop", stopEntry, Marker);
                 WriteSettingsWithBackup(merged);
                 return true;
             }
@@ -104,6 +118,7 @@ namespace AgentHub.Server.Hook
                 removed = HookConfigMerger.RemoveHook(removed, "PreToolUse", Marker);
                 removed = HookConfigMerger.RemoveHook(removed, "PermissionRequest", Marker);
                 removed = HookConfigMerger.RemoveHook(removed, "SessionStart", Marker);
+                removed = HookConfigMerger.RemoveHook(removed, "Stop", Marker);
                 WriteSettingsWithBackup(removed);
                 return true;
             }

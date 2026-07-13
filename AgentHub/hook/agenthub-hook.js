@@ -95,6 +95,13 @@ process.stdin.on('end', () => {
     return;
   }
 
+  if (p.hook_event_name === 'Stop') {
+    // 세션이 응답(턴)을 끝냄 → '작업 완료' 알림(fire-and-forget).
+    post(port, '/api/hook/stop', { session_id: p.session_id, cwd: p.cwd }, 3000, () => process.exit(0));
+    setTimeout(() => process.exit(0), 4000); // 안전망
+    return;
+  }
+
   // Notification: 알림만(fire-and-forget).
   post(port, '/api/hook/notification', {
     session_id: p.session_id, cwd: p.cwd, message: p.message, notification_type: p.notification_type

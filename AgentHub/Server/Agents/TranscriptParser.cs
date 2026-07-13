@@ -33,6 +33,12 @@ namespace AgentHub.Server.Agents
 
         private static string Str(JToken t) => t?.Type == JTokenType.String ? t.Value<string>() : null;
 
+        private static long TokenVal(JObject u, string key)
+        {
+            var t = u[key];
+            return t != null && (t.Type == JTokenType.Integer || t.Type == JTokenType.Float) ? t.Value<long>() : 0;
+        }
+
         public static PendingAsk ExtractPendingAsk(IReadOnlyList<string> lines)
         {
             JObject lastAsk = null; string askId = null;
@@ -63,6 +69,10 @@ namespace AgentHub.Server.Agents
         {
             var s = new SessionSummary { Id = sessionId, Status = "ended" };
             string lastTs = null;
+            string firstTs = null;
+            string lastUserPromptTs = null; // 마지막 사용자 프롬프트 ts — 현재 턴 시작(도구결과 user 메시지는 제외)
+            string lastMsgType = null; // 마지막 메시지(assistant/user) 종류 — 작업중 판정용
+            long totalTokens = 0;      // 세션 누적 토큰(input+cache_creation+output)
             int msgCount = 0;
             JObject lastAssistant = null;
 
@@ -88,11 +98,19 @@ namespace AgentHub.Server.Agents
                 if (!string.IsNullOrWhiteSpace(branch)) s.GitBranch = branch;
 
                 var ts = Str(o["timestamp"]);
-                if (!string.IsNullOrWhiteSpace(ts)) lastTs = ts;
+                if (!string.IsNullOrWhiteSpace(ts)) { lastTs = ts; if (firstTs == null) firstTs = ts; }
 
                 var type = Str(o["type"]);
-                if (type == "assistant" || type == "user") msgCount++;
-                if (type == "assistant") lastAssistant = o;
+                if (type == "assistant" || type == "user") { msgCount++; lastMsgType = type; }
+                // 사용자 프롬프트(텍스트/문자열 content)만 턴 시작으로 인정 — tool_result(user 타입)는 제외
+                if (type == "user" && !string.IsNullOrWhiteSpace(ts) && FirstUserText(o) != null) lastUserPromptTs = ts;
+                if (type == "assistant")
+                {
+                    lastAssistant = o;
+                    var u = o["message"]?["usage"] as JObject;
+                    if (u != null)
+                        totalTokens += TokenVal(u, "input_tokens") + TokenVal(u, "cache_creation_input_tokens") + TokenVal(u, "output_tokens");
+                }
 
                 // 첫 사용자 텍스트 (한 번만)
                 if (firstUserTextCandidate == null && type == "user")
@@ -107,6 +125,9 @@ namespace AgentHub.Server.Agents
 
             s.MessageCount = msgCount;
             s.LastActivityAt = lastTs;
+            s.FirstActivityAt = firstTs;
+            s.TurnStartAt = lastUserPromptTs ?? firstTs;
+            s.TotalTokens = totalTokens;
 
             // 현재 작업 + 도구명
             var (task, tool, unfinishedTool) = CurrentTask(lastAssistant, lines);
@@ -118,6 +139,8 @@ namespace AgentHub.Server.Agents
             if (DateTime.TryParse(lastTs, null, System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal, out var last))
                 age = nowUtc - last;
             s.Status = ComputeStatus(age, unfinishedTool);
+            // 작업 중(모바일 애니메이션): 도구 미완료(실행 중) 또는 방금 사용자 프롬프트(응답 생성 임박). 종료 세션은 제외.
+            s.Working = age <= EndedWindow && (unfinishedTool || (lastMsgType == "user" && age <= ActiveWindow));
 
             if (string.IsNullOrEmpty(s.Project)) s.Project = "(unknown)";
             if (string.IsNullOrEmpty(s.Title)) s.Title = sessionId;

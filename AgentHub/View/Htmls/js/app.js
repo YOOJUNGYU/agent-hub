@@ -123,6 +123,7 @@ function connect() {
       }
       else if (m.type === 'activity') { renderActivity(m.sessionId, m.events); }
       else if (m.type === 'ask') { handleAsk(m); }
+      else if (m.type === 'done') { handleDone(m); }
       else if (m.type === 'elicit') { handleElicit(m); }
       else if (m.type === 'permission') { handlePermission(m); }
       else if (m.type === 'answerBlocked') { handleAnswerBlocked(m); }
@@ -153,6 +154,7 @@ function renderSessions(sessions) {
   list.innerHTML = lastSessions.map(cardHtml).join('');
   list.querySelectorAll('.session-card').forEach(el =>
     el.addEventListener('click', () => openDetail(el.getAttribute('data-id'))));
+  updateDetailRun(); // 스냅샷 갱신 시 상세 헤더의 실행지표(토큰·작업중)도 최신화
 }
 
 // 대기 표시만 바뀐 경우(권한/알림 수신) 목록 화면이면 다시 그린다.
@@ -169,6 +171,15 @@ function setWaiting(id, on) {
 
 function isWaiting(s) { return !!(s && (s.pendingAsk || awaitingSet.has(s.id))); }
 
+// 알림 본문 접두사: 어느 세션인지 (세션 제목)으로 표시. 앱 이름([agent-hub])은 생략(어차피 이 앱 알림).
+function titlePrefix(id) {
+  const s = sessionsById[id];
+  let tt = s && s.title ? String(s.title) : '';
+  if (!tt) return '';
+  if (tt.length > 40) tt = tt.slice(0, 40) + '…';
+  return '(' + tt + ') ';
+}
+
 function cardHtml(s) {
   const waiting = isWaiting(s);
   const badge = '<span class="badge-status ' + esc(s.status) + '">' + esc(s.status) + '</span>';
@@ -177,8 +188,54 @@ function cardHtml(s) {
     + '<div class="card-top">' + badge + '<span class="card-title">' + esc(s.title) + '</span>' + waitPill + '</div>'
     + '<div class="card-meta">' + esc(s.project || '') + (s.gitBranch ? ' · ' + esc(s.gitBranch) : '') + '</div>'
     + '<div class="card-task">' + esc(s.currentTask || '') + '</div>'
+    + runHtml(s)
     + '<div class="card-time">' + rel(s.lastActivityAt) + '</div>'
     + '</div>';
+}
+
+// ---- 세션 실행 지표: 작업 중 애니메이션 + 회전 상태어 + 세션 경과시간·누적 토큰 ----
+const RUN_VERBS = ['Channeling','Whirlpooling','Percolating','Simmering','Conjuring','Noodling','Marinating',
+  'Ruminating','Tinkering','Brewing','Cogitating','Composing','Wrangling','Manifesting','Synthesizing',
+  'Pondering','Spelunking','Crunching','Finagling','Vibing'];
+function pickVerb() { return RUN_VERBS[Math.floor(Math.random() * RUN_VERBS.length)]; }
+function fmtDur(ms) {
+  if (!(ms > 0)) ms = 0;
+  const s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
+  if (h) return h + 'h ' + m + 'm';
+  if (m) return m + 'm ' + ss + 's';
+  return ss + 's';
+}
+function fmtTok(n) {
+  n = n || 0;
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'k';
+  return String(n);
+}
+// 세션의 실행 지표 HTML. 현재 턴·누적 경과시간과 토큰은 항상, 회전 상태어+펄스는 작업 중일 때만.
+function runHtml(s) {
+  if (!s) return '';
+  const first = s.firstActivityAt ? Date.parse(s.firstActivityAt) : 0;
+  if (!first) return '';
+  const last = s.lastActivityAt ? Date.parse(s.lastActivityAt) : first;
+  const turn = s.turnStartAt ? Date.parse(s.turnStartAt) : first;
+  const working = !!s.working;
+  const end = working ? Date.now() : last;
+  // 라벨 있는 경과시간 span. data-start를 두면 타이머가 작업 중일 때 라이브로 갱신.
+  const tSpan = (start, label) => '<span class="run-t" data-start="' + start + '" data-label="' + esc(label) + '">'
+    + esc(label) + ' ' + fmtDur(end - start) + '</span>';
+  const tok = s.totalTokens ? '<span class="run-tok"> · ' + fmtTok(s.totalTokens) + ' tok</span>' : '';
+  const head = working ? '<span class="run-dot"></span><span class="run-verb">' + esc(pickVerb()) + '…</span> ' : '';
+  return '<div class="run' + (working ? ' working' : '') + '">'
+    + head + tSpan(turn, t('run.turn')) + '<span class="run-sep"> · </span>' + tSpan(first, t('run.total')) + tok
+    + '</div>';
+}
+// 상세 헤더의 실행 지표 갱신(현재 세션 기준).
+function updateDetailRun() {
+  const el = document.getElementById('detailRun');
+  if (!el) return;
+  const html = runHtml(sessionsById[currentSessionId]);
+  el.innerHTML = html;
+  el.hidden = !html;
 }
 
 function openDetail(id) {
@@ -189,6 +246,7 @@ function openDetail(id) {
   $('#activityFeed').innerHTML =
     '<div class="loading"><span class="spinner"></span></div>';
   showScreen('detail');
+  updateDetailRun(); // 상세 헤더에 실행지표 표시
   // 히스토리 항목 추가 → 기기 뒤로가기가 앱 종료 대신 popstate로 목록 복귀
   history.pushState({ screen: 'detail', id }, '');
   send({ type: 'watch', sessionId: id });
@@ -296,7 +354,7 @@ function ensurePushSubscribed() {
 function handleAsk(m) {
   if (('Notification' in window) && Notification.permission === 'granted') {
     var title = t('ask.title');
-    var opts = { body: (m.project ? '[' + m.project + '] ' : '') + (m.message || ''), tag: m.sessionId || 'ask' };
+    var opts = { body: titlePrefix(m.sessionId) + (m.message || ''), tag: m.sessionId || 'ask' };
     if (navigator.serviceWorker && navigator.serviceWorker.ready) {
       navigator.serviceWorker.ready
         .then(function (reg) { return reg.showNotification(title, opts); })
@@ -306,6 +364,21 @@ function handleAsk(m) {
     }
   }
   setWaiting(m.sessionId, true); // 카드 색상으로 '응답 대기중' 표시
+}
+
+// ---- 작업 완료 알림(매 턴 종료) → 시스템 알림만. 대기 카드로 표시하지 않음(정보성). ----
+function handleDone(m) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  var title = t('done.title');
+  // 고정 문구라 서버 메시지 대신 클라이언트 로컬라이즈 텍스트 사용(인앱). 세션당 tag로 알림 누적 방지.
+  var opts = { body: titlePrefix(m.sessionId) + t('done.body'), tag: 'done-' + (m.sessionId || '') };
+  if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+    navigator.serviceWorker.ready
+      .then(function (reg) { return reg.showNotification(title, opts); })
+      .catch(function () { try { new Notification(title, opts); } catch (e) {} });
+  } else {
+    try { new Notification(title, opts); } catch (e) {}
+  }
 }
 
 // ---- elicit 오버레이(AskUserQuestion 질문+답변 선택) ----
@@ -320,7 +393,7 @@ function handleElicit(m) {
   elicit = { id: m.id, sessionId: m.sessionId, questions: qs, step: 0, answers: {} };
   // resent=서버가 세션 재오픈(watch) 시 다시 내려준 것 → 시스템 알림은 생략(중복 방지), 화면만 다시 띄운다.
   if (!m.resent && ('Notification' in window) && Notification.permission === 'granted') {
-    const opts = { body: (m.project ? '[' + m.project + '] ' : '') + qs[0].question, tag: 'elicit-' + m.id, requireInteraction: true };
+    const opts = { body: titlePrefix(m.sessionId) + qs[0].question, tag: 'elicit-' + m.id, requireInteraction: true };
     if (navigator.serviceWorker && navigator.serviceWorker.ready)
       navigator.serviceWorker.ready.then(r => r.showNotification(t('elicit.title'), opts)).catch(() => { try { new Notification(t('elicit.title'), opts); } catch (e) {} });
     else try { new Notification(t('elicit.title'), opts); } catch (e) {}
@@ -476,7 +549,7 @@ function handlePermission(m) {
   setWaiting(m.sessionId, true);
   if (('Notification' in window) && Notification.permission === 'granted') {
     var title = t('perm.title');
-    var opts = { body: (m.project ? '[' + m.project + '] ' : '') + (m.detail || m.tool || ''), tag: 'perm-' + m.id, requireInteraction: true };
+    var opts = { body: titlePrefix(m.sessionId) + (m.detail || m.tool || ''), tag: 'perm-' + m.id, requireInteraction: true };
     if (navigator.serviceWorker && navigator.serviceWorker.ready)
       navigator.serviceWorker.ready.then(function (r) { return r.showNotification(title, opts); }).catch(function () { try { new Notification(title, opts); } catch (e) {} });
     else try { new Notification(title, opts); } catch (e) {}
@@ -525,6 +598,19 @@ try {
     }
   }).catch(function () {});
 } catch (e) {}
+
+// 작업 중 세션의 실행지표 라이브 갱신: 턴·누적 경과시간 1초 틱 + 상태어 회전(전체 재렌더 없이 요소만 갱신).
+setInterval(function () {
+  var now = Date.now();
+  document.querySelectorAll('.run.working .run-t').forEach(function (el) {
+    var start = Number(el.getAttribute('data-start')) || 0;
+    var label = el.getAttribute('data-label') || '';
+    if (start) el.textContent = label + ' ' + fmtDur(now - start);
+  });
+}, 1000);
+setInterval(function () {
+  document.querySelectorAll('.run.working .run-verb').forEach(function (v) { v.textContent = pickVerb() + '…'; });
+}, 2500);
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});

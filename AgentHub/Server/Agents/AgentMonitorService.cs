@@ -58,6 +58,22 @@ namespace AgentHub.Server.Agents
             finally { _sendGate.Release(); }
         }
 
+        /// <summary>세션이 응답(턴)을 끝냄 → '작업 완료' 알림(인앱, 대기 카드 아님). 연결된 기기만 수신. 문구는 클라가 로컬라이즈.</summary>
+        public static async void BroadcastDone(string project, string sessionId)
+        {
+            var msg = Json.Serialize(new
+            {
+                type = "done",
+                project,
+                sessionId,
+                at = DateTime.UtcNow.ToString("o")
+            });
+            await _sendGate.WaitAsync();
+            try { if (_module != null) await _module.BroadcastMessageAsync(msg); }
+            catch (Exception ex) { LogService.Instance.Error(ex); }
+            finally { _sendGate.Release(); }
+        }
+
         /// <summary>AskUserQuestion(질문+답변 목록)을 승인 기기에 push(폰이 답을 선택).</summary>
         public static async void BroadcastElicit(string id, string project, object questions, string sessionId)
         {

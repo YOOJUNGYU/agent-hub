@@ -198,19 +198,40 @@ namespace AgentHub.Server.Controller
                 var message = (string)o["message"] ?? "";
                 // 사용자가 직접 응답해야 하는 알림만 '대기중'으로 취급한다(allowlist).
                 // 서브에이전트 대기·진행상황·완료(agent_completed)·인증(auth_success) 등 사용자 개입이 필요 없는
-                // 알림은 제외 — 알릴 필요가 없다. (AskUserQuestion 선택/권한 허용·거부는 각각 elicit·permission 훅이 담당.)
+                // 알림은 제외 — 알릴 필요가 없다.
+                // permission_prompt·elicitation_dialog는 제외한다: AskUserQuestion(질문)은 /hook/elicit이 '질문 상세'와,
+                // 도구 권한은 /hook/permission이 '도구 상세'와 함께 이미 알린다. 이를 또 통과시키면 질문/권한마다
+                // "Claude needs your permission" 중복 알림이 생긴다. 여기서는 그 흐름 밖의 '입력 대기(idle)'류만 통과.
                 var actionable =
-                    ntype == "permission_prompt" || ntype == "idle_prompt"
-                    || ntype == "agent_needs_input" || ntype == "elicitation_dialog"
-                    // notification_type 미제공(스톡 Claude Code)일 땐 '입력 대기' 메시지만 통과(서브에이전트/진행 메시지 제외).
+                    ntype == "idle_prompt" || ntype == "agent_needs_input"
+                    // notification_type 미제공(스톡 Claude Code)일 땐 '입력 대기' 메시지만 통과(서브에이전트/진행/권한 메시지 제외).
                     || (ntype.Length == 0 && message.IndexOf("input", StringComparison.OrdinalIgnoreCase) >= 0);
                 if (actionable)
                 {
                     var project = LastSegment((string)o["cwd"] ?? "");
                     var msg = string.IsNullOrEmpty(message) ? "입력이 필요합니다" : message;
                     AgentMonitorService.BroadcastAsk(project, msg, (string)o["session_id"]);
-                    AgentHub.Server.Push.PushService.NotifyDisconnected(project, msg, (string)o["session_id"]);
+                    AgentHub.Server.Push.PushService.NotifyDisconnected(msg, (string)o["session_id"]);
                 }
+            }
+            catch (Exception ex) { LogService.Instance.Error(ex); }
+            await SendJsonAsync(Json.Serialize(new { ok = true }));
+        }
+
+        // Stop 훅(fire-and-forget): 세션이 응답(턴)을 끝낼 때마다 '작업 완료' 알림.
+        // 연결된 기기 → 인앱 시스템 알림(대기 카드 아님). 미연결(앱 종료/원거리) 기기 → 푸시.
+        [Route(HttpVerbs.Post, "/hook/stop")]
+        public async Task HookStop()
+        {
+            if (!IsLoopback()) { await Forbidden(); return; }
+            var raw = await HttpContext.GetRequestBodyAsStringAsync();
+            try
+            {
+                var o = JObject.Parse(raw);
+                var project = LastSegment((string)o["cwd"] ?? "");
+                var sessionId = (string)o["session_id"];
+                AgentMonitorService.BroadcastDone(project, sessionId);
+                AgentHub.Server.Push.PushService.NotifyDisconnected("작업을 완료했습니다", sessionId);
             }
             catch (Exception ex) { LogService.Instance.Error(ex); }
             await SendJsonAsync(Json.Serialize(new { ok = true }));
@@ -261,7 +282,11 @@ namespace AgentHub.Server.Controller
                     var project = LastSegment((string)o["cwd"] ?? "");
                     var sessionId = (string)o["session_id"];
                     // 앱이 꺼져 있어도(미연결 승인 기기) 알림. 연결된 기기엔 아래 broadcast가 담당(중복 없음).
-                    AgentHub.Server.Push.PushService.NotifyDisconnected(project, "질문에 답해 주세요", sessionId);
+                    // 질문 상세를 푸시 본문에 실어 어느 질문인지 바로 보이게 한다(여러 개면 첫 질문 + 개수).
+                    var q0 = (questions[0] as JObject)?["question"]?.ToString();
+                    var qmsg = string.IsNullOrWhiteSpace(q0) ? "질문에 답해 주세요" : q0.Trim();
+                    if (questions.Count > 1) qmsg = "(질문 " + questions.Count + "개) " + qmsg;
+                    AgentHub.Server.Push.PushService.NotifyDisconnected(qmsg, sessionId);
                     if (AgentMonitorService.HasApprovedClient())
                     {
                         var id = Guid.NewGuid().ToString("N");

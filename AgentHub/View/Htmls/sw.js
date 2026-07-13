@@ -20,8 +20,8 @@ self.addEventListener('fetch', e => {
   e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
 });
 
-// Web Push: 앱이 꺼져 있어도 응답 대기 알림 표시. payload 없이 오므로 일반 문구 사용
-// (탭하면 앱이 열리고 어느 세션인지는 카드의 '응답 대기중'으로 확인). 같은 tag로 스팸 방지.
+// Web Push: 앱이 꺼져 있어도 응답 대기 알림 표시. 암호화 payload로 질문 상세(title/body)가 오면 그대로 표시,
+// 없으면 일반 문구로 폴백. 탭하면 앱이 열린다. 같은 tag로 스팸 방지.
 self.addEventListener('push', function (e) {
   var title = 'Agent Hub';
   var body = '응답 대기 중인 세션이 있습니다';
