@@ -287,18 +287,21 @@ namespace AgentHub.Server.Controller
                     var qmsg = string.IsNullOrWhiteSpace(q0) ? "질문에 답해 주세요" : q0.Trim();
                     if (questions.Count > 1) qmsg = "(질문 " + questions.Count + "개) " + qmsg;
                     AgentHub.Server.Push.PushService.NotifyDisconnected(qmsg, sessionId);
-                    if (AgentMonitorService.HasApprovedClient())
+                    // 클라이언트가 아직 안 붙었어도(앱을 방금 켠 경우) 항상 등록·대기한다.
+                    // 지금 연결된 승인 클라이언트엔 즉시 broadcast하고, 대기 중 새로 연결되는
+                    // 클라이언트에는 watch 시 재전송(AskRegistry.TryGetPendingForSession)으로 전달된다.
+                    var id = Guid.NewGuid().ToString("N");
+                    AgentMonitorService.BroadcastElicit(id, project, questions, sessionId);
+                    // 훅이 준 잔여시간(waitMs) 내에서 대기. 서버가 훅 HTTP 타임아웃보다 먼저 응답하도록 여유를 뺀다.
+                    var waitMs = (int?)o["waitMs"] ?? AgentHub.Server.Hook.RemoteAnswerConfig.ServerWindowMs;
+                    waitMs = Math.Min(waitMs, AgentHub.Server.Hook.RemoteAnswerConfig.ServerWindowMs);
+                    waitMs = Math.Max(waitMs - AgentHub.Server.Hook.RemoteAnswerConfig.ServerMarginMs, 1000);
+                    var answersJson = await AgentHub.Server.Hook.AskRegistry.AwaitAnswer(id, sessionId, questions.ToString(), waitMs);
+                    if (!string.IsNullOrEmpty(answersJson))
                     {
-                        var id = Guid.NewGuid().ToString("N");
-                        AgentMonitorService.BroadcastElicit(id, project, questions, sessionId);
-                        // 폰이 답변 화면을 닫아도 세션을 다시 열면(watch) 재전송할 수 있도록 sessionId·questions 보관.
-                        var answersJson = await AgentHub.Server.Hook.AskRegistry.AwaitAnswer(id, sessionId, questions.ToString(), 110000);
-                        if (!string.IsNullOrEmpty(answersJson))
-                        {
-                            var updated = (JObject)toolInput.DeepClone();
-                            updated["answers"] = JToken.Parse(answersJson);
-                            updatedInput = updated;
-                        }
+                        var updated = (JObject)toolInput.DeepClone();
+                        updated["answers"] = JToken.Parse(answersJson);
+                        updatedInput = updated;
                     }
                 }
             }
