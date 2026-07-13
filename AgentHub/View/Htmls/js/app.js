@@ -259,6 +259,7 @@ function openDetail(id) {
 function backToList() {
   send({ type: 'unwatch' });
   closeAskExpired(); // 목록으로 나가면 만료 안내도 닫는다
+  if (replyState) { send({ type: 'replyDismiss', id: replyState.id }); closeReplyOverlay(); }
   currentSessionId = null;
   showScreen('monitor');
   rerenderSessions(); // openDetail에서 해제한 대기표시를 목록에 반영(다음 스냅샷 전 최신화)
@@ -601,7 +602,8 @@ document.getElementById('replySend') && document.getElementById('replySend').add
   const text = ta ? ta.value.trim() : '';
   if (!text) return; // 빈 답장은 전송하지 않음
   send({ type: 'reply', id: replyState.id, text });
-  closeReplyOverlay();
+  // 오버레이만 감추고 replyState는 유지 — clawd 실행 등으로 answerBlocked가 오면 다시 열어 재시도(elicit와 동일).
+  document.getElementById('reply').hidden = true;
 });
 document.getElementById('replyDismiss') && document.getElementById('replyDismiss').addEventListener('click', () => {
   if (!replyState) return;
