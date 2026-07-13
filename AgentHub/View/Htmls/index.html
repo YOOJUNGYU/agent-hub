@@ -148,6 +148,20 @@
         </div>
       </div>
     </div>
+
+    <!-- 답장 오버레이: 보고 있는 세션이 턴을 끝내면 자유 텍스트로 대화를 잇거나 완료로 닫음 -->
+    <div id="reply" class="elicit-overlay" hidden>
+      <div class="elicit-card">
+        <div class="elicit-header" id="replyHeader" data-i18n="reply.title">Claude가 답장을 기다립니다</div>
+        <div class="elicit-question" id="replyMessage"></div>
+        <div class="elicit-hint" data-i18n="reply.hint">이어서 할 말을 입력해 보내거나, 완료로 닫으세요.</div>
+        <textarea id="replyText" class="elicit-other" rows="3" data-i18n-ph="reply.ph"></textarea>
+        <div class="elicit-actions">
+          <button id="replyDismiss" class="elicit-btn ghost" data-i18n="reply.dismiss">완료(닫기)</button>
+          <button id="replySend" class="elicit-btn primary" data-i18n="reply.send">전송</button>
+        </div>
+      </div>
+    </div>
   </main>
   <script src="/js/xterm.js"></script>
   <script src="/js/addon-fit.js"></script>
