@@ -84,7 +84,8 @@ namespace AgentHub.Server.Hook
                         ["timeout"] = 5
                     }}
                 };
-                // Stop: 세션이 응답(턴)을 끝낼 때마다 '작업 완료' 알림. fire-and-forget.
+                // Stop: 세션이 턴을 끝낼 때 폰이 그 세션을 보고 있으면 답장을 원격 대기(블로킹).
+                // 답장을 받으면 그 텍스트로 대화가 이어지고, 없으면 정상 종료('완료' 알림).
                 var stopEntry = new JObject
                 {
                     ["matcher"] = "",
@@ -92,9 +93,9 @@ namespace AgentHub.Server.Hook
                     {
                         ["type"] = "command",
                         ["command"] = ResolveNode(),
-                        ["args"] = new JArray { ScriptPath },
-                        ["async"] = true,
-                        ["timeout"] = 5
+                        // 두 번째 인자로 대기창(초)을 훅에 전달(PermissionRequest와 동일).
+                        ["args"] = new JArray { ScriptPath, RemoteAnswerConfig.WindowSeconds.ToString() },
+                        ["timeout"] = RemoteAnswerConfig.WindowSeconds
                     }}
                 };
                 var merged = HookConfigMerger.AddHook(existing, "Notification", notifyEntry, Marker);
@@ -103,6 +104,8 @@ namespace AgentHub.Server.Hook
                 merged = HookConfigMerger.RemoveHook(merged, "PermissionRequest", Marker);
                 merged = HookConfigMerger.AddHook(merged, "PermissionRequest", permReqEntry, Marker);
                 merged = HookConfigMerger.AddHook(merged, "SessionStart", startEntry, Marker);
+                // 기존 설치본(옛 async/timeout)이 멱등 스킵으로 안 바뀌므로 제거 후 재추가해 강제 갱신.
+                merged = HookConfigMerger.RemoveHook(merged, "Stop", Marker);
                 merged = HookConfigMerger.AddHook(merged, "Stop", stopEntry, Marker);
                 WriteSettingsWithBackup(merged);
                 return true;
