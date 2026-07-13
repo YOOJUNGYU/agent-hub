@@ -23,5 +23,6 @@
     <Compile Include="..\AgentHub\Server\Terminal\EngineSpec.cs" Link="Linked\EngineSpec.cs" />
     <Compile Include="..\AgentHub\Server\Hook\HookConfigMerger.cs" Link="Linked\HookConfigMerger.cs" />
     <Compile Include="..\AgentHub\Server\Hook\PermissionRegistry.cs" Link="Linked\PermissionRegistry.cs" />
+    <Compile Include="..\AgentHub\Server\Hook\RemoteAnswerConfig.cs" Link="Linked\RemoteAnswerConfig.cs" />
   </ItemGroup>
 </Project>
