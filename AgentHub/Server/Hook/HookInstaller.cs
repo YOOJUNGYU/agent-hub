@@ -66,8 +66,9 @@ namespace AgentHub.Server.Hook
                     {
                         ["type"] = "command",
                         ["command"] = ResolveNode(),
-                        ["args"] = new JArray { ScriptPath },
-                        ["timeout"] = 120
+                        // 두 번째 인자로 대기창(초)을 훅에 전달 → 훅이 서버를 기다리는 폴링 deadline로 사용.
+                        ["args"] = new JArray { ScriptPath, RemoteAnswerConfig.WindowSeconds.ToString() },
+                        ["timeout"] = RemoteAnswerConfig.WindowSeconds
                     }}
                 };
                 // SessionStart: 세션 시작 시 PID 보고(원본 종료용 지도). fire-and-forget.
@@ -98,6 +99,8 @@ namespace AgentHub.Server.Hook
                 };
                 var merged = HookConfigMerger.AddHook(existing, "Notification", notifyEntry, Marker);
                 merged = HookConfigMerger.AddHook(merged, "PreToolUse", permEntry, Marker);
+                // 기존 설치본(옛 timeout/args)이 멱등 스킵으로 안 바뀌므로, 우리 항목만 제거 후 재추가해 강제 갱신.
+                merged = HookConfigMerger.RemoveHook(merged, "PermissionRequest", Marker);
                 merged = HookConfigMerger.AddHook(merged, "PermissionRequest", permReqEntry, Marker);
                 merged = HookConfigMerger.AddHook(merged, "SessionStart", startEntry, Marker);
                 merged = HookConfigMerger.AddHook(merged, "Stop", stopEntry, Marker);
