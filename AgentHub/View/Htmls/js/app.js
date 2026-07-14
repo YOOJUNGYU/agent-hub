@@ -652,37 +652,26 @@ if ('serviceWorker' in navigator) {
 (function () {
   var isStandalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
   var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  var certBtn = document.getElementById('certBtn');
   var certPanel = document.getElementById('certPanel');
   var installBtn = document.getElementById('installBtn');
 
-  // 설치된 PWA(standalone)에서는 인증서 버튼을 숨긴다.
-  // (PWA 설치가 가능했다는 건 이미 신뢰 인증서를 설치했다는 뜻이므로 다운로드 UI가 불필요.
-  //  인증서가 만료·삭제돼 연결이 끊기면 authPending 화면의 '새 인증서 설치' 링크로 재설치 경로가 유지된다.)
-  if (isStandalone) {
-    if (certBtn) certBtn.hidden = true;
-    if (certPanel) certPanel.hidden = true;
-  } else if (certBtn && certPanel) {
-    applyCertUrls(); // 패널 다운로드 링크·주소를 HTTP(/cert)로 설정(인증서 삭제/미설치 상태에서도 경고 없이 동작)
-    certBtn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      var open = certPanel.hidden;
-      certPanel.hidden = !open;
-      certBtn.setAttribute('aria-expanded', String(open));
-    });
-    document.addEventListener('click', function (e) {
-      if (!certPanel.hidden && !certPanel.contains(e.target) && e.target !== certBtn) {
-        certPanel.hidden = true; certBtn.setAttribute('aria-expanded', 'false');
-      }
-    });
+  // 인증서 안내 페이지: 다운로드 링크·주소를 HTTP(/cert)로 설정(인증서 삭제/미설치 상태에서도 경고 없이 동작) + 닫기 버튼 연결.
+  // 헤더의 인증서 버튼은 제거됨 — 설치 배너의 '인증서 설치'에서만 이 페이지를 연다.
+  // standalone(설치된 앱)에서는 이 페이지를 여는 진입점이 없다(연결 끊김 시 authPending의 '새 인증서 설치' 링크로 재설치 경로 유지).
+  if (certPanel) {
+    applyCertUrls();
+    var certCloseBtn = document.getElementById('certCloseBtn');
+    if (certCloseBtn) certCloseBtn.addEventListener('click', function () { certPanel.hidden = true; });
   }
 
   // 설치 유도는 브라우저에서만(이미 설치된 앱에서는 설치 버튼 숨김).
   if (isStandalone) { if (installBtn) installBtn.hidden = true; return; }
 
-  // 인증서 패널 열기(설치 유도 배너·헤더 설치 버튼 공용). iOS면 A2HS 안내도 함께 노출.
-  function openCertPanel() {
+  // 인증서 안내 페이지 열기. download=true면 HTTP(/cert)로 인증서 다운로드도 함께 트리거(설치 배너에서 한 번 탭으로 다운로드+안내).
+  // iOS면 A2HS(홈 화면 추가) 안내도 함께 노출.
+  function openCertGuide(download) {
     if (!certPanel) return;
+    if (download) { try { window.open(certHttpUrl(), '_blank', 'noopener'); } catch (e) {} }
     certPanel.hidden = false;
     var h = document.getElementById('iosInstallHint'); if (h) h.hidden = !isIOS;
   }
@@ -715,7 +704,7 @@ if ('serviceWorker' in navigator) {
       try { await deferred.userChoice; } catch (_) {}
       deferred = null; hidePromo(); if (installBtn) installBtn.hidden = true;
     } else {
-      openCertPanel();
+      openCertGuide(true); // 인증서 설치: 다운로드 + 등록방법 안내 페이지
     }
   });
 
@@ -732,7 +721,7 @@ if ('serviceWorker' in navigator) {
       deferred = null; installBtn.hidden = true; hidePromo();
     } else {
       // iOS 등 beforeinstallprompt 미지원 → 안내 노출
-      openCertPanel();
+      openCertGuide(false);
     }
   });
   window.addEventListener('appinstalled', function () {

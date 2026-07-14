@@ -12,6 +12,8 @@
   <link rel="stylesheet" href="/css/xterm.css" />
   <!-- 저장된 테마를 첫 페인트 전에 적용해 라이트 모드 사용자에게 다크→라이트 깜빡임(FOUC)이 없게 한다. -->
   <script>try{if(localStorage.getItem('agenthub.theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+  <!-- PWA는 언어 선택 UI 없이 영어로 고정한다(세션 내용은 에이전트가 각 언어로 표시). i18n.js가 detect() 하기 전에 설정. -->
+  <script>try{localStorage.setItem('agenthub.lang','en');}catch(e){}</script>
   <title>Agent Hub — 모니터</title>
 </head>
 <body>
@@ -19,25 +21,22 @@
     <div class="brand">Agent Hub</div>
     <div class="server-status">
       <button id="installBtn" class="hdr-btn install" hidden data-i18n="pwa.install">⬇ 앱 설치</button>
-      <button id="certBtn" class="hdr-btn" data-i18n="cert.hdr" aria-haspopup="true" aria-expanded="false">🔒 인증서</button>
       <span class="badge" id="wsBadge"><span class="spinner"></span><span data-i18n="ws.connecting">연결 중…</span></span>
-      <label class="lang-switch"><span aria-hidden="true">🌐</span>
-        <select class="lang-select" data-lang-select aria-label="Language / 언어">
-          <option value="ko">한국어</option>
-          <option value="en">English</option>
-        </select>
-      </label>
-      <button id="themeBtn" class="hdr-btn" type="button" aria-label="라이트/다크 테마 전환" title="테마 전환">🌙</button>
+      <button id="themeBtn" class="hdr-btn" type="button" aria-label="Toggle light/dark theme" title="Theme">🌙</button>
     </div>
+    <!-- 인증서 설치 안내 페이지(전체 화면). 설치 배너의 '인증서 설치'에서 열리며 다운로드 링크·등록 방법을 담는다. -->
     <div id="certPanel" class="cert-panel" hidden>
-      <p class="cert-panel-title" data-i18n="cert.summary">📱 인증서 설치 (PWA 설치 · 보안경고 제거)</p>
+      <div class="cert-panel-head">
+        <button id="certCloseBtn" class="cert-close-btn" type="button" aria-label="Close">✕</button>
+        <p class="cert-panel-title" data-i18n="cert.summary">📱 Install certificate</p>
+      </div>
       <!-- target=_blank: 설치된 앱(PWA)에서 인증서가 깨졌을 때 in-app 이동이 막히므로 시스템 브라우저로 넘겨 경고 통과·설치 가능하게 한다. -->
-      <a class="cert-dl" href="/api/cert" target="_blank" rel="noopener" data-i18n="cert.download">인증서 다운로드</a>
-      <p class="hint"><span data-i18n="cert.openInBrowser">앱에서 안 열리면 아래 주소를 휴대폰 브라우저로 열고 보안 경고를 계속 진행하세요:</span><br><span id="certPanelUrl" class="term-warn" style="word-break:break-all"></span></p>
+      <a class="cert-dl" href="/api/cert" target="_blank" rel="noopener" data-i18n="cert.download">Download certificate</a>
+      <p class="hint"><span data-i18n="cert.openInBrowser"></span><br><span id="certPanelUrl" class="term-warn" style="word-break:break-all"></span></p>
       <p class="hint" data-i18n="cert.android">Android: …</p>
       <p class="hint" data-i18n="cert.ios">iOS: …</p>
-      <p class="hint" id="iosInstallHint" hidden data-i18n="pwa.iosHint">iOS: 공유 버튼 → “홈 화면에 추가”로 앱으로 설치하세요.</p>
-      <p class="hint" data-i18n="cert.note">설치 후 새로고침하면 보안경고 없이 접속되고 홈 화면 추가(PWA 설치)가 가능합니다.</p>
+      <p class="hint" id="iosInstallHint" hidden data-i18n="pwa.iosHint"></p>
+      <p class="hint" data-i18n="cert.note"></p>
     </div>
   </header>
   <main>
