@@ -680,24 +680,79 @@ if ('serviceWorker' in navigator) {
   // 설치 유도는 브라우저에서만(이미 설치된 앱에서는 설치 버튼 숨김).
   if (isStandalone) { if (installBtn) installBtn.hidden = true; return; }
 
+  // 인증서 패널 열기(설치 유도 배너·헤더 설치 버튼 공용). iOS면 A2HS 안내도 함께 노출.
+  function openCertPanel() {
+    if (!certPanel) return;
+    certPanel.hidden = false;
+    var h = document.getElementById('iosInstallHint'); if (h) h.hidden = !isIOS;
+  }
+
+  // 설치 유도 배너(#monitor 상단) — 미설치 브라우저에서만. 상태에 따라 문구/동작이 바뀐다.
+  //   install: 설치 가능(beforeinstallprompt 수신) → 탭하면 설치 프롬프트
+  //   cert   : 설치 불가(인증서 미설치로 추정) → 탭하면 인증서 설치 안내
+  //   ios    : iOS(beforeinstallprompt 미지원) → 탭하면 인증서·홈화면 추가 안내
+  var promo = document.getElementById('installPromo');
+  var promoTitle = document.getElementById('installPromoTitle');
+  var promoDesc = document.getElementById('installPromoDesc');
+  var promoBtn = document.getElementById('installPromoBtn');
+  var promoMode = null;
+  function renderPromo() {
+    if (!promo || !promoMode) return;
+    var m = promoMode;
+    var kt = m === 'install' ? 'installPromo.installTitle' : m === 'ios' ? 'installPromo.iosTitle' : 'installPromo.certTitle';
+    var kd = m === 'install' ? 'installPromo.installDesc' : m === 'ios' ? 'installPromo.iosDesc' : 'installPromo.certDesc';
+    var kb = m === 'install' ? 'installPromo.installBtn' : m === 'ios' ? 'installPromo.iosBtn' : 'installPromo.certBtn';
+    if (promoTitle) promoTitle.textContent = I18n.t(kt);
+    if (promoDesc) promoDesc.textContent = I18n.t(kd);
+    if (promoBtn) promoBtn.textContent = I18n.t(kb);
+  }
+  function showPromo(mode) { promoMode = mode; renderPromo(); if (promo) promo.hidden = false; }
+  function hidePromo() { promoMode = null; if (promo) promo.hidden = true; }
+  document.addEventListener('i18n:changed', renderPromo);
+  if (promoBtn) promoBtn.addEventListener('click', async function () {
+    if (promoMode === 'install' && deferred) {
+      deferred.prompt();
+      try { await deferred.userChoice; } catch (_) {}
+      deferred = null; hidePromo(); if (installBtn) installBtn.hidden = true;
+    } else {
+      openCertPanel();
+    }
+  });
+
   var deferred = null;
   window.addEventListener('beforeinstallprompt', function (e) {
-    e.preventDefault(); deferred = e; if (installBtn) installBtn.hidden = false;
+    e.preventDefault(); deferred = e;
+    if (installBtn) installBtn.hidden = false;
+    showPromo('install'); // 설치 가능 → 배너를 설치 모드로(인증서 안내에서 승격)
   });
   if (installBtn) installBtn.addEventListener('click', async function () {
     if (deferred) {
       deferred.prompt();
       try { await deferred.userChoice; } catch (_) {}
-      deferred = null; installBtn.hidden = true;
-    } else if (certPanel) {
+      deferred = null; installBtn.hidden = true; hidePromo();
+    } else {
       // iOS 등 beforeinstallprompt 미지원 → 안내 노출
-      certPanel.hidden = false;
-      var h = document.getElementById('iosInstallHint'); if (h) h.hidden = false;
+      openCertPanel();
     }
   });
   window.addEventListener('appinstalled', function () {
     if (installBtn) installBtn.hidden = true; // 인증서 버튼은 유지(추후 재설치 대비)
+    hidePromo();
   });
+
+  // 배너 초기 모드 결정: iOS는 설치 방법 안내, 그 외는 설치 가능 여부를 잠깐 기다렸다 결정한다.
+  // (beforeinstallprompt가 늦게 오면 위 핸들러가 install 모드로 승격한다.)
+  if (isIOS) {
+    showPromo('ios');
+  } else if (deferred) {
+    showPromo('install');
+  } else {
+    setTimeout(function () {
+      if (promoMode) return;                 // 이미 install로 표시됨
+      showPromo(deferred ? 'install' : 'cert'); // 여태 설치 불가 → 인증서 미설치로 보고 안내
+    }, 1800);
+  }
+
   // iOS Safari는 beforeinstallprompt가 없으므로 설치 버튼을 노출해 A2HS 안내로 유도
   if (isIOS && installBtn) installBtn.hidden = false;
 })();

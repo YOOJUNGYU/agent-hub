@@ -358,6 +358,18 @@ body:not(.host-shell) #terminal:not([hidden]){ flex:1 1 auto; min-height:0; disp
 /* [hidden] 속성이 위 display:flex(author 규칙)를 이기도록 명시 — 로딩 완료(첫 출력 바이트) 시 오버레이를 확실히 숨긴다. */
 .term-loading[hidden]{ display:none; }
 
+/* 설치 유도 배너 — 미설치(브라우저) 접속 시 #monitor 상단에 표시 */
+.install-promo{ display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  margin:0 0 12px; padding:12px 14px; border-radius:12px;
+  background:rgba(56,208,214,.10); border:1px solid rgba(56,208,214,.35); }
+.install-promo[hidden]{ display:none; }
+.install-promo-main{ flex:1 1 200px; min-width:0; }
+.install-promo-title{ font-weight:700; font-size:14px; color:var(--fore); }
+.install-promo-desc{ font-size:12px; color:var(--muted); margin-top:3px; word-break:break-word; }
+.install-promo-desc:empty{ display:none; }
+.install-promo-btn{ flex:0 0 auto; padding:10px 16px; border:none; border-radius:8px;
+  background:var(--accent); color:#08130c; font-weight:700; font-size:13px; cursor:pointer; white-space:nowrap; }
+
 /* ===== 라이트 테마 (PWA) =====
    documentElement에 data-theme="light"가 있을 때만 적용된다. 미지정(기본)은 다크 유지.
    호스트 콘솔(host.html)은 data-theme를 설정하지 않으므로 항상 다크로 남는다.
@@ -427,6 +439,7 @@ body:not(.host-shell) #terminal:not([hidden]){ flex:1 1 auto; min-height:0; disp
 [data-theme="light"] .ask-banner.perm .ask-text{ color:#8a5a10; }
 [data-theme="light"] .perm-detail{ background:#f2f5fb; color:#1a2030; border-color:#d6dced; }
 
+[data-theme="light"] .install-promo{ background:#e6f7f8; border-color:#a9e3e6; }
 [data-theme="light"] .badge-status.active{ background:#d3f2df; color:#12703f; }
 [data-theme="light"] .badge-status.idle{ background:#f2edc9; color:#7a6a12; }
 [data-theme="light"] .badge-status.ended{ background:#e6e0ea; color:#6a6270; }
