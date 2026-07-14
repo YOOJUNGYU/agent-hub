@@ -320,8 +320,20 @@ body:not(.host-shell) main{ flex:1 1 auto; min-height:0; display:flex; flex-dire
 body:not(.host-shell) #permBanner{ flex:0 0 auto; }
 
 /* 모니터: 스크롤 컨테이너 + '새 세션' 하단(짧으면 카드 아래, 길면 sticky) */
-body:not(.host-shell) #monitor:not([hidden]){ flex:1 1 auto; min-height:0; display:block; overflow-y:auto; overflow-x:hidden; }
+body:not(.host-shell) #monitor:not([hidden]){ flex:1 1 auto; min-height:0; display:block; overflow-y:auto; overflow-x:hidden; position:relative; }
 .monitor-top{ display:flex; gap:8px; flex-wrap:wrap; }
+
+/* 당겨서 새로고침(pull-to-refresh) 인디케이터 — 목록 맨 위에서 아래로 당길 때 표시 */
+.ptr{ position:absolute; top:8px; left:50%; z-index:6; pointer-events:none;
+  width:34px; height:34px; border-radius:50%; background:var(--panel2); border:1px solid var(--border);
+  display:grid; place-items:center; color:var(--accent);
+  transform:translate(-50%,-48px); opacity:0; box-shadow:0 6px 16px rgba(0,0,0,.35); }
+.ptr .ptr-icon{ font-size:17px; line-height:1; transition:transform .18s ease; }
+.ptr.ready .ptr-icon{ transform:rotate(180deg); }
+.ptr.spin .ptr-icon{ display:none; }
+.ptr.spin::after{ content:""; width:18px; height:18px; border-radius:50%;
+  border:2px solid var(--border); border-top-color:var(--accent); animation:ptr-rot .7s linear infinite; }
+@keyframes ptr-rot{ to{ transform:rotate(360deg); } }
 
 /* 상세: 헤드 고정 + 피드 스크롤(flex:1). 헤드의 '터미널 열기'는 우측 정렬 */
 body:not(.host-shell) #detail:not([hidden]){ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; overflow:hidden; }

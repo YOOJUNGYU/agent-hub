@@ -672,3 +672,50 @@ if ('serviceWorker' in navigator) {
   // iOS Safari는 beforeinstallprompt가 없으므로 설치 버튼을 노출해 A2HS 안내로 유도
   if (isIOS && installBtn) installBtn.hidden = false;
 })();
+
+// ---- 당겨서 새로고침(pull-to-refresh) ----
+// 모니터(세션 목록)가 맨 위일 때 아래로 당기면 앱을 새로고침(location.reload → WS 재연결·최신 화면).
+// 목록 맨 위가 아니면 개입하지 않아 일반 스크롤은 그대로. 상세/터미널/오버레이엔 붙이지 않는다(라이브 동작 보호).
+(function () {
+  var monitor = document.getElementById('monitor');
+  var ptr = document.getElementById('ptr');
+  if (!monitor || !ptr) return;
+  var THRESHOLD = 70, MAX = 110, startY = 0, dist = 0, pulling = false, refreshing = false;
+
+  function setPull(d) {
+    dist = d;
+    ptr.style.transform = 'translate(-50%,' + Math.min(d, MAX) + 'px)';
+    ptr.style.opacity = String(Math.min(1, d / THRESHOLD));
+    ptr.classList.toggle('ready', d >= THRESHOLD);
+  }
+  function relax() {
+    ptr.style.transition = 'transform .2s ease, opacity .2s ease';
+    setPull(0);
+    setTimeout(function () { ptr.style.transition = ''; }, 220);
+  }
+  monitor.addEventListener('touchstart', function (e) {
+    if (refreshing || monitor.scrollTop > 0 || e.touches.length !== 1) { pulling = false; return; }
+    startY = e.touches[0].clientY; pulling = true; ptr.style.transition = '';
+  }, { passive: true });
+  monitor.addEventListener('touchmove', function (e) {
+    if (!pulling || refreshing) return;
+    if (monitor.scrollTop > 0) { pulling = false; if (dist) relax(); return; } // 스크롤 시작되면 손 뗌
+    var dy = e.touches[0].clientY - startY;
+    if (dy <= 0) { if (dist) setPull(0); return; }
+    setPull(dy * 0.5); // 저항감: 당길수록 덜 내려오게
+    if (dist > 4 && e.cancelable) e.preventDefault(); // 당기는 중 기본 스크롤/브라우저 새로고침 억제
+  }, { passive: false });
+  function end() {
+    if (!pulling || refreshing) { pulling = false; return; }
+    pulling = false;
+    if (dist >= THRESHOLD) {
+      refreshing = true;
+      ptr.classList.add('spin');
+      ptr.style.transition = 'transform .2s ease';
+      ptr.style.transform = 'translate(-50%,' + THRESHOLD + 'px)';
+      setTimeout(function () { location.reload(); }, 200);
+    } else { relax(); }
+  }
+  monitor.addEventListener('touchend', end);
+  monitor.addEventListener('touchcancel', function () { pulling = false; if (!refreshing && dist) relax(); });
+})();
