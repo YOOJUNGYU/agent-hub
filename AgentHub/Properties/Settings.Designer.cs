@@ -142,5 +142,17 @@ namespace AgentHub.Properties {
                 this["TerminalWorkingDir"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string ConsoleLang {
+            get {
+                return ((string)(this["ConsoleLang"]));
+            }
+            set {
+                this["ConsoleLang"] = value;
+            }
+        }
     }
 }

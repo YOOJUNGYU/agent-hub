@@ -27,10 +27,34 @@ namespace AgentHub.Server.Controller
                 Port = EmbedIOServer.CurrentPort,
                 Url = EmbedIOServer.CurrentUrl,
                 CertHttpPort = EmbedIOServer.CurrentCertHttpPort,
-                // 앱의 표시 언어를 PC UI 문화권에서 도출(지원 언어는 ko/en). PWA가 이 값을 따라간다.
-                Lang = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ko" ? "ko" : "en"
+                // PC 콘솔에서 사용자가 고른 언어(저장값) 우선, 없으면 PC UI 문화권으로 폴백(지원 언어 ko/en). PWA가 이 값을 따라간다.
+                Lang = ResolveConsoleLang()
             };
             return SendJsonAsync(Json.Serialize(info));
+        }
+
+        // PC 콘솔이 저장한 표시 언어. 미설정이면 PC UI 문화권에서 도출(ko/en).
+        private static string ResolveConsoleLang()
+        {
+            var saved = Properties.Settings.Default.ConsoleLang;
+            if (saved == "ko" || saved == "en") return saved;
+            return System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ko" ? "ko" : "en";
+        }
+
+        // PC 콘솔(loopback)이 사용자가 고른 언어를 저장한다. PWA는 /server/status의 Lang으로 이 값을 따라간다.
+        [Route(HttpVerbs.Post, "/server/lang")]
+        public async Task SaveConsoleLang()
+        {
+            if (!IsLoopback()) { await Forbidden(); return; }
+            var raw = await HttpContext.GetRequestBodyAsStringAsync();
+            string lang = null;
+            try { lang = (string)(JObject.Parse(string.IsNullOrWhiteSpace(raw) ? "{}" : raw)["lang"]); } catch { }
+            if (lang == "ko" || lang == "en")
+            {
+                Properties.Settings.Default.ConsoleLang = lang;
+                Properties.Settings.Default.Save();
+            }
+            await SendJsonAsync(Json.Serialize(new { ok = true, lang = ResolveConsoleLang() }));
         }
 
         // 자체 서명 CA 인증서(.crt) 다운로드 — 모바일 신뢰 설치용.

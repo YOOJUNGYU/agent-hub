@@ -249,8 +249,19 @@ $('#termSaveBtn').addEventListener('click', async () => {
   } catch (e) { hint.textContent = t('settings.reqFail') + e.message; }
 });
 
+// 콘솔에서 사용자가 고른 표시 언어를 서버에 저장 → PWA가 /server/status의 Lang으로 이 값을 따라간다.
+function saveConsoleLang() {
+  try {
+    fetch('/api/server/lang', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lang: I18n.getLang() })
+    }).catch(function () {});
+  } catch (e) {}
+}
+
 // ---- 언어 변경 시 동적 콘텐츠 재렌더 ----
 document.addEventListener('i18n:changed', () => {
+  saveConsoleLang();
   refreshStatus();
   if (lastClients !== null) renderClients(lastClients, lastClientCount);
   if (lastDevices !== null) renderDevices(lastDevices);
@@ -260,3 +271,4 @@ refreshStatus();
 setInterval(refreshStatus, 5000);
 loadSettings();
 connect();
+saveConsoleLang(); // 최초 로드 시 현재 콘솔 언어를 서버에 반영
