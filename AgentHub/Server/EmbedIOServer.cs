@@ -268,7 +268,10 @@ namespace AgentHub.Server
                 _server.StateChanged += (s, e) => $"WebServer New State - {e.NewState}".Info("WebServer");
                 _server.RunAsync(_cts.Token).ConfigureAwait(false);
 
-                StartCertHttpServer();
+                // 인증서(.crt)는 메인 HTTPS 포트의 /api/cert로 받는다(클라이언트가 같은 포트에서 다운로드).
+                // 별도 HTTP 부트스트랩 포트는 추가 방화벽/포트 승인을 유발하므로 비활성화한다.
+                // (인증서가 깨진 경우에도 자체서명 특성상 브라우저 보안경고를 계속 진행하면 HTTPS로 재설치 가능.)
+                // StartCertHttpServer();
 
                 AgentMonitorService.Start(agentModule);
             }

@@ -12,8 +12,6 @@
   <link rel="stylesheet" href="/css/xterm.css" />
   <!-- 저장된 테마를 첫 페인트 전에 적용해 라이트 모드 사용자에게 다크→라이트 깜빡임(FOUC)이 없게 한다. -->
   <script>try{if(localStorage.getItem('agenthub.theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
-  <!-- PWA는 언어 선택 UI 없이 영어로 고정한다(세션 내용은 에이전트가 각 언어로 표시). i18n.js가 detect() 하기 전에 설정. -->
-  <script>try{localStorage.setItem('agenthub.lang','en');}catch(e){}</script>
   <title>Agent Hub — 모니터</title>
 </head>
 <body>

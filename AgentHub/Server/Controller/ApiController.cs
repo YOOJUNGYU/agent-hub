@@ -26,7 +26,9 @@ namespace AgentHub.Server.Controller
                 Host = EmbedIOServer.CurrentHost,
                 Port = EmbedIOServer.CurrentPort,
                 Url = EmbedIOServer.CurrentUrl,
-                CertHttpPort = EmbedIOServer.CurrentCertHttpPort
+                CertHttpPort = EmbedIOServer.CurrentCertHttpPort,
+                // 앱의 표시 언어를 PC UI 문화권에서 도출(지원 언어는 ko/en). PWA가 이 값을 따라간다.
+                Lang = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ko" ? "ko" : "en"
             };
             return SendJsonAsync(Json.Serialize(info));
         }

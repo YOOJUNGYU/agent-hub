@@ -20,13 +20,11 @@ function getToken() {
 }
 const token = getToken();
 
-// 인증서 평문 HTTP 부트스트랩 URL. 자체서명 인증서를 삭제/만료하면 HTTPS로 .crt를 못 받으므로(신뢰 깨짐),
-// HTTP로 받도록 안내한다. 포트는 온라인일 때 캐시한 서버 값 우선, 없으면 HTTPS 포트+1로 폴백(서버 기본 규칙).
+// 인증서(.crt) 다운로드 URL. 이미 접속 중인 것과 동일한 origin·포트의 /api/cert를 쓴다.
+// (별도 HTTP 포트를 쓰지 않아 추가 방화벽/포트 승인이 필요 없다. 인증서가 아직 신뢰되지 않았어도
+//  이 페이지를 이미 연 상태라 같은 origin 다운로드는 추가 경고 없이 받히고, 새로 여는 경우엔 보안경고를 계속 진행하면 된다.)
 function certHttpUrl() {
-  var p = null;
-  try { p = localStorage.getItem('agenthub.certHttpPort'); } catch (e) {}
-  if (!p) { var n = Number(location.port); p = n ? String(n + 1) : ''; }
-  return 'http://' + location.hostname + (p ? ':' + p : '') + '/cert';
+  return location.origin + '/api/cert';
 }
 // 인증서 URL을 패널·오프라인 화면 요소에 일괄 적용. 포트 캐시(/api/server/status)가 비동기로 갱신되므로 그 후 재호출한다.
 function applyCertUrls() {
@@ -589,13 +587,10 @@ showScreen('authPending');
 connect();
 refreshNotifyBtn();
 
-// 온라인일 때(인증서 정상) 인증서 HTTP 부트스트랩 포트를 캐시 — 이후 인증서가 깨져도 복구 주소를 정확히 안내.
+// PWA는 별도 언어 설정 없이 서버(agent-hub.exe)의 표시 언어를 따라간다.
 try {
   fetch('/api/server/status').then(function (r) { return r.json(); }).then(function (s) {
-    if (s && s.certHttpPort) {
-      try { localStorage.setItem('agenthub.certHttpPort', String(s.certHttpPort)); } catch (e) {}
-      applyCertUrls(); // 실제 포트 확보 후 인증서 링크/주소 재적용(폴백 +1이 틀렸던 경우 보정)
-    }
+    if (s && s.lang && window.I18n && s.lang !== I18n.getLang()) I18n.setLang(s.lang);
   }).catch(function () {});
 } catch (e) {}
 
