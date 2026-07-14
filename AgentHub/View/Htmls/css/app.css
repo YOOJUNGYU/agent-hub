@@ -210,6 +210,9 @@ body.host-shell #sessionterm.view.active{ display:flex; flex-direction:column; o
 .badge-status.active { background: #14532d; color: #4ade80; }
 .badge-status.idle { background: #3f3f16; color: #fde047; }
 .badge-status.ended { background: #3a2030; color: #9ca3af; }
+.badge-engine { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; text-transform: uppercase; letter-spacing: .02em; }
+.badge-engine.claude { background: #3a2a18; color: #f0a860; }
+.badge-engine.codex { background: #12303a; color: #4fd0e0; }
 .detail-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .back-btn { background: none; border: none; color: #7aa2ff; font-size: 15px; cursor: pointer; white-space: nowrap; }
 .detail-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; word-break: break-word; }
@@ -445,3 +448,5 @@ body:not(.host-shell) #terminal:not([hidden]){ flex:1 1 auto; min-height:0; disp
 [data-theme="light"] .badge-status.active{ background:#d3f2df; color:#12703f; }
 [data-theme="light"] .badge-status.idle{ background:#f2edc9; color:#7a6a12; }
 [data-theme="light"] .badge-status.ended{ background:#e6e0ea; color:#6a6270; }
+[data-theme="light"] .badge-engine.claude{ background:#f6e6d3; color:#a6641a; }
+[data-theme="light"] .badge-engine.codex{ background:#d3edf2; color:#136273; }

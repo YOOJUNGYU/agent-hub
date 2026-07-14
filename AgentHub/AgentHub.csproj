@@ -141,6 +141,8 @@
     <Compile Include="Common\Util\Win32.cs" />
     <Compile Include="Server\Agents\AgentMonitorService.cs" />
     <Compile Include="Server\Agents\ClaudeSessionReader.cs" />
+    <Compile Include="Server\Agents\CodexSessionReader.cs" />
+    <Compile Include="Server\Agents\CodexTranscriptParser.cs" />
     <Compile Include="Server\Agents\TranscriptParser.cs" />
     <Compile Include="Server\Controller\ApiController.cs" />
     <Compile Include="Server\Push\Vapid.cs" />
@@ -157,6 +159,7 @@
     <Compile Include="Server\Terminal\ConPtySession.cs" />
     <Compile Include="Server\Terminal\EngineSpec.cs" />
     <Compile Include="Server\Terminal\TerminalGate.cs" />
+    <Compile Include="Server\Hook\CodexHookInstaller.cs" />
     <Compile Include="Server\Hook\HookConfigMerger.cs" />
     <Compile Include="Server\Hook\PermissionRegistry.cs" />
     <Compile Include="Server\Hook\AskRegistry.cs" />

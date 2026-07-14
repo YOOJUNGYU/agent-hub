@@ -4,6 +4,7 @@ namespace AgentHub.Common.Models
     public class SessionSummary
     {
         public string Id { get; set; }
+        public string Engine { get; set; }        // claude | codex — 세션 소스 엔진(배지·이어받기 라우팅)
         public string Title { get; set; }
         public string Project { get; set; }        // cwd의 마지막 세그먼트
         public string Cwd { get; set; }

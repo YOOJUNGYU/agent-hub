@@ -215,6 +215,9 @@ namespace AgentHub.Server
                 // 질문 알림 훅은 항상 설치(옵션 아님). 매 시작마다 멱등 설치 — HookConfigMerger가 중복을 제거한다.
                 try { Hook.HookInstaller.Install(); }
                 catch (Exception ex) { LogService.Instance.Error(ex); }
+                // Codex도 동일 훅 설치(미설치면 내부에서 no-op).
+                try { Hook.CodexHookInstaller.Install(); }
+                catch (Exception ex) { LogService.Instance.Error(ex); }
 
                 CurrentPort = ResolvePort();
 

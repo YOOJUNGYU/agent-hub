@@ -21,6 +21,7 @@ namespace AgentHub.Server.Terminal
         {
             switch ((key ?? "claude").ToLowerInvariant())
             {
+                case "codex": return new CodexEngine();
                 case "claude": default: return new ClaudeEngine();
             }
         }
@@ -38,5 +39,16 @@ namespace AgentHub.Server.Terminal
             var enc = (cwd ?? "").Replace(':', '-').Replace('\\', '-').Replace('/', '-');
             return Path.Combine(home, ".claude", "projects", enc);
         }
+    }
+
+    public sealed class CodexEngine : EngineSpec
+    {
+        public override string Key => "codex";
+        public override string LaunchCommand() => "cmd.exe /c codex";
+        // sessionId는 UUID(안전 문자)라 별도 이스케이프 불필요. codex resume <UUID>로 그 세션을 이어받는다.
+        public override string ResumeCommand(string sessionId) => "cmd.exe /c codex resume " + sessionId;
+        // Codex 세션은 cwd별 폴더가 아니라 날짜 폴더에 저장된다(rollout-*.jsonl). 조회 루트만 반환.
+        public override string ProjectDir(string cwd)
+            => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".codex", "sessions");
     }
 }

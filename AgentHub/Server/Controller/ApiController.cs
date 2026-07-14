@@ -202,14 +202,18 @@ namespace AgentHub.Server.Controller
         public Task HookInstall()
         {
             if (!IsLoopback()) return Forbidden();
-            return SendJsonAsync(Json.Serialize(new { ok = AgentHub.Server.Hook.HookInstaller.Install() }));
+            var ok = AgentHub.Server.Hook.HookInstaller.Install();
+            AgentHub.Server.Hook.CodexHookInstaller.Install(); // Codex 미설치면 no-op
+            return SendJsonAsync(Json.Serialize(new { ok }));
         }
 
         [Route(HttpVerbs.Post, "/hook/uninstall")]
         public Task HookUninstall()
         {
             if (!IsLoopback()) return Forbidden();
-            return SendJsonAsync(Json.Serialize(new { ok = AgentHub.Server.Hook.HookInstaller.Uninstall() }));
+            var ok = AgentHub.Server.Hook.HookInstaller.Uninstall();
+            AgentHub.Server.Hook.CodexHookInstaller.Uninstall();
+            return SendJsonAsync(Json.Serialize(new { ok }));
         }
 
         // Stop/Notification 훅은 매 턴 발화한다. 마지막 멘트가 그대로면(새 text 없음·연속 턴 등)
@@ -250,7 +254,7 @@ namespace AgentHub.Server.Controller
                 {
                     var project = LastSegment((string)o["cwd"] ?? "");
                     var sessionId = (string)o["session_id"];
-                    var last = ClaudeSessionReader.LastAssistantTextOf(sessionId);
+                    var last = AgentMonitorService.LastAssistantTextOf(sessionId);
                     var msg = !string.IsNullOrWhiteSpace(last) ? last
                         : (string.IsNullOrEmpty(message) ? "입력이 필요합니다" : message);
                     if (!IsDuplicateNotify("ask", sessionId, msg))
@@ -275,7 +279,7 @@ namespace AgentHub.Server.Controller
                 var o = JObject.Parse(raw);
                 var project = LastSegment((string)o["cwd"] ?? "");
                 var sessionId = (string)o["session_id"];
-                var last = ClaudeSessionReader.LastAssistantTextOf(sessionId);
+                var last = AgentMonitorService.LastAssistantTextOf(sessionId);
                 var body = string.IsNullOrWhiteSpace(last) ? "작업을 완료했습니다" : last;
                 if (!IsDuplicateNotify("done", sessionId, body))
                 {

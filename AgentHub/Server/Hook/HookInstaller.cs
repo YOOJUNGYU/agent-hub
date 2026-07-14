@@ -171,7 +171,7 @@ namespace AgentHub.Server.Hook
             }
         }
 
-        private static string ResolveNode()
+        internal static string ResolveNode()
         {
             var pf = Environment.GetEnvironmentVariable("ProgramFiles");
             if (!string.IsNullOrEmpty(pf))

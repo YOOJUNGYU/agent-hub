@@ -181,9 +181,10 @@ function titlePrefix(id) {
 function cardHtml(s) {
   const waiting = isWaiting(s);
   const badge = '<span class="badge-status ' + esc(s.status) + '">' + esc(s.status) + '</span>';
+  const engine = s.engine ? '<span class="badge-engine ' + esc(s.engine) + '">' + esc(s.engine) + '</span>' : '';
   const waitPill = waiting ? '<span class="card-wait">' + esc(t('card.waiting')) + '</span>' : '';
   return '<div class="session-card' + (waiting ? ' waiting' : '') + '" data-id="' + esc(s.id) + '">'
-    + '<div class="card-top">' + badge + '<span class="card-title">' + esc(s.title) + '</span>' + waitPill + '</div>'
+    + '<div class="card-top">' + badge + engine + '<span class="card-title">' + esc(s.title) + '</span>' + waitPill + '</div>'
     + '<div class="card-meta">' + esc(s.project || '') + (s.gitBranch ? ' · ' + esc(s.gitBranch) : '') + '</div>'
     + '<div class="card-task">' + esc(s.currentTask || '') + '</div>'
     + runHtml(s)

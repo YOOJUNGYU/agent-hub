@@ -4,16 +4,18 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using Newtonsoft.Json.Linq;
 using AgentHub.Common.Models;
 using AgentHub.Common.Util;
 
 namespace AgentHub.Server.Agents
 {
     /// <summary>
-    /// ~/.claude/projects 의 세션 트랜스크립트(JSONL)를 읽어 요약/상세를 제공하고,
-    /// FileSystemWatcher로 변경을 감지해 콜백을 알린다. 파싱 로직은 TranscriptParser에 위임.
+    /// ~/.codex/sessions 의 rollout 트랜스크립트(JSONL)를 읽어 요약/상세를 제공하고,
+    /// FileSystemWatcher로 변경을 감지해 콜백을 알린다. Claude용 <see cref="ClaudeSessionReader"/>의 대응물.
+    /// 파싱 로직은 <see cref="CodexTranscriptParser"/>에 위임. 제목은 ~/.codex/session_index.jsonl(thread_name)을 우선 사용.
     /// </summary>
-    public static class ClaudeSessionReader
+    public static class CodexSessionReader
     {
         private static readonly TimeSpan Window = TimeSpan.FromHours(24);
         private const int MaxSessions = 30;
@@ -28,27 +30,35 @@ namespace AgentHub.Server.Agents
         private static readonly ConcurrentDictionary<string, string> _paths =
             new ConcurrentDictionary<string, string>();
 
-        private static string ProjectsRoot =>
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude", "projects");
+        private static string CodexHome =>
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".codex");
+
+        private static string SessionsRoot => Path.Combine(CodexHome, "sessions");
+
+        /// <summary>Codex가 설치돼 세션 폴더가 존재하는지(없으면 조용히 비활성).</summary>
+        public static bool Available => Directory.Exists(SessionsRoot);
+
+        /// <summary>이 sessionId가 Codex 세션인지(엔진 라우팅용).</summary>
+        public static bool Has(string sessionId) => FindSessionFile(sessionId) != null;
 
         public static List<SessionSummary> ListSessions()
         {
-            var root = ProjectsRoot;
+            var root = SessionsRoot;
             var result = new List<SessionSummary>();
             if (!Directory.Exists(root)) return result;
 
             var now = DateTime.UtcNow;
             var cutoff = now - Window;
+            var titles = LoadTitleIndex();
 
             var files = new List<FileInfo>();
             try
             {
-                foreach (var dir in Directory.EnumerateDirectories(root))
-                    foreach (var f in Directory.EnumerateFiles(dir, "*.jsonl"))
-                    {
-                        var fi = new FileInfo(f);
-                        if (fi.LastWriteTimeUtc >= cutoff) files.Add(fi);
-                    }
+                foreach (var f in Directory.EnumerateFiles(root, "*.jsonl", SearchOption.AllDirectories))
+                {
+                    var fi = new FileInfo(f);
+                    if (fi.LastWriteTimeUtc >= cutoff) files.Add(fi);
+                }
             }
             catch (Exception ex) { LogService.Instance.Error(ex); }
 
@@ -56,12 +66,11 @@ namespace AgentHub.Server.Agents
             {
                 try
                 {
-                    var id = Path.GetFileNameWithoutExtension(fi.Name);
-                    _paths[id] = fi.FullName;
                     var lines = ReadAllLinesShared(fi.FullName);
-                    var s = TranscriptParser.Summarize(id, lines, now);
-                    s.Engine = "claude";
-                    s.PendingAsk = TranscriptParser.ExtractPendingAsk(lines);
+                    var id = SessionIdOf(lines) ?? Path.GetFileNameWithoutExtension(fi.Name);
+                    _paths[id] = fi.FullName;
+                    var s = CodexTranscriptParser.Summarize(id, lines, now);
+                    if (titles.TryGetValue(id, out var t) && !string.IsNullOrWhiteSpace(t)) s.Title = t;
                     result.Add(s);
                 }
                 catch (Exception ex) { LogService.Instance.Error(ex); }
@@ -71,16 +80,12 @@ namespace AgentHub.Server.Agents
 
         public static List<ActivityEvent> GetActivity(string sessionId, int max = 200)
         {
-            if (!_paths.TryGetValue(sessionId, out var path) || !File.Exists(path))
-            {
-                path = FindSessionFile(sessionId);
-                if (path == null) return new List<ActivityEvent>();
-                _paths[sessionId] = path;
-            }
+            var path = ResolvePath(sessionId);
+            if (path == null) return new List<ActivityEvent>();
             try
             {
                 var lines = ReadAllLinesShared(path);
-                return TranscriptParser.ParseEvents(lines, max);
+                return CodexTranscriptParser.ParseEvents(lines, max);
             }
             catch (Exception ex) { LogService.Instance.Error(ex); return new List<ActivityEvent>(); }
         }
@@ -88,34 +93,26 @@ namespace AgentHub.Server.Agents
         /// <summary>세션의 작업 디렉터리(cwd)를 트랜스크립트에서 조회. resume 실행용. 실패 시 null.</summary>
         public static string CwdOf(string sessionId)
         {
+            var path = ResolvePath(sessionId);
+            if (path == null) return null;
             try
             {
-                if (!_paths.TryGetValue(sessionId, out var path) || !File.Exists(path))
-                {
-                    path = FindSessionFile(sessionId);
-                    if (path == null) return null;
-                    _paths[sessionId] = path;
-                }
                 var lines = ReadAllLinesShared(path);
-                return TranscriptParser.Summarize(sessionId, lines, DateTime.UtcNow).Cwd;
+                return CodexTranscriptParser.Summarize(sessionId, lines, DateTime.UtcNow).Cwd;
             }
             catch (Exception ex) { LogService.Instance.Error(ex); return null; }
         }
 
-        /// <summary>세션 제목을 트랜스크립트에서 조회(알림 표시용). 실제 제목이 없으면(sessionId 폴백) null.</summary>
+        /// <summary>세션 제목(알림 표시용). session_index의 thread_name 우선. 없으면 null.</summary>
         public static string TitleOf(string sessionId)
         {
             try
             {
-                if (!_paths.TryGetValue(sessionId, out var path) || !File.Exists(path))
-                {
-                    path = FindSessionFile(sessionId);
-                    if (path == null) return null;
-                    _paths[sessionId] = path;
-                }
-                var lines = ReadAllLinesShared(path);
-                var s = TranscriptParser.Summarize(sessionId, lines, DateTime.UtcNow);
-                // Summarize는 제목이 없으면 sessionId로 폴백 → 그 경우 '제목 없음'으로 취급.
+                var titles = LoadTitleIndex();
+                if (titles.TryGetValue(sessionId, out var t) && !string.IsNullOrWhiteSpace(t)) return t;
+                var path = ResolvePath(sessionId);
+                if (path == null) return null;
+                var s = CodexTranscriptParser.Summarize(sessionId, ReadAllLinesShared(path), DateTime.UtcNow);
                 return s.Title == sessionId ? null : s.Title;
             }
             catch (Exception ex) { LogService.Instance.Error(ex); return null; }
@@ -124,33 +121,76 @@ namespace AgentHub.Server.Agents
         /// <summary>세션의 마지막 어시스턴트 텍스트(알림·답장 카드 표시용). 실패 시 null.</summary>
         public static string LastAssistantTextOf(string sessionId)
         {
-            try
-            {
-                if (!_paths.TryGetValue(sessionId, out var path) || !File.Exists(path))
-                {
-                    path = FindSessionFile(sessionId);
-                    if (path == null) return null;
-                    _paths[sessionId] = path;
-                }
-                return TranscriptParser.LastAssistantText(ReadAllLinesShared(path));
-            }
+            var path = ResolvePath(sessionId);
+            if (path == null) return null;
+            try { return CodexTranscriptParser.LastAssistantText(ReadAllLinesShared(path)); }
             catch (Exception ex) { LogService.Instance.Error(ex); return null; }
         }
 
+        private static string ResolvePath(string sessionId)
+        {
+            if (_paths.TryGetValue(sessionId, out var path) && File.Exists(path)) return path;
+            path = FindSessionFile(sessionId);
+            if (path != null) _paths[sessionId] = path;
+            return path;
+        }
+
+        // 파일명은 rollout-<시각>-<uuid>.jsonl 이라 uuid(sessionId)로 끝난다.
         private static string FindSessionFile(string sessionId)
         {
-            var root = ProjectsRoot;
+            if (string.IsNullOrEmpty(sessionId)) return null;
+            var root = SessionsRoot;
             if (!Directory.Exists(root)) return null;
             try
             {
-                foreach (var dir in Directory.EnumerateDirectories(root))
-                {
-                    var candidate = Path.Combine(dir, sessionId + ".jsonl");
-                    if (File.Exists(candidate)) return candidate;
-                }
+                var suffix = sessionId + ".jsonl";
+                foreach (var f in Directory.EnumerateFiles(root, "*.jsonl", SearchOption.AllDirectories))
+                    if (f.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)) return f;
             }
             catch (Exception ex) { LogService.Instance.Error(ex); }
             return null;
+        }
+
+        // 첫 줄 session_meta.payload.id
+        private static string SessionIdOf(IReadOnlyList<string> lines)
+        {
+            foreach (var line in lines)
+            {
+                try
+                {
+                    var o = JObject.Parse(line);
+                    if ((string)o["type"] == "session_meta")
+                        return (string)o["payload"]?["id"];
+                }
+                catch { }
+                return null; // 첫 줄만 검사(session_meta는 항상 첫 줄)
+            }
+            return null;
+        }
+
+        // ~/.codex/session_index.jsonl → { id: thread_name }
+        private static Dictionary<string, string> LoadTitleIndex()
+        {
+            var map = new Dictionary<string, string>();
+            var path = Path.Combine(CodexHome, "session_index.jsonl");
+            if (!File.Exists(path)) return map;
+            try
+            {
+                foreach (var line in ReadAllLinesShared(path))
+                {
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    try
+                    {
+                        var o = JObject.Parse(line);
+                        var id = (string)o["id"];
+                        var name = (string)o["thread_name"];
+                        if (!string.IsNullOrEmpty(id)) map[id] = name;
+                    }
+                    catch { }
+                }
+            }
+            catch (Exception ex) { LogService.Instance.Error(ex); }
+            return map;
         }
 
         // 잠긴(쓰기 중) 파일도 읽도록 FileShare.ReadWrite.
@@ -170,13 +210,13 @@ namespace AgentHub.Server.Agents
         {
             Stop(); // 재호출 시 기존 watcher/timer 누수 방지
             _onChanged = onChanged;
-            var root = ProjectsRoot;
+            var root = SessionsRoot;
+            if (!Directory.Exists(root)) return; // Codex 미설치 → 조용히 비활성(폴백 없음)
             try
             {
-                if (!Directory.Exists(root)) Directory.CreateDirectory(root);
                 _watcher = new FileSystemWatcher(root, "*.jsonl")
                 {
-                    IncludeSubdirectories = true,
+                    IncludeSubdirectories = true, // 날짜 폴더 중첩
                     NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size,
                     EnableRaisingEvents = true
                 };
@@ -185,7 +225,6 @@ namespace AgentHub.Server.Agents
                 _watcher.Renamed += OnFsEvent;
                 _watcher.Error += OnWatcherError;
 
-                // watcher 이벤트 유실 대비 저빈도 폴링 폴백(5초)
                 _poll = new Timer(_ =>
                 {
                     try { _onChanged?.Invoke(); }
@@ -195,7 +234,6 @@ namespace AgentHub.Server.Agents
             catch (Exception ex) { LogService.Instance.Error(ex); }
         }
 
-        // watcher가 죽거나 버퍼 오버플로 시 재무장.
         private static void OnWatcherError(object sender, ErrorEventArgs e)
         {
             try
@@ -209,7 +247,6 @@ namespace AgentHub.Server.Agents
 
         private static void OnFsEvent(object sender, FileSystemEventArgs e)
         {
-            // 300ms 디바운스 — 연속 쓰기 폭주 완화
             lock (_debounceLock)
             {
                 _debounce?.Dispose();

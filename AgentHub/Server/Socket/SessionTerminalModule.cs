@@ -127,7 +127,7 @@ namespace AgentHub.Server.Socket
                     return;
                 }
 
-                var cwd = ClaudeSessionReader.CwdOf(sessionId);
+                var cwd = AgentMonitorService.CwdOf(sessionId);
                 if (string.IsNullOrEmpty(cwd) || !System.IO.Directory.Exists(cwd))
                 {
                     await SendTextSafe(context, Json.Serialize(new { type = "denied", reason = "nocwd" }));
@@ -144,7 +144,7 @@ namespace AgentHub.Server.Socket
                     SessionPidRegistry.Remove(sessionId); // 곧 우리 resume가 자기 PID로 다시 등록
                 }
 
-                var command = EngineSpec.For("claude").ResumeCommand(sessionId);
+                var command = EngineSpec.For(AgentMonitorService.EngineOf(sessionId)).ResumeCommand(sessionId);
                 var session = new Session { SessionId = sessionId };
                 session.Attached[context.Id] = 0;
                 // PTY 생성 전에 먼저 등록한다 — ConPtySession의 읽기 스레드가 생성자에서 시작되므로,

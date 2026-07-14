@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using AgentHub.Common.Models;
 using AgentHub.Common.Util;
 using AgentHub.Server.Socket;
@@ -7,17 +8,46 @@ using AgentHub.Server.Socket;
 namespace AgentHub.Server.Agents
 {
     /// <summary>
-    /// 세션 모니터링 데이터 소스(seam). ClaudeSessionReader(트랜스크립트)를 읽어
-    /// /ws/agents 로 push한다. 변경은 FileSystemWatcher 콜백으로 즉시 반영.
+    /// 세션 모니터링 데이터 소스(seam). Claude(ClaudeSessionReader) + Codex(CodexSessionReader)
+    /// 트랜스크립트를 읽어 하나의 목록으로 병합해 /ws/agents 로 push한다. 변경은 FileSystemWatcher 콜백으로 즉시 반영.
+    /// sessionId 기준 조회는 엔진(소유 리더)으로 라우팅한다.
     /// </summary>
     public static class AgentMonitorService
     {
         private static AgentMonitorModule _module;
+        private const int MaxSessions = 30;
 
-        public static List<SessionSummary> CurrentSessions() => ClaudeSessionReader.ListSessions();
+        public static List<SessionSummary> CurrentSessions()
+        {
+            var merged = new List<SessionSummary>();
+            merged.AddRange(ClaudeSessionReader.ListSessions());
+            if (CodexSessionReader.Available) merged.AddRange(CodexSessionReader.ListSessions());
+            return merged
+                .OrderByDescending(s => s.LastActivityAt ?? "", StringComparer.Ordinal)
+                .Take(MaxSessions)
+                .ToList();
+        }
+
+        /// <summary>sessionId가 어느 엔진 소유인지(이어받기·라우팅용). Codex 파일이 있으면 codex, 아니면 claude.</summary>
+        public static string EngineOf(string sessionId)
+            => CodexSessionReader.Available && CodexSessionReader.Has(sessionId) ? "codex" : "claude";
 
         public static List<ActivityEvent> Activity(string sessionId, int max = 200)
-            => ClaudeSessionReader.GetActivity(sessionId, max);
+            => EngineOf(sessionId) == "codex"
+                ? CodexSessionReader.GetActivity(sessionId, max)
+                : ClaudeSessionReader.GetActivity(sessionId, max);
+
+        /// <summary>세션의 cwd(터미널 resume용). 엔진 라우팅.</summary>
+        public static string CwdOf(string sessionId)
+            => EngineOf(sessionId) == "codex"
+                ? CodexSessionReader.CwdOf(sessionId)
+                : ClaudeSessionReader.CwdOf(sessionId);
+
+        /// <summary>세션의 마지막 어시스턴트 텍스트(알림 본문). 엔진 라우팅.</summary>
+        public static string LastAssistantTextOf(string sessionId)
+            => EngineOf(sessionId) == "codex"
+                ? CodexSessionReader.LastAssistantTextOf(sessionId)
+                : ClaudeSessionReader.LastAssistantTextOf(sessionId);
 
         public static string CurrentSessionsMessage() =>
             Json.Serialize(new { type = "sessions", sessions = CurrentSessions() });
@@ -32,11 +62,13 @@ namespace AgentHub.Server.Agents
         {
             _module = module;
             ClaudeSessionReader.Start(OnChanged);
+            CodexSessionReader.Start(OnChanged); // Codex 미설치 시 내부에서 조용히 비활성
         }
 
         public static void Stop()
         {
             ClaudeSessionReader.Stop();
+            CodexSessionReader.Stop();
             _module = null;
         }
 
