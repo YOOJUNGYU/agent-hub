@@ -10,6 +10,8 @@
   <link rel="icon" href="/icons/icon-192.png" />
   <link rel="stylesheet" href="/css/app.css" />
   <link rel="stylesheet" href="/css/xterm.css" />
+  <!-- 저장된 테마를 첫 페인트 전에 적용해 라이트 모드 사용자에게 다크→라이트 깜빡임(FOUC)이 없게 한다. -->
+  <script>try{if(localStorage.getItem('agenthub.theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
   <title>Agent Hub — 모니터</title>
 </head>
 <body>
@@ -20,6 +22,7 @@
       <button id="installBtn" class="hdr-btn install" hidden data-i18n="pwa.install">⬇ 앱 설치</button>
       <button id="certBtn" class="hdr-btn" data-i18n="cert.hdr" aria-haspopup="true" aria-expanded="false">🔒 인증서</button>
       <span class="badge" id="wsBadge"><span class="spinner"></span><span data-i18n="ws.connecting">연결 중…</span></span>
+      <button id="themeBtn" class="hdr-btn" type="button" aria-label="라이트/다크 테마 전환" title="테마 전환">🌙</button>
       <label class="lang-switch"><span aria-hidden="true">🌐</span>
         <select class="lang-select" data-lang-select aria-label="Language / 언어">
           <option value="ko">한국어</option>

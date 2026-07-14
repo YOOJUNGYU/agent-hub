@@ -623,6 +623,31 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+// ---- 테마(다크/라이트) 토글 ----
+// 상태는 localStorage('agenthub.theme')에 저장. 첫 페인트 전 적용은 index.html head의 인라인 스크립트가 담당(FOUC 방지).
+// 여기서는 버튼 아이콘·theme-color 메타를 상태에 맞게 동기화하고 클릭 토글을 붙인다.
+(function () {
+  var THEME_KEY = 'agenthub.theme';
+  var root = document.documentElement;
+  var btn = document.getElementById('themeBtn');
+  var meta = document.querySelector('meta[name="theme-color"]');
+  function apply(theme) {
+    var light = theme === 'light';
+    if (light) root.setAttribute('data-theme', 'light');
+    else root.removeAttribute('data-theme');
+    if (btn) btn.textContent = light ? '☀️' : '🌙';
+    if (meta) meta.setAttribute('content', light ? '#e7ecf8' : '#181c2a');
+  }
+  var saved = null;
+  try { saved = localStorage.getItem(THEME_KEY); } catch (e) {}
+  apply(saved === 'light' ? 'light' : 'dark');
+  if (btn) btn.addEventListener('click', function () {
+    var next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    apply(next);
+    try { localStorage.setItem(THEME_KEY, next); } catch (e) {}
+  });
+})();
+
 // ---- 인증서 메뉴(헤더) + PWA 설치 유도 ----
 (function () {
   var isStandalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
@@ -631,9 +656,13 @@ if ('serviceWorker' in navigator) {
   var certPanel = document.getElementById('certPanel');
   var installBtn = document.getElementById('installBtn');
 
-  // 인증서 메뉴 토글(헤더 드롭다운) — PWA로 실행 중이어도 항상 유지한다.
-  // (인증서는 삭제·만료될 수 있고, 그때 재설치 경로가 없으면 앱이 영영 연결 불가. 링크는 시스템 브라우저로 넘겨 경고 통과·설치.)
-  if (certBtn && certPanel) {
+  // 설치된 PWA(standalone)에서는 인증서 버튼을 숨긴다.
+  // (PWA 설치가 가능했다는 건 이미 신뢰 인증서를 설치했다는 뜻이므로 다운로드 UI가 불필요.
+  //  인증서가 만료·삭제돼 연결이 끊기면 authPending 화면의 '새 인증서 설치' 링크로 재설치 경로가 유지된다.)
+  if (isStandalone) {
+    if (certBtn) certBtn.hidden = true;
+    if (certPanel) certPanel.hidden = true;
+  } else if (certBtn && certPanel) {
     applyCertUrls(); // 패널 다운로드 링크·주소를 HTTP(/cert)로 설정(인증서 삭제/미설치 상태에서도 경고 없이 동작)
     certBtn.addEventListener('click', function (e) {
       e.stopPropagation();

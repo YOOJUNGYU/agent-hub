@@ -357,3 +357,76 @@ body:not(.host-shell) #terminal:not([hidden]){ flex:1 1 auto; min-height:0; disp
   gap:.5rem; background:#0b0f1a; color:var(--muted); font-size:.95rem; }
 /* [hidden] 속성이 위 display:flex(author 규칙)를 이기도록 명시 — 로딩 완료(첫 출력 바이트) 시 오버레이를 확실히 숨긴다. */
 .term-loading[hidden]{ display:none; }
+
+/* ===== 라이트 테마 (PWA) =====
+   documentElement에 data-theme="light"가 있을 때만 적용된다. 미지정(기본)은 다크 유지.
+   호스트 콘솔(host.html)은 data-theme를 설정하지 않으므로 항상 다크로 남는다.
+   먼저 코어 변수를 라이트 팔레트로 뒤집어 변수 기반 요소를 일괄 대응하고,
+   하드코딩 색을 쓰는 컴포넌트만 아래에서 명시적으로 오버라이드한다. */
+:root[data-theme="light"]{
+  --bg:#eef1f7; --panel:#ffffff; --panel2:#e7ebf5; --fore:#1a2030; --muted:#5b6478;
+  --accent:#0e9aa1; --violet:#6d54e0; --ok:#12a06a; --warn:#c98a10; --err:#e0455a;
+  --border:#d6dced;
+}
+[data-theme="light"] .app-header{ background:linear-gradient(90deg,#e7ecf8,#dce3f5); }
+
+[data-theme="light"] .auth-card{ background:#ffffff; border-color:#d6dced; }
+[data-theme="light"] .auth-card h2{ color:#1a2030; }
+[data-theme="light"] .auth-card .hint{ color:#5b6478; }
+[data-theme="light"] .auth-card input[type="text"]{ background:#f2f5fb; color:#1a2030; border-color:#d6dced; }
+[data-theme="light"] .auth-card button{ background:#3b6fd4; color:#fff; }
+[data-theme="light"] .auth-card button:hover{ background:#3160c2; }
+
+[data-theme="light"] .session-card{ background:#ffffff; border-color:#dbe1ee; }
+[data-theme="light"] .session-card:active{ background:#eef1f8; }
+[data-theme="light"] .session-card.waiting{ background:#fff7e2; border-color:#e6b23c; }
+[data-theme="light"] .card-meta,
+[data-theme="light"] .run{ color:#5b6478; }
+[data-theme="light"] .card-task{ color:#2a3244; }
+[data-theme="light"] .card-time,
+[data-theme="light"] .empty{ color:#7a8296; }
+
+[data-theme="light"] .back-btn,
+[data-theme="light"] .guide-link{ color:#3b6fd4; }
+
+[data-theme="light"] .ev{ background:#f6f8fc; border-left-color:#d6dced; }
+[data-theme="light"] .ev-tool_use{ border-left-color:#3b6fd4; }
+[data-theme="light"] .ev-tool_result{ border-left-color:#12a06a; }
+[data-theme="light"] .ev-user_prompt{ border-left-color:#d98a1a; }
+[data-theme="light"] .ev-text{ color:#4a5468; }
+
+[data-theme="light"] .hdr-btn{ background:#eef1f8; color:#2a3244; border-color:#d6dced; }
+[data-theme="light"] .hdr-btn:active{ background:#e0e5f1; }
+[data-theme="light"] .hdr-btn.install{ background:#3b6fd4; color:#fff; border-color:#3b6fd4; }
+
+[data-theme="light"] .cert-panel{ background:#ffffff; border-color:#d6dced; }
+[data-theme="light"] .cert-panel-title{ color:#1a2030; }
+[data-theme="light"] .cert-panel .cert-dl{ background:#3b6fd4; color:#fff; }
+[data-theme="light"] .cert-panel .hint{ color:#5b6478; }
+
+[data-theme="light"] .term-btn{ background:#eef1f8; color:#2a3244; border-color:#d6dced; }
+[data-theme="light"] .term-warn{ color:#b5730a; }
+[data-theme="light"] .key-btn{ background:#eef1f8; color:#2a3244; border-color:#d6dced; }
+[data-theme="light"] .key-btn:active{ background:#e0e5f1; }
+
+[data-theme="light"] .elicit-overlay{ background:rgba(20,26,40,.4); }
+[data-theme="light"] .elicit-card{ background:#ffffff; border-color:#d6dced; box-shadow:0 24px 60px -20px rgba(20,30,60,.35); }
+[data-theme="light"] .elicit-progress,
+[data-theme="light"] .elicit-hint,
+[data-theme="light"] .elicit-opt-desc{ color:#5b6478; }
+[data-theme="light"] .elicit-question,
+[data-theme="light"] .elicit-opt-label{ color:#1a2030; }
+[data-theme="light"] .elicit-opt{ background:#f6f8fc; border-color:#dbe1ee; }
+[data-theme="light"] .elicit-opt:active{ background:#eef1f8; }
+[data-theme="light"] .elicit-other{ background:#f2f5fb; color:#1a2030; border-color:#d6dced; }
+[data-theme="light"] .elicit-btn.ghost{ background:#e7ebf5; color:#2a3244; }
+
+[data-theme="light"] .ask-banner{ background:#fff4e0; border-color:#e6c07a; }
+[data-theme="light"] .ask-text{ color:#8a5a10; }
+[data-theme="light"] .ask-banner.perm{ background:#fff4e0; border-color:#e6c07a; }
+[data-theme="light"] .ask-banner.perm .ask-text{ color:#8a5a10; }
+[data-theme="light"] .perm-detail{ background:#f2f5fb; color:#1a2030; border-color:#d6dced; }
+
+[data-theme="light"] .badge-status.active{ background:#d3f2df; color:#12703f; }
+[data-theme="light"] .badge-status.idle{ background:#f2edc9; color:#7a6a12; }
+[data-theme="light"] .badge-status.ended{ background:#e6e0ea; color:#6a6270; }
