@@ -174,6 +174,16 @@
   details.more .mbody p{margin:8px 0}
   details.more .mbody code{font-family:var(--mono); font-size:12px; background:#0d0f17; border:1px solid var(--border); border-radius:5px; padding:1px 5px; color:#c9d1e4}
 
+  /* 비교 표 (차별점) */
+  .cmp-wrap{overflow-x:auto; margin-top:8px}
+  .cmp{width:100%; border-collapse:collapse; font-size:14px; min-width:520px}
+  .cmp th,.cmp td{border:1px solid var(--border); padding:10px 12px; text-align:left; vertical-align:top}
+  .cmp thead th{background:var(--surface2); font-size:13px}
+  .cmp tbody th{background:var(--surface); font-weight:600; color:var(--muted); white-space:nowrap; width:22%}
+  .cmp td{color:var(--muted)}
+  .cmp td.hi{color:var(--text)}
+  .cmp td.hi b{color:var(--accent)}
+
   footer{border-top:1px solid var(--border); padding:34px 0 48px; color:var(--muted); font-size:14px}
   footer .wrap{display:flex; gap:16px; flex-wrap:wrap; align-items:center}
 
@@ -551,6 +561,49 @@
           </div>
         </div>
       </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 차별점: 공식 Remote Control과 비교 -->
+<section class="step" id="vs">
+  <div class="wrap" style="grid-template-columns:1fr; gap:10px">
+    <div class="txt">
+      <div class="stepno">🆚 <span class="ko">차별점</span><span class="en">HOW IT DIFFERS</span></div>
+      <h2><span class="ko">Claude Code 공식 원격 제어와 무엇이 다른가요?</span><span class="en">How is this different from Claude Code's official Remote Control?</span></h2>
+      <p><span class="ko">Claude Code에는 세션을 원격에서 이어받는 공식 <b>Remote Control</b> 기능이 있습니다. 목표는 비슷하지만, Agent Hub는 <b>연결 방식과 전제가 근본적으로 다릅니다.</b></span>
+         <span class="en">Claude Code has an official <b>Remote Control</b> feature for taking over a session remotely. The goal is similar, but Agent Hub differs fundamentally in <b>how it connects and what it assumes.</b></span></p>
+      <div class="cmp-wrap">
+        <table class="cmp">
+          <thead><tr>
+            <th></th>
+            <th><span class="ko">Claude Code Remote Control (공식)</span><span class="en">Claude Code Remote Control (official)</span></th>
+            <th>Agent Hub</th>
+          </tr></thead>
+          <tbody>
+            <tr><th><span class="ko">연결 경로</span><span class="en">Connection path</span></th>
+              <td><span class="ko">Anthropic 클라우드(API) 경유</span><span class="en">Via Anthropic cloud (API)</span></td>
+              <td class="hi"><b><span class="ko">내 LAN 안 로컬 서버만</span><span class="en">Local server on your LAN only</span></b> <span class="ko">— 제어·모니터링이 외부로 안 나감</span><span class="en">— control &amp; monitoring never leave</span></td></tr>
+            <tr><th><span class="ko">접근 범위</span><span class="en">Reach</span></th>
+              <td><span class="ko">인터넷 어디서나</span><span class="en">Anywhere over the internet</span></td>
+              <td class="hi"><b><span class="ko">같은 네트워크(집·회사 LAN) 안</span><span class="en">Same network (home/office LAN)</span></b></td></tr>
+            <tr><th><span class="ko">필요 조건</span><span class="en">Requirements</span></th>
+              <td><span class="ko">Pro/Max/Team/Enterprise 구독 + 계정 로그인</span><span class="en">Pro/Max/Team/Enterprise plan + account login</span></td>
+              <td class="hi"><b><span class="ko">구독 무관</span><span class="en">No plan needed</span></b> <span class="ko">— 로컬에 Claude Code만 있으면 됨</span><span class="en">— just local Claude Code</span></td></tr>
+            <tr><th><span class="ko">접근 통제</span><span class="en">Access control</span></th>
+              <td><span class="ko">계정·조직 정책 / 신뢰 기기</span><span class="en">Account/org policy, trusted devices</span></td>
+              <td class="hi"><b><span class="ko">내 PC에서 기기별 직접 승인</span><span class="en">You approve each device on your PC</span></b></td></tr>
+            <tr><th><span class="ko">대상 세션</span><span class="en">Sessions</span></th>
+              <td><span class="ko">원격 제어로 켠 세션</span><span class="en">A session you start in remote‑control mode</span></td>
+              <td class="hi"><b><span class="ko">로컬에서 돌고 있는 세션들을 자동 감지</span><span class="en">Auto‑detects sessions already running locally</span></b></td></tr>
+            <tr><th><span class="ko">클라이언트</span><span class="en">Clients</span></th>
+              <td><span class="ko">네이티브 모바일 앱 · 웹</span><span class="en">Native mobile app · web</span></td>
+              <td class="hi"><b><span class="ko">PWA(홈 화면 앱)</span><span class="en">PWA (home‑screen app)</span></b> <span class="ko">+ PC 콘솔</span><span class="en">+ PC console</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note" style="color:var(--accent); background:rgba(122,162,255,.08); border-color:rgba(122,162,255,.25)"><span class="ko">💡 한마디로, <b>클라우드를 거치지 않고 내 네트워크 안에서, 내가 승인한 기기만</b> 쓰고 싶을 때 Agent Hub가 맞습니다. (앱을 닫았을 때 오는 알림만 암호화되어 외부 푸시 서비스를 거칩니다.)</span>
+        <span class="en">💡 In short: pick Agent Hub when you want <b>no cloud relay — inside your own network, only devices you approved.</b> (Only closed‑app push alerts pass through an external, encrypted push service.)</span></div>
     </div>
   </div>
 </section>

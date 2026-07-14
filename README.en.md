@@ -53,6 +53,23 @@ After installation, the program stays in the **taskbar tray** (bottom-right).
 
 ---
 
+## How is this different from Claude Code's official Remote Control?
+
+Claude Code has an official **Remote Control** feature for taking over a session remotely. The goal (control Claude from your phone while you're away) is similar, but Agent Hub differs fundamentally in **how it connects and what it assumes.**
+
+| | **Claude Code Remote Control (official)** | **Agent Hub** |
+|---|---|---|
+| **Connection path** | Via Anthropic cloud (API) | **Local server on your LAN only** — control & monitoring never leave |
+| **Reach** | Anywhere over the internet | **Same network (home/office LAN)** |
+| **Requirements** | Pro/Max/Team/Enterprise plan + account login | **No plan needed** — just local Claude Code |
+| **Access control** | Account/org policy, trusted devices | **You approve each device on your PC** |
+| **Sessions** | A session you start in remote-control mode | **Auto-detects sessions already running locally** |
+| **Clients** | Native mobile app · web | **PWA (home-screen app)** + PC console |
+
+> 💡 In short: pick Agent Hub when you want **no cloud relay — inside your own network, only devices you approved.** (Only closed-app push alerts pass through an external, encrypted push service.)
+
+---
+
 ## Settings · Update
 
 - In the console **Settings** tab, change the server **port** (default `47600`) and **display language** (Korean / English).
