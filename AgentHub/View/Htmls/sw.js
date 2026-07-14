@@ -21,13 +21,15 @@ self.addEventListener('fetch', e => {
 });
 
 // Web Push: 앱이 꺼져 있어도 응답 대기 알림 표시. 암호화 payload로 질문 상세(title/body)가 오면 그대로 표시,
-// 없으면 일반 문구로 폴백. 탭하면 앱이 열린다. 같은 tag로 스팸 방지.
+// 없으면 일반 문구로 폴백. 탭하면 앱이 열린다. 세션별 tag로 다른 세션 알림이 서로 덮어쓰지 않게 한다
+// (동일 본문 반복 전송은 서버가 이미 막으므로, 도착한 푸시는 내용이 바뀐 것 → renotify로 알림).
 self.addEventListener('push', function (e) {
   var title = 'Agent Hub';
   var body = '응답 대기 중인 세션이 있습니다';
-  if (e.data) { try { var d = e.data.json(); if (d.title) title = d.title; if (d.body) body = d.body; } catch (_) { var tx = e.data.text(); if (tx) body = tx; } }
+  var sid = '';
+  if (e.data) { try { var d = e.data.json(); if (d.title) title = d.title; if (d.body) body = d.body; if (d.sessionId) sid = d.sessionId; } catch (_) { var tx = e.data.text(); if (tx) body = tx; } }
   e.waitUntil(self.registration.showNotification(title, {
-    body: body, tag: 'agenthub-ask', renotify: true, icon: '/icons/icon-192.png', data: { url: '/' }
+    body: body, tag: 'agenthub-' + (sid || 'ask'), renotify: true, icon: '/icons/icon-192.png', data: { url: '/' }
   }));
 });
 

@@ -186,6 +186,20 @@ namespace AgentHub.Server.Controller
             return SendJsonAsync(Json.Serialize(new { ok = AgentHub.Server.Hook.HookInstaller.Uninstall() }));
         }
 
+        // Stop/Notification 훅은 매 턴 발화한다. 마지막 멘트가 그대로면(새 text 없음·연속 턴 등)
+        // 같은 본문이 반복 전송돼 "동일 알림 반복" 문제가 생긴다. 세션·종류별 직전 전송 본문을 기억해
+        // 연속으로 동일하면 skip한다(내용이 바뀌면 다시 알림).
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> _lastNotified
+            = new System.Collections.Concurrent.ConcurrentDictionary<string, string>();
+
+        private static bool IsDuplicateNotify(string kind, string sessionId, string body)
+        {
+            var key = kind + "|" + (sessionId ?? "");
+            if (_lastNotified.TryGetValue(key, out var prev) && prev == body) return true;
+            _lastNotified[key] = body;
+            return false;
+        }
+
         [Route(HttpVerbs.Post, "/hook/notification")]
         public async Task HookNotification()
         {
@@ -213,8 +227,11 @@ namespace AgentHub.Server.Controller
                     var last = ClaudeSessionReader.LastAssistantTextOf(sessionId);
                     var msg = !string.IsNullOrWhiteSpace(last) ? last
                         : (string.IsNullOrEmpty(message) ? "입력이 필요합니다" : message);
-                    AgentMonitorService.BroadcastAsk(project, msg, sessionId);
-                    AgentHub.Server.Push.PushService.NotifyDisconnected(msg, sessionId);
+                    if (!IsDuplicateNotify("ask", sessionId, msg))
+                    {
+                        AgentMonitorService.BroadcastAsk(project, msg, sessionId);
+                        AgentHub.Server.Push.PushService.NotifyDisconnected(msg, sessionId);
+                    }
                 }
             }
             catch (Exception ex) { LogService.Instance.Error(ex); }
@@ -234,8 +251,11 @@ namespace AgentHub.Server.Controller
                 var sessionId = (string)o["session_id"];
                 var last = ClaudeSessionReader.LastAssistantTextOf(sessionId);
                 var body = string.IsNullOrWhiteSpace(last) ? "작업을 완료했습니다" : last;
-                AgentMonitorService.BroadcastDone(project, sessionId, body);
-                AgentHub.Server.Push.PushService.NotifyDisconnected(body, sessionId);
+                if (!IsDuplicateNotify("done", sessionId, body))
+                {
+                    AgentMonitorService.BroadcastDone(project, sessionId, body);
+                    AgentHub.Server.Push.PushService.NotifyDisconnected(body, sessionId);
+                }
             }
             catch (Exception ex) { LogService.Instance.Error(ex); }
             await SendJsonAsync(Json.Serialize(new { ok = true }));

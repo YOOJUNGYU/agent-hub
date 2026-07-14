@@ -30,7 +30,8 @@ namespace AgentHub.Server.Push
                     var st = ClaudeSessionReader.TitleOf(sessionId);
                     var prefix = string.IsNullOrEmpty(st) ? "" : "(" + (st.Length > 40 ? st.Substring(0, 40) + "…" : st) + ") ";
                     var body = prefix + (message ?? "");
-                    var payload = Json.Serialize(new { title = "Agent Hub", body });
+                    // sessionId를 함께 실어 SW가 세션별 tag로 표시 → 서로 다른 세션 알림이 덮어쓰지 않게.
+                    var payload = Json.Serialize(new { title = "Agent Hub", body, sessionId });
                     var vapid = new VapidDetails("mailto:noreply@agenthub.local", pub, priv);
                     var client = new WebPushClient();
                     ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
