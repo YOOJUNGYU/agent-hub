@@ -77,6 +77,12 @@ Claude Code has an official **Remote Control** feature for taking over a session
 
 ---
 
+## Code signing
+
+Code signing for the Windows installer is provided free of charge to open source projects by [SignPath.io](https://signpath.io), with a certificate issued by the [SignPath Foundation](https://signpath.org).
+
+---
+
 ## Contact
 
 If you run into a problem or have a suggestion, please open an [issue](https://github.com/YOOJUNGYU/agent-hub/issues).
