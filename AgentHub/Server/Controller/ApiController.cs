@@ -189,6 +189,27 @@ namespace AgentHub.Server.Controller
             await SendJsonAsync(Json.Serialize(new { ok = true, enabled = body.Enabled }));
         }
 
+        // ---- Windows 시작 시 자동 실행 (PC/loopback 전용) ----
+
+        [Route(HttpVerbs.Get, "/autostart")]
+        public Task GetAutoStart()
+        {
+            if (!IsLoopback()) return Forbidden();
+            return SendJsonAsync(Json.Serialize(new { enabled = Properties.Settings.Default.AutoStart }));
+        }
+
+        [Route(HttpVerbs.Post, "/autostart")]
+        public async Task SaveAutoStart()
+        {
+            if (!IsLoopback()) { await Forbidden(); return; }
+            var raw = await HttpContext.GetRequestBodyAsStringAsync();
+            var body = Json.Deserialize<AutoStartBody>(raw) ?? new AutoStartBody();
+            Properties.Settings.Default.AutoStart = body.Enabled;
+            Properties.Settings.Default.Save();
+            var ok = AutoStartService.Apply(body.Enabled);
+            await SendJsonAsync(Json.Serialize(new { ok, enabled = body.Enabled }));
+        }
+
         // ---- Notification 훅 설치/제거 (PC/loopback 전용) ----
 
         [Route(HttpVerbs.Get, "/hook/status")]
@@ -512,6 +533,11 @@ namespace AgentHub.Server.Controller
             public bool Enabled { get; set; }
             public string Shell { get; set; }
             public string WorkingDir { get; set; }
+        }
+
+        internal class AutoStartBody
+        {
+            public bool Enabled { get; set; }
         }
     }
 }

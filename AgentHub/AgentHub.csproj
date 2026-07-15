@@ -129,6 +129,7 @@
     <Compile Include="Common\Models\SessionSummary.cs" />
     <Compile Include="Common\Models\ActivityEvent.cs" />
     <Compile Include="Common\Util\AppSettingsProvider.cs" />
+    <Compile Include="Common\Util\AutoStartService.cs" />
     <Compile Include="Common\Util\ApiLogger.cs" />
     <Compile Include="Common\Util\ClawdGuard.cs" />
     <Compile Include="Common\Util\EtcUtil.cs" />

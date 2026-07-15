@@ -84,6 +84,8 @@
           <input type="number" id="portInput" min="1024" max="65535" required />
           <button type="submit" data-i18n="settings.save">저장 후 재시작</button>
           <p class="hint" id="settingsHint" data-i18n="settings.hint">포트를 바꾸면 서버가 재시작되고 접속 주소가 변경됩니다.</p>
+          <label class="chk"><input type="checkbox" id="autoStart" /> <span data-i18n="settings.autoStart">Windows 시작 시 자동 실행</span></label>
+          <p class="hint" data-i18n="settings.autoStartHint">로그인하면 Agent Hub가 자동으로 실행됩니다(기본 켜짐). 설치본에서만 적용됩니다.</p>
         </div>
         <div class="settings-col">
           <h3 class="settings-h" data-i18n="settings.terminalGroup">터미널</h3>

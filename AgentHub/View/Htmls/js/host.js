@@ -219,7 +219,18 @@ async function loadSettings() {
     $('#termShell').value = c.shell || '';
     $('#termCwd').value = c.workingDir || '';
   } catch (e) { /* noop */ }
+  try {
+    const a = await (await fetch('/api/autostart')).json();
+    $('#autoStart').checked = !!a.enabled;
+  } catch (e) { /* noop */ }
 }
+// Windows 시작 시 자동 실행 토글 — 변경 즉시 저장.
+$('#autoStart').addEventListener('change', () => {
+  fetch('/api/autostart', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enabled: $('#autoStart').checked })
+  }).catch(function () {});
+});
 $('#settingsForm').addEventListener('submit', async e => {
   e.preventDefault();
   const port = parseInt($('#portInput').value, 10);

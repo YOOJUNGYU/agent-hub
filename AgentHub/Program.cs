@@ -54,6 +54,8 @@ namespace AgentHub
             Application.SetCompatibleTextRenderingDefault(false);
             Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException); // UI 스레드 예외 → ThreadException 핸들러로
             AppSettingsProvider.ApplyProvider(Properties.Settings.Default);
+            // Windows 로그인 시 자동 실행을 설정값에 맞춰 동기화(설치본에서만, 기본 켜짐).
+            AutoStartService.SyncOnStartup(Properties.Settings.Default.AutoStart);
             Application.Run(new FormMain());
         }
     }
