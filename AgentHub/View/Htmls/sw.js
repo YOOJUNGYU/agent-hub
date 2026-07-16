@@ -17,10 +17,10 @@ self.addEventListener('fetch', e => {
   const u = new URL(e.request.url);
   // API/WebSocket 및 콘솔 페이지는 항상 네트워크
   if (u.pathname.startsWith('/api/') || u.pathname.startsWith('/ws/') || u.pathname.startsWith('/host')) return;
-  // 앱 실행(네비게이션): 네트워크 우선 → 실패 시 캐시된 앱 셸로 폴백.
-  // 다른 네트워크/서버 오프라인에서도 PWA가 마지막 상태로 실행되게 한다.
+  // 앱 실행(네비게이션): 캐시된 셸을 즉시 서빙(캐시 우선). 서버 미접속이어도 아이콘에서 멈추지 않고
+  // 바로 실행되며, 최신 데이터는 app.js가 WebSocket으로 붙어 갱신한다. (index.html 갱신은 SW 버전업으로 반영)
   if (e.request.mode === 'navigate') {
-    e.respondWith(fetch(e.request).catch(() => caches.match('/index.html').then(r => r || caches.match('/'))));
+    e.respondWith(caches.match('/index.html').then(r => r || caches.match('/')).then(r => r || fetch(e.request)));
     return;
   }
   e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));

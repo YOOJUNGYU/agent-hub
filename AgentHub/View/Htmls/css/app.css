@@ -6,11 +6,12 @@
 *{box-sizing:border-box}
 html{
   margin:0;
-  min-height:100%;
+  height:100%;          /* body의 height:100% 기준(확정 높이). 뷰포트 단위 대신 안정적 100% 체인. */
   background:var(--bg);
 }
 body{
   margin:0;
+  height:100%;
 }
 
 /* ===== Scrollbars (slim, theme-matched) — 전역 통일 ===== */
@@ -322,7 +323,10 @@ body.host-shell #sessionterm.view.active{ display:flex; flex-direction:column; o
 a.hdr-btn { text-decoration: none; }
 
 /* ===== 모바일(PWA) 뷰포트 채움 레이아웃 (host 콘솔 제외) ===== */
-body:not(.host-shell){ height:100vh; height:100dvh; display:flex; flex-direction:column; overflow:hidden; }
+/* 뷰포트 단위(dvh/svh) 대신 html→body height:100% 체인 + flex로 채운다.
+   dvh는 동적 UI(테마 리페인트·시스템바)에 따라 값이 흔들려 레이아웃이 바뀌었음. 100%는 안정적이고,
+   interactive-widget=resizes-content와 함께 키보드가 뜰 때만 줄어든 레이아웃 뷰포트를 따라간다. */
+body:not(.host-shell){ height:100%; display:flex; flex-direction:column; overflow:hidden; }
 body:not(.host-shell) > .app-header{ flex:0 0 auto; }
 body:not(.host-shell) main{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; overflow:hidden;
   /* 뷰포트를 시스템 바 안쪽(safe area)에 두어 하단 내비게이션/홈 인디케이터가 콘텐츠를 가리지 않게 한다.
@@ -460,7 +464,7 @@ body:not(.host-shell) #terminal:not([hidden]){ flex:1 1 auto; min-height:0; disp
 /* 하단 답변 입력 바 — 배경과 자연스럽게 이어지는 채팅 입력(둥근 필드 + 아이콘 전송) */
 /* 하단 여백은 고정값(입력 컨트롤 높이의 약 절반). env(safe-area-inset-bottom)는 안드로이드에서 theme-color에
    따라 값이 흔들려 라이트/다크 간극이 달라지므로 사용하지 않는다 → 두 테마 동일 여백. */
-.inject-bar { padding: 8px 10px 22px; border-top: 1px solid var(--border); background: var(--bg); }
+.inject-bar { padding: 8px 10px; border-top: 1px solid var(--border); background: var(--bg); }
 .inject-hint { font-size: 12px; line-height: 1.45; color: var(--muted); margin: 0 6px 6px; }
 .inject-row { display: flex; align-items: center; gap: 2px; padding: 3px 5px 3px 14px; background: var(--panel); border: 1px solid var(--border); border-radius: 22px; transition: border-color .15s ease; }
 .inject-row:focus-within { border-color: var(--accent); }
