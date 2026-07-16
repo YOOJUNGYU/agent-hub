@@ -52,6 +52,8 @@ namespace AgentHub.Server.Terminal
             {
                 try
                 {
+                    // 한계(스펙 §10): 옵션 번호가 두 자리(옵션 10개↑)면 단일선택 자동제출이 첫 자리에서 끊길 수 있음.
+                    //        만료 다중선택+Other 동시 선택 시 text 우선(indices 무시) — 만료 다중선택은 best-effort 범위.
                     if (!string.IsNullOrEmpty(text))
                     {
                         var r1 = WriteOnce(pid, (optionCount + 1).ToString()); if (r1 != Result.Ok) return r1;

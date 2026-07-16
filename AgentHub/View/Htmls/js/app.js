@@ -259,6 +259,7 @@ function openDetail(id) {
 // 상세 → 목록 복귀 (기기 back / 화면 버튼 공통 경로)
 function backToList() {
   send({ type: 'unwatch' });
+  if (elicit && elicit.fromPending) closeElicit(); // 뒤로가기 시 대기 답변 폼(만료) 오버레이 닫기(라이브는 유지)
   currentSessionId = null;
   { const bar = document.getElementById('injectBar'); if (bar) bar.hidden = true; }
   showScreen('monitor');
