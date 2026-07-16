@@ -49,6 +49,7 @@ namespace AgentHub.Server.Terminal
 
                     var records = new INPUT_RECORD[payload.Length * 2];
                     int i = 0;
+                    // 주의: BMP 문자 가정(한글·ASCII). 서로게이트쌍(이모지 등 보충문자)은 코드유닛 단위로 분리됨.
                     foreach (char c in payload)
                     {
                         var k = MapChar(c);

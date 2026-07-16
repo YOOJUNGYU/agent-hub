@@ -99,7 +99,7 @@ namespace AgentHub.Server.Socket
                     else if (!string.IsNullOrEmpty(msg.Id) && msg.Answers != null)
                         AgentHub.Server.Hook.AskRegistry.Resolve(msg.Id, msg.Answers.ToString());
                 }
-                else if (msg.Type == "inject" && !string.IsNullOrEmpty(msg.SessionId) && msg.Text != null)
+                else if (msg.Type == "inject" && !string.IsNullOrEmpty(msg.SessionId) && !string.IsNullOrEmpty(msg.Text))
                 {
                     // 원본 kill 없이 세션 콘솔에 직접 주입(Claude 전용). /ws/session의 resume 경로와 별개.
                     bool ok = false; string reason;
