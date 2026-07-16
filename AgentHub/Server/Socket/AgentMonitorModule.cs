@@ -99,6 +99,26 @@ namespace AgentHub.Server.Socket
                     else if (!string.IsNullOrEmpty(msg.Id) && msg.Answers != null)
                         AgentHub.Server.Hook.AskRegistry.Resolve(msg.Id, msg.Answers.ToString());
                 }
+                else if (msg.Type == "inject" && !string.IsNullOrEmpty(msg.SessionId) && msg.Text != null)
+                {
+                    // 원본 kill 없이 세션 콘솔에 직접 주입(Claude 전용). /ws/session의 resume 경로와 별개.
+                    bool ok = false; string reason;
+                    if (AgentMonitorService.EngineOf(msg.SessionId) != "claude")
+                        reason = "engine"; // Codex 등: 콘솔 없음 → 미지원
+                    else if (!AgentHub.Server.Hook.SessionPidRegistry.TryGet(msg.SessionId, out var pid))
+                        reason = "nopid";  // PID 미보고(세션 종료/훅 미실행)
+                    else
+                    {
+                        var r = AgentHub.Server.Terminal.ConsoleInputInjector.Inject(pid, msg.Text, appendEnter: true);
+                        ok = r == AgentHub.Server.Terminal.ConsoleInputInjector.Result.Ok;
+                        reason = ok ? null
+                            : (r == AgentHub.Server.Terminal.ConsoleInputInjector.Result.NoConsole ? "noconsole" : "failed");
+                    }
+                    await SendSafe(context, Json.Serialize(new
+                    {
+                        type = "injectResult", sessionId = msg.SessionId, ok, reason
+                    }));
+                }
                 // 세션 제어(프롬프트/슬래시/답변)는 /ws/session 대화형 터미널에서 수행한다.
             }
             catch (Exception ex) { LogService.Instance.Error(ex); }
@@ -217,5 +237,6 @@ namespace AgentHub.Server.Socket
         public string Id { get; set; }        // permissionDecision / elicitAnswer 대상 id
         public string Decision { get; set; }  // "allow" | "deny"
         public Newtonsoft.Json.Linq.JObject Answers { get; set; }  // elicitAnswer: { [질문텍스트]: 라벨/배열 }
+        public string Text { get; set; }      // inject: 세션 콘솔에 주입할 자유 텍스트
     }
 }
