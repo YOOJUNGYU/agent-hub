@@ -125,6 +125,7 @@ function connect() {
       else if (m.type === 'elicit') { handleElicit(m); }
       else if (m.type === 'permission') { handlePermission(m); }
       else if (m.type === 'answerBlocked') { handleAnswerBlocked(m); }
+      else if (m.type === 'injectResult') { handleInjectResult(m); }
     } catch (e) { /* ignore malformed */ }
   };
 }
@@ -246,6 +247,7 @@ function openDetail(id) {
     '<div class="loading"><span class="spinner"></span></div>';
   showScreen('detail');
   updateDetailRun(); // 상세 헤더에 실행지표 표시
+  updateInjectBar(id); // 입력 바 상태(codex 숨김/안내) 초기화
   // 히스토리 항목 추가 → 기기 뒤로가기가 앱 종료 대신 popstate로 목록 복귀
   history.pushState({ screen: 'detail', id }, '');
   send({ type: 'watch', sessionId: id });
@@ -257,6 +259,7 @@ function backToList() {
   send({ type: 'unwatch' });
   closeAskExpired(); // 목록으로 나가면 만료 안내도 닫는다
   currentSessionId = null;
+  { const bar = document.getElementById('injectBar'); if (bar) bar.hidden = true; }
   showScreen('monitor');
   rerenderSessions(); // openDetail에서 해제한 대기표시를 목록에 반영(다음 스냅샷 전 최신화)
 }
@@ -293,6 +296,48 @@ function rel(iso) {
   if (s < 60) return s + 's'; if (s < 3600) return Math.floor(s/60) + 'm';
   if (s < 86400) return Math.floor(s/3600) + 'h'; return Math.floor(s/86400) + 'd';
 }
+
+// ---- 세션 콘솔 직접 주입(자유 텍스트 답변) ----
+function showInjectHint(key) {
+  const hint = document.getElementById('injectHint');
+  if (!hint) return;
+  hint.textContent = key ? t(key) : '';
+  hint.hidden = !key;
+}
+// 상세 진입/세션 전환 시 입력 바 상태 초기화. codex면 입력줄 숨기고 안내만.
+function updateInjectBar(id) {
+  const bar = document.getElementById('injectBar');
+  const row = document.getElementById('injectRow');
+  const input = document.getElementById('injectInput');
+  if (!bar) return;
+  bar.hidden = false;
+  if (input) input.value = '';
+  const isCodex = sessionsById[id] && sessionsById[id].engine === 'codex';
+  if (row) row.hidden = !!isCodex;
+  showInjectHint(isCodex ? 'inject.hintCodex' : null);
+}
+function sendInject() {
+  const input = document.getElementById('injectInput');
+  if (!input || !currentSessionId) return;
+  const v = input.value;
+  if (!v) return;
+  send({ type: 'inject', sessionId: currentSessionId, text: v });
+  // 회신(injectResult)에서 성공 시 비운다.
+}
+function handleInjectResult(m) {
+  if (m.sessionId !== currentSessionId) return;
+  const input = document.getElementById('injectInput');
+  if (m.ok) { if (input) input.value = ''; showInjectHint(null); return; }
+  const key = m.reason === 'noconsole' ? 'inject.hintNoConsole'
+    : m.reason === 'nopid' ? 'inject.hintNoPid'
+    : m.reason === 'engine' ? 'inject.hintCodex'
+    : 'inject.hintFailed';
+  showInjectHint(key);
+}
+document.getElementById('injectSend') && document.getElementById('injectSend').addEventListener('click', sendInject);
+document.getElementById('injectInput') && document.getElementById('injectInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); sendInject(); }
+});
 
 // ---- 세션 터미널 열기 (claude --resume attach) ----
 document.getElementById('openSessionTermBtn') && document.getElementById('openSessionTermBtn').addEventListener('click', () => {

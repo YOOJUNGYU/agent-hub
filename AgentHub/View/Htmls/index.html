@@ -103,6 +103,14 @@
       </div>
       <div class="detail-run" id="detailRun" hidden></div>
       <div class="activity-feed" id="activityFeed"></div>
+      <div class="inject-bar" id="injectBar" hidden>
+        <div class="inject-hint" id="injectHint" hidden></div>
+        <div class="inject-row" id="injectRow">
+          <input id="injectInput" class="inject-input" type="text" autocomplete="off"
+                 data-i18n-ph="inject.placeholder" placeholder="답변 입력…">
+          <button id="injectSend" class="inject-send" data-i18n="inject.send">전송</button>
+        </div>
+      </div>
     </section>
 
     <!-- 모바일 세션 터미널 (xterm.js ⇄ /ws/session): 동작 중인 세션 쉘을 가져와 실시간 공유 -->
