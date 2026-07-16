@@ -328,11 +328,7 @@ a.hdr-btn { text-decoration: none; }
    interactive-widget=resizes-content와 함께 키보드가 뜰 때만 줄어든 레이아웃 뷰포트를 따라간다. */
 body:not(.host-shell){ height:100%; display:flex; flex-direction:column; overflow:hidden; }
 body:not(.host-shell) > .app-header{ flex:0 0 auto; }
-body:not(.host-shell) main{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; overflow:hidden;
-  /* 뷰포트를 시스템 바 안쪽(safe area)에 두어 하단 내비게이션/홈 인디케이터가 콘텐츠를 가리지 않게 한다.
-     env(safe-area-inset-bottom)은 안드로이드에서 0으로 보고되는 경우가 많아, 3버튼 내비게이션 바(약 48dp)를
-     확실히 넘기도록 최소 48px 여백을 보장한다(iOS 홈 인디케이터처럼 env가 더 크면 그 값을 사용). */
-  padding-bottom:max(48px, calc(1rem + env(safe-area-inset-bottom))); }
+body:not(.host-shell) main{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
 body:not(.host-shell) #permBanner{ flex:0 0 auto; }
 
 /* 모니터: 스크롤 컨테이너 + '새 세션' 하단(짧으면 카드 아래, 길면 sticky) */
