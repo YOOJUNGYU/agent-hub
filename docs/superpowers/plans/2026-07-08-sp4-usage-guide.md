@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans. Steps use checkbox (`- [ ]`) syntax. The guide-authoring task (Task 1) MUST use the **frontend-design** skill for visual craft.
 
-**Goal:** 자체 완결형 사용 가이드 `docs/index.html`(애니메이션 목업, 한/영)을 만들어 GitHub Pages(SignPath homepage)로 배포하고, 앱(모바일 PWA + PC 콘솔)에서 `/guide.html`로 링크한다.
+**Goal:** 자체 완결형 사용 가이드 `docs/index.html`(애니메이션 목업, 한/영)을 만들어 GitHub Pages로 배포하고, 앱(모바일 PWA + PC 콘솔)에서 `/guide.html`로 링크한다.
 
 **Architecture:** 정본 `docs/index.html`(인라인 CSS/JS, 외부 리소스 0). csproj가 이 파일을 앱 출력 `View/Htmls/guide.html`로 Content 링크 복사 → EmbedIO가 `/guide.html` 서빙. 모바일/host에서 링크. GitHub Pages는 `docs/`에서 배포.
 
@@ -110,11 +110,11 @@ git commit -m "feat(sp4): guide.html 앱 번들 링크 + 모바일/PC 콘솔 사
 
 ---
 
-### Task 3: GitHub Pages / SignPath 안내 문서
+### Task 3: GitHub Pages 안내 문서
 
 **Files:** Create `docs/README.md`
 
-- [ ] **Step 1: `docs/README.md` 작성** — GitHub Pages 활성화 절차 + SignPath homepage 입력 안내:
+- [ ] **Step 1: `docs/README.md` 작성** — GitHub Pages 활성화 절차 안내:
 ```markdown
 # Agent Hub 사용 가이드 (정적 사이트)
 
@@ -126,9 +126,6 @@ git commit -m "feat(sp4): guide.html 앱 번들 링크 + 모바일/PC 콘솔 사
 3. **Branch**: `main`, 폴더: `/docs` → **Save**
 4. 몇 분 후 게시: **https://yoojungyu.github.io/agent-hub/**
 
-## SignPath homepage URL
-- SignPath 프로젝트 설정의 **homepage URL**에 위 주소를 입력합니다.
-
 ## 편집
 - `docs/index.html`이 정본입니다. 앱 빌드 시 이 파일이 `View/Htmls/guide.html`로 복사되어 앱에서도 `/guide.html`로 열립니다. 수정은 이 파일만 하세요.
 ```
@@ -136,7 +133,7 @@ git commit -m "feat(sp4): guide.html 앱 번들 링크 + 모바일/PC 콘솔 사
 - [ ] **Step 2: 커밋**
 ```bash
 git add docs/README.md
-git commit -m "docs(sp4): GitHub Pages/SignPath 안내(docs/README)"
+git commit -m "docs(sp4): GitHub Pages 안내(docs/README)"
 ```
 
 ---
@@ -146,14 +143,14 @@ git commit -m "docs(sp4): GitHub Pages/SignPath 안내(docs/README)"
 - [ ] **Step 1: 빌드 게이트** — PowerShell msbuild Restore+Build → 0 errors. `dotnet test` → 24/24(변화 없음 확인). `install/Debug/View/Htmls/guide.html` 존재.
 - [ ] **Step 2: 자체완결/링크 최종 확인** — `docs/index.html`을 파일로 직접 열었을 때(그리고 `/guide.html`로 서빙 시) 외부 요청 없이 렌더되는지, 모바일/host 링크가 `/guide.html`로 연결되는지.
 - [ ] **Step 3: 사용자 시각 검토(수동, 게이트)** — 브라우저(데스크톱+실제 폰)에서 `docs/index.html` 및 앱 `/guide.html` 열어 디자인 품질/단계 애니메이션/인증서 섹션 명확성/한·영 토글 확인. **품질이 성에 안 차면 여기서 프레임워크 전환 등 재작업 결정.**
-- [ ] **Step 4: GitHub Pages 활성화 + SignPath 입력(사용자 수동)** — `docs/README.md` 절차대로.
+- [ ] **Step 4: GitHub Pages 활성화(사용자 수동)** — `docs/README.md` 절차대로.
 - [ ] **Step 5: 브랜치 마무리** — `superpowers:finishing-a-development-branch`.
 
 ---
 
 ## Self-Review (계획 검증)
 
-- **스펙 커버리지:** 가이드 콘텐츠(8섹션·인증서 강조·애니메이션 목업·한/영·자체완결)=Task1, 앱 링크 복사+모바일/PC 링크=Task2, Pages/SignPath 안내=Task3, 검증+사용자 시각 검토=Task4. 커버됨.
+- **스펙 커버리지:** 가이드 콘텐츠(8섹션·인증서 강조·애니메이션 목업·한/영·자체완결)=Task1, 앱 링크 복사+모바일/PC 링크=Task2, Pages 안내=Task3, 검증+사용자 시각 검토=Task4. 커버됨.
 - **플레이스홀더:** 없음. 단 Task1의 가이드 HTML 전체 코드는 계획에 넣지 않고 **요구사항+frontend-design**으로 위임(디자인 산출물 특성상 적절 — WHAT/제약을 명시, HOW는 디자인 스킬).
 - **리스크:** (1) 레거시 csproj의 프로젝트-밖 Link Content 복사 동작 → Task2 Step2에서 실측 + 폴백(BeforeBuild Copy 타깃) 명시. (2) 시각 품질은 헤드리스 검증 불가 → 사용자 검토 게이트(Task4 Step3)로 명확화, 재작업 저비용.
 - **타입/링크 일관성:** `/guide.html` 경로, `guide.link` i18n 키, `docs/index.html` 정본이 Task 간 일치.

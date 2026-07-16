@@ -8,20 +8,20 @@
 
 모바일 접속·**인증서 등록(복잡, 비중 큼)**·기기 인증·세션 모니터·터미널·질문 알림 사용법을 **애니메이션 예시 화면**으로 설명하는 **자체 완결형 정적 페이지**를 만든다. 이 페이지를:
 - 앱(모바일 PWA + PC 콘솔)에서 "사용법" 링크로 열 수 있게 하고,
-- **GitHub Pages**로 배포해 **SignPath homepage URL**(`https://yoojungyu.github.io/agent-hub/`)로 쓴다.
+- **GitHub Pages**로 배포한다(`https://yoojungyu.github.io/agent-hub/`).
 
 ## 2. 확정된 결정 (브레인스토밍)
 
 - **예시 화면 = 앱 UI 재현 애니메이션 목업**: 실제 스크린샷 캡처는 헤드리스로 불가하므로, 가짜 폰 프레임 안에서 앱과 동일한 다크 테마·배지 스타일로 단계가 CSS/JS 전환되는 목업.
 - **호스팅 = `docs/` 폴더(main 브랜치)** GitHub Pages.
 - **단일 소스, 두 배포 타깃**: 정본 `docs/index.html`(자체 완결형: 인라인 CSS/JS, 외부 리소스 0). csproj가 이 파일을 앱 출력의 `View/Htmls/guide.html`로 **링크 복사** → 로컬에서 `/guide.html`로 서빙. 중복/드리프트 없음.
-- GitHub Pages 활성화(리포 설정)와 SignPath homepage URL 입력은 **사용자 수동**(안내 제공).
+- GitHub Pages 활성화(리포 설정)는 **사용자 수동**(안내 제공).
 
 ## 3. 아키텍처 / 배포
 
 ```
 docs/index.html  (정본, 자체 완결형)
-  ├─ GitHub Pages (Settings → Pages → Source: main /docs) → https://yoojungyu.github.io/agent-hub/  → SignPath homepage
+  ├─ GitHub Pages (Settings → Pages → Source: main /docs) → https://yoojungyu.github.io/agent-hub/
   └─ csproj <Content Include="..\docs\index.html" Link="View\Htmls\guide.html" CopyToOutputDirectory=Always>
        → install/Debug/View/Htmls/guide.html → EmbedIO가 /guide.html 로 서빙(로컬/LAN)
           ├─ 모바일 PWA index.html: "사용법" 링크 → /guide.html
@@ -52,11 +52,10 @@ docs/index.html  (정본, 자체 완결형)
 - 반응형: 데스크톱에서는 폰 프레임 + 설명 나란히, 모바일에서는 세로 스택.
 - 접근성: 자동재생 애니메이션은 일시정지/수동 이동 가능, `prefers-reduced-motion` 존중.
 
-## 6. GitHub Pages / SignPath 안내 (사용자 수동)
+## 6. GitHub Pages 안내 (사용자 수동)
 
 - `docs/README.md` 또는 리포 안내에: GitHub → Settings → Pages → Source `main` / 폴더 `/docs` 선택 → 몇 분 후 `https://yoojungyu.github.io/agent-hub/` 게시.
-- SignPath 프로젝트의 homepage URL에 위 주소 입력.
-- (Pages 활성화·SignPath 입력은 GitHub/SignPath 웹 UI 작업이라 사용자가 수행 — 스펙/플랜은 파일과 명확한 안내만 제공.)
+- (Pages 활성화는 GitHub 웹 UI 작업이라 사용자가 수행 — 스펙/플랜은 파일과 명확한 안내만 제공.)
 
 ## 7. 테스트 / 검증
 
@@ -68,11 +67,11 @@ docs/index.html  (정본, 자체 완결형)
 ## 8. 범위 밖 / 한계
 
 - 실제 스크린샷/GIF: 헤드리스 캡처 불가 → 애니메이션 목업으로 대체(추후 사용자가 실사로 교체 가능).
-- GitHub Pages 활성화·SignPath 입력: 웹 UI 수동 작업.
+- GitHub Pages 활성화: 웹 UI 수동 작업.
 - 가이드 콘텐츠의 앱 i18n 통합: 가이드는 자체 미니 사전(앱 번들 밖 Pages에서도 동작해야 하므로).
 
 ## 9. 변경/신규 파일 (요약)
 
-- 신규: `docs/index.html`(정본 가이드), 필요 시 `docs/README.md`(Pages/SignPath 안내).
+- 신규: `docs/index.html`(정본 가이드), 필요 시 `docs/README.md`(Pages 안내).
 - 수정: `AgentHub/AgentHub.csproj`(`..\docs\index.html`을 `View\Htmls\guide.html`로 Content 링크 복사), `AgentHub/View/Htmls/index.html`(모바일 "사용법" 링크), `AgentHub/View/Htmls/host.html`(PC 콘솔 "사용 안내" 링크), `js/i18n.js`(링크 라벨 키), `sw.js`(캐시 버전 상향 — 로컬 guide 캐시 원하면 ASSETS 추가는 선택).
 - 서드파티 `EmbedIO/` 미수정. 새 NuGet 없음.
