@@ -33,35 +33,73 @@ namespace AgentHub.Server.Terminal
             if (pid <= 0) return Result.Failed;
             string payload = (text ?? "") + (appendEnter ? "\r" : "");
             if (payload.Length == 0) return Result.Ok;
+            lock (_gate) { return WriteOnce(pid, payload); }
+        }
 
+        private const int PickerStepDelayMs = 500;
+
+        /// <summary>
+        /// 만료된 AskUserQuestion 터미널 picker에 답을 주입한다(스파이크 검증 시퀀스).
+        /// - text 있음(Other): (optionCount+1)="Type something" → 지연 → text → 지연 → Enter(별도).
+        /// - indices 1개(단일선택): 그 번호만(즉시 제출, Enter 불필요).
+        /// - indices 다수(다중선택, best-effort): 각 번호 토글 → 지연 → Enter.
+        /// 시퀀스 전체를 _gate로 직렬화(중간 끼어들기 방지).
+        /// </summary>
+        public static Result InjectPickerAnswer(int pid, int[] indices, string text, int optionCount)
+        {
+            if (pid <= 0) return Result.Failed;
             lock (_gate)
             {
-                bool attached = false;
                 try
                 {
-                    FreeConsole(); // 우리(WinExe, 콘솔 없음)를 방어적으로 분리
-                    if (!AttachConsole((uint)pid))
-                        return Result.NoConsole; // err 6 등 — ConPTY이거나 대상 프로세스 종료
-                    attached = true;
-
-                    IntPtr hIn = GetStdHandle(STD_INPUT_HANDLE);
-                    if (hIn == IntPtr.Zero || hIn == new IntPtr(-1)) return Result.Failed;
-
-                    var records = new INPUT_RECORD[payload.Length * 2];
-                    int i = 0;
-                    // 주의: BMP 문자 가정(한글·ASCII). 서로게이트쌍(이모지 등 보충문자)은 코드유닛 단위로 분리됨.
-                    foreach (char c in payload)
+                    if (!string.IsNullOrEmpty(text))
                     {
-                        var k = MapChar(c);
-                        records[i++] = KeyRecord(k, true);
-                        records[i++] = KeyRecord(k, false);
+                        var r1 = WriteOnce(pid, (optionCount + 1).ToString()); if (r1 != Result.Ok) return r1;
+                        System.Threading.Thread.Sleep(PickerStepDelayMs);
+                        var r2 = WriteOnce(pid, text); if (r2 != Result.Ok) return r2;
+                        System.Threading.Thread.Sleep(PickerStepDelayMs);
+                        return WriteOnce(pid, "\r");
                     }
-                    bool ok = WriteConsoleInput(hIn, records, (uint)records.Length, out _);
-                    return ok ? Result.Ok : Result.Failed;
+                    if (indices == null || indices.Length == 0) return Result.Failed;
+                    if (indices.Length == 1)
+                        return WriteOnce(pid, (indices[0] + 1).ToString());
+                    foreach (var idx in indices)
+                    {
+                        var r = WriteOnce(pid, (idx + 1).ToString()); if (r != Result.Ok) return r;
+                        System.Threading.Thread.Sleep(150);
+                    }
+                    System.Threading.Thread.Sleep(PickerStepDelayMs);
+                    return WriteOnce(pid, "\r");
                 }
                 catch (Exception ex) { LogService.Instance.Error(ex); return Result.Failed; }
-                finally { if (attached) FreeConsole(); }
             }
+        }
+
+        // attach→write→free 원자 1회(락 없음 — 호출자가 _gate 보유). payload에 필요한 문자를 그대로(예: Enter는 "\r").
+        private static Result WriteOnce(int pid, string payload)
+        {
+            if (string.IsNullOrEmpty(payload)) return Result.Ok;
+            bool attached = false;
+            try
+            {
+                FreeConsole();
+                if (!AttachConsole((uint)pid)) return Result.NoConsole;
+                attached = true;
+                IntPtr hIn = GetStdHandle(STD_INPUT_HANDLE);
+                if (hIn == IntPtr.Zero || hIn == new IntPtr(-1)) return Result.Failed;
+                // 주의: BMP 문자 가정(한글·ASCII). 서로게이트쌍(이모지 등 보충문자)은 코드유닛 단위로 분리됨.
+                var records = new INPUT_RECORD[payload.Length * 2];
+                int i = 0;
+                foreach (char c in payload)
+                {
+                    var k = MapChar(c);
+                    records[i++] = KeyRecord(k, true);
+                    records[i++] = KeyRecord(k, false);
+                }
+                return WriteConsoleInput(hIn, records, (uint)records.Length, out _) ? Result.Ok : Result.Failed;
+            }
+            catch (Exception ex) { LogService.Instance.Error(ex); return Result.Failed; }
+            finally { if (attached) FreeConsole(); }
         }
 
         private static INPUT_RECORD KeyRecord(KeyStroke k, bool down) => new INPUT_RECORD
