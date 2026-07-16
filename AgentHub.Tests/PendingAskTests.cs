@@ -21,5 +21,19 @@ namespace AgentHub.Tests {
     [Fact] public void Null_when_no_ask() {
       Assert.Null(TranscriptParser.ExtractPendingAsk(new List<string>{"{\"type\":\"assistant\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"hi\"}]}}"}));
     }
+    [Fact] public void QuestionCount_is_one_for_single_question() {
+      var lines = new List<string>{
+        "{\"type\":\"assistant\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"tool_use\",\"id\":\"tu1\",\"name\":\"AskUserQuestion\",\"input\":{\"questions\":[{\"question\":\"q1\",\"options\":[{\"label\":\"A\"}]}]}}]}}"
+      };
+      var p = TranscriptParser.ExtractPendingAsk(lines);
+      Assert.NotNull(p); Assert.Equal(1, p.QuestionCount);
+    }
+    [Fact] public void QuestionCount_reflects_multi_question_ask() {
+      var lines = new List<string>{
+        "{\"type\":\"assistant\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"tool_use\",\"id\":\"tu1\",\"name\":\"AskUserQuestion\",\"input\":{\"questions\":[{\"question\":\"q1\",\"options\":[{\"label\":\"A\"}]},{\"question\":\"q2\",\"options\":[{\"label\":\"B\"}]},{\"question\":\"q3\",\"options\":[{\"label\":\"C\"}]}]}}]}}"
+      };
+      var p = TranscriptParser.ExtractPendingAsk(lines);
+      Assert.NotNull(p); Assert.Equal("q1", p.Question); Assert.Equal(3, p.QuestionCount);
+    }
   }
 }

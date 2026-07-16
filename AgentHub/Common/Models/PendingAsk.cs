@@ -6,5 +6,6 @@ namespace AgentHub.Common.Models {
     public string Header { get; set; }
     public bool MultiSelect { get; set; }
     public List<string> Options { get; set; }
+    public int QuestionCount { get; set; }  // 이 AskUserQuestion의 총 문항 수(1이면 단일, >1이면 다문항)
   }
 }

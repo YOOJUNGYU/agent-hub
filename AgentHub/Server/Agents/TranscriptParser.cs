@@ -85,14 +85,16 @@ namespace AgentHub.Server.Agents
                 }
             }
             if (lastAsk == null) return null;
-            var q = (lastAsk["input"]?["questions"] as JArray)?.OfType<JObject>().FirstOrDefault();
+            var questions = lastAsk["input"]?["questions"] as JArray;
+            var q = questions?.OfType<JObject>().FirstOrDefault();
             if (q == null) return null;
             var opts = new List<string>();
             foreach (var op in (q["options"] as JArray ?? new JArray()).OfType<JObject>())
             { var l = Str(op["label"]); if (l != null) opts.Add(l); }
             return new PendingAsk { Question = Str(q["question"]), Header = Str(q["header"]),
                 MultiSelect = q["multiSelect"]?.Type == JTokenType.Boolean && q["multiSelect"].Value<bool>(),
-                Options = opts };
+                Options = opts,
+                QuestionCount = questions?.Count ?? 1 };
         }
 
         public static SessionSummary Summarize(string sessionId, IReadOnlyList<string> lines, DateTime nowUtc)
