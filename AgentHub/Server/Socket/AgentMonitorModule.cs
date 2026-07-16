@@ -119,6 +119,27 @@ namespace AgentHub.Server.Socket
                         type = "injectResult", sessionId = msg.SessionId, ok, reason
                     }));
                 }
+                else if (msg.Type == "pickerAnswer" && !string.IsNullOrEmpty(msg.SessionId))
+                {
+                    bool ok = false; string reason;
+                    if (AgentMonitorService.EngineOf(msg.SessionId) != "claude")
+                        reason = "engine";
+                    else if (!AgentHub.Server.Hook.SessionPidRegistry.TryGet(msg.SessionId, out var pid))
+                        reason = "nopid";
+                    else
+                    {
+                        var r = await System.Threading.Tasks.Task.Run(() =>
+                            AgentHub.Server.Terminal.ConsoleInputInjector.InjectPickerAnswer(
+                                pid, msg.Indices ?? new int[0], msg.Text, msg.OptionCount));
+                        ok = r == AgentHub.Server.Terminal.ConsoleInputInjector.Result.Ok;
+                        reason = ok ? null
+                            : (r == AgentHub.Server.Terminal.ConsoleInputInjector.Result.NoConsole ? "noconsole" : "failed");
+                    }
+                    await SendSafe(context, Json.Serialize(new
+                    {
+                        type = "pickerAnswerResult", sessionId = msg.SessionId, ok, reason
+                    }));
+                }
                 // 세션 제어(프롬프트/슬래시/답변)는 /ws/session 대화형 터미널에서 수행한다.
             }
             catch (Exception ex) { LogService.Instance.Error(ex); }
@@ -238,5 +259,7 @@ namespace AgentHub.Server.Socket
         public string Decision { get; set; }  // "allow" | "deny"
         public Newtonsoft.Json.Linq.JObject Answers { get; set; }  // elicitAnswer: { [질문텍스트]: 라벨/배열 }
         public string Text { get; set; }      // inject: 세션 콘솔에 주입할 자유 텍스트
+        public int[] Indices { get; set; }     // pickerAnswer: 선택한 옵션 0-based 인덱스들
+        public int OptionCount { get; set; }   // pickerAnswer: 나열된 실제 옵션 수(Other 번호 계산용)
     }
 }
