@@ -118,6 +118,7 @@ function connect() {
       else if (m.type === 'sessions') {
         renderSessions(m.sessions);
         if (currentSessionId === null && document.getElementById('terminal').hidden) { showScreen('monitor'); refreshNotifyBtn(); }
+        else if (currentSessionId) syncPendingForm(currentSessionId); // 연속 Q&A: pendingAsk로 폼 표시/정리
       }
       else if (m.type === 'activity') { renderActivity(m.sessionId, m.events); }
       else if (m.type === 'ask') { handleAsk(m); }
@@ -126,6 +127,7 @@ function connect() {
       else if (m.type === 'permission') { handlePermission(m); }
       else if (m.type === 'answerBlocked') { handleAnswerBlocked(m); }
       else if (m.type === 'injectResult') { handleInjectResult(m); }
+      else if (m.type === 'pickerAnswerResult') { handlePickerAnswerResult(m); }
     } catch (e) { /* ignore malformed */ }
   };
 }
@@ -251,13 +253,12 @@ function openDetail(id) {
   // 히스토리 항목 추가 → 기기 뒤로가기가 앱 종료 대신 popstate로 목록 복귀
   history.pushState({ screen: 'detail', id }, '');
   send({ type: 'watch', sessionId: id });
-  scheduleAskExpiredGuidance(id); // 라이브 elicit이 재전송되면 취소, 아니면(창 경과) 안내 표시
+  maybeShowPendingForm(id); // 미답 질문 있으면 즉시 답변 폼(터미널 열기 없음)
 }
 
 // 상세 → 목록 복귀 (기기 back / 화면 버튼 공통 경로)
 function backToList() {
   send({ type: 'unwatch' });
-  closeAskExpired(); // 목록으로 나가면 만료 안내도 닫는다
   currentSessionId = null;
   { const bar = document.getElementById('injectBar'); if (bar) bar.hidden = true; }
   showScreen('monitor');
@@ -297,6 +298,28 @@ function rel(iso) {
   if (s < 86400) return Math.floor(s/3600) + 'h'; return Math.floor(s/86400) + 'd';
 }
 
+// 라이브 elicit이 없을 때 pendingAsk로 답변 폼을 띄운다(만료/주입 모드). Codex는 제외.
+function maybeShowPendingForm(id) {
+  if (!id || elicit) return;                                   // 이미 폼(라이브/pending) 있음 → 방해 금지
+  if (!document.getElementById('elicit').hidden) return;       // 폼 열려 있음
+  const s = sessionsById[id];
+  const pa = s && s.pendingAsk;
+  if (!pa || s.engine === 'codex') return;                     // 미답 질문 없음 / Codex(주입 불가)
+  elicit = { id: null, sessionId: id, fromPending: true, step: 0, answers: {},
+    questions: [{ header: pa.header, question: pa.question, multiSelect: !!pa.multiSelect,
+                  options: (Array.isArray(pa.options) ? pa.options : []).map(l => ({ label: l })) }] };
+  renderElicitStep();
+  document.getElementById('elicit').hidden = false;
+}
+// 만료 폼 표시 중 그 세션의 pendingAsk가 사라지면(답변됨) 닫는다.
+function syncPendingForm(id) {
+  if (elicit && elicit.fromPending && elicit.sessionId === id) {
+    const s = sessionsById[id];
+    if (!s || !s.pendingAsk) { closeElicit(); return; }
+  }
+  maybeShowPendingForm(id);
+}
+
 // ---- 세션 콘솔 직접 주입(자유 텍스트 답변) ----
 function showInjectHint(key) {
   const hint = document.getElementById('injectHint');
@@ -333,6 +356,15 @@ function handleInjectResult(m) {
     : m.reason === 'engine' ? 'inject.hintCodex'
     : 'inject.hintFailed';
   showInjectHint(key);
+}
+function handlePickerAnswerResult(m) {
+  if (m.sessionId !== currentSessionId) return;
+  if (m.ok) return; // 성공: 폼은 제출 시 이미 정리됨. pendingAsk가 곧 스냅샷에서 사라짐.
+  const key = m.reason === 'noconsole' ? 'inject.hintNoConsole'
+    : m.reason === 'nopid' ? 'inject.hintNoPid'
+    : m.reason === 'engine' ? 'inject.hintCodex'
+    : 'inject.hintFailed';
+  alert(t(key)); // 만료 제출 실패 안내(간단히)
 }
 document.getElementById('injectSend') && document.getElementById('injectSend').addEventListener('click', sendInject);
 document.getElementById('injectInput') && document.getElementById('injectInput').addEventListener('keydown', e => {
@@ -433,7 +465,6 @@ const ELICIT_OTHER = '__other__';
 function handleElicit(m) {
   const qs = Array.isArray(m.questions) ? m.questions.filter(q => q && q.question) : [];
   if (qs.length === 0) return;
-  clearAskExpiredTimer(); closeAskExpired(); // 라이브 답변 화면이 도착 → '만료 안내'를 대체
   elicit = { id: m.id, sessionId: m.sessionId, questions: qs, step: 0, answers: {} };
   // resent=서버가 세션 재오픈(watch) 시 다시 내려준 것 → 시스템 알림은 생략(중복 방지), 화면만 다시 띄운다.
   if (!m.resent && ('Notification' in window) && Notification.permission === 'granted') {
@@ -527,56 +558,46 @@ function handleAnswerBlocked(m) {
   if (elicit) { document.getElementById('elicit').hidden = false; renderElicitStep(); }
 }
 
-// ---- 원격 답변 창이 지난 질문 안내 ----
-// 대기중 세션에 들어갔을 때 라이브 elicit(재전송)이 오면 답변 화면이 뜨고, 안 오면(창 경과·미등록)
-// 트랜스크립트의 질문을 읽기 전용으로 보여주며 "세션 터미널로 답하거나 PC에서 답하라"고 안내한다.
-let askExpiredTimer = null, askExpiredSession = null;
-function clearAskExpiredTimer() { if (askExpiredTimer) { clearTimeout(askExpiredTimer); askExpiredTimer = null; } }
-function scheduleAskExpiredGuidance(id) {
-  clearAskExpiredTimer();
-  const s = sessionsById[id];
-  if (!s || !s.pendingAsk) return; // 미답 질문(AskUserQuestion)이 있을 때만
-  askExpiredTimer = setTimeout(() => { askExpiredTimer = null; showAskExpired(id); }, 1200);
+// 만료(pending) 폼 제출용: 선택을 옵션 인덱스 배열 + 커스텀 텍스트로 변환.
+function collectPickerAnswer() {
+  const q = elicit.questions[0];
+  const opts = Array.isArray(q.options) ? q.options : [];
+  const checked = Array.from(document.querySelectorAll('input[name="elicitOpt"]:checked'));
+  if (checked.length === 0) return null;
+  const indices = []; let text = null;
+  checked.forEach(c => {
+    if (c.value === ELICIT_OTHER) {
+      const ta = document.getElementById('elicitOther');
+      const v = ta && ta.value.trim();
+      if (v) text = v;
+    } else {
+      indices.push(Number(c.value));
+    }
+  });
+  if (indices.length === 0 && !text) return null;
+  return { indices, text, optionCount: opts.length };
 }
-function showAskExpired(id) {
-  const s = sessionsById[id];
-  if (!s || !s.pendingAsk || currentSessionId !== id || elicit) return; // 화면 이동/라이브 답변중이면 취소
-  const pa = s.pendingAsk;
-  document.getElementById('askExpiredHeader').textContent = pa.header || '';
-  document.getElementById('askExpiredQuestion').textContent = pa.question || '';
-  const opts = Array.isArray(pa.options) ? pa.options : [];
-  document.getElementById('askExpiredOptions').innerHTML = opts.map(o =>
-    '<div class="elicit-opt" style="cursor:default"><span class="elicit-opt-body"><span class="elicit-opt-label">'
-    + esc(o) + '</span></span></div>').join('');
-  askExpiredSession = id;
-  document.getElementById('askExpired').hidden = false;
-  if (window.I18n) I18n.apply();
-}
-function closeAskExpired() {
-  clearAskExpiredTimer();
-  const el = document.getElementById('askExpired'); if (el) el.hidden = true;
-  askExpiredSession = null;
-}
-document.getElementById('askExpiredClose') && document.getElementById('askExpiredClose').addEventListener('click', closeAskExpired);
-document.getElementById('askExpiredOpenTerm') && document.getElementById('askExpiredOpenTerm').addEventListener('click', () => {
-  const id = askExpiredSession;
-  if (!id || !window.openSessionTerminal) return;
-  if (!confirm(t('term.confirmOpen'))) return;
-  closeAskExpired();
-  window.openSessionTerminal(id, sessionsById[id] && sessionsById[id].title);
-});
 
 document.getElementById('elicitNext') && document.getElementById('elicitNext').addEventListener('click', () => {
   if (!elicit) return;
-  const ans = collectElicitAnswer();
-  if (ans == null) return; // 최소 하나는 선택
-  const q = elicit.questions[elicit.step];
-  elicit.answers[q.question] = ans;
-  if (elicit.step < elicit.questions.length - 1) { elicit.step++; renderElicitStep(); return; }
-  send({ type: 'elicitAnswer', id: elicit.id, answers: elicit.answers });
-  setWaiting(elicit.sessionId, false); // 답변 전송 → 트랜지언트 대기표시 해제(미처리분은 서버 pendingAsk가 유지)
-  // 오버레이만 감추고 elicit은 유지 — clawd 실행 등으로 차단 회신(answerBlocked)이 오면 다시 열어 재시도.
-  document.getElementById('elicit').hidden = true;
+  if (elicit.id != null) {
+    // 라이브 경로(기존): 다단계 수집 후 elicitAnswer
+    const ans = collectElicitAnswer();
+    if (ans == null) return;
+    const q = elicit.questions[elicit.step];
+    elicit.answers[q.question] = ans;
+    if (elicit.step < elicit.questions.length - 1) { elicit.step++; renderElicitStep(); return; }
+    send({ type: 'elicitAnswer', id: elicit.id, answers: elicit.answers });
+    setWaiting(elicit.sessionId, false);
+    document.getElementById('elicit').hidden = true; // elicit 유지(clawd answerBlocked 재시도 대비)
+  } else {
+    // 만료(pending) 경로: 단일 질문 → 콘솔 주입 제출
+    const pa = collectPickerAnswer();
+    if (pa == null) return;
+    send({ type: 'pickerAnswer', sessionId: elicit.sessionId, indices: pa.indices, text: pa.text, optionCount: pa.optionCount });
+    setWaiting(elicit.sessionId, false);
+    closeElicit(); // 상태 정리 → 연속 Q&A는 다음 pendingAsk로 새 폼
+  }
 });
 document.getElementById('elicitBack') && document.getElementById('elicitBack').addEventListener('click', () => {
   if (!elicit) return;
