@@ -12,9 +12,6 @@ permissions:
 jobs:
   release:
     runs-on: windows-latest
-    # SignPath 시크릿이 설정돼 있으면 서명 단계가 활성화된다(없으면 자동 skip → 미서명 릴리스).
-    env:
-      SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,27 +38,6 @@ jobs:
 
       - name: Pack (Velopack)
         run: vpk pack -u AgentHub -v ${{ steps.ver.outputs.version }} -p install\Release -e AgentHub.exe --framework net48,webview2
-
-      # ===== 코드 서명 (SignPath) — 시크릿/변수 설정 시에만 동작. 자세한 설정은 docs/signing-signpath.md =====
-      - name: Upload unsigned installer for signing
-        if: ${{ env.SIGNPATH_API_TOKEN != '' }}
-        id: unsigned
-        uses: actions/upload-artifact@v4
-        with:
-          name: unsigned-installer
-          path: Releases/*Setup.exe
-
-      - name: Sign installer (SignPath)
-        if: ${{ env.SIGNPATH_API_TOKEN != '' }}
-        uses: signpath/github-action-submit-signing-request@v1
-        with:
-          api-token: ${{ env.SIGNPATH_API_TOKEN }}
-          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
-          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
-          signing-policy-slug: ${{ vars.SIGNPATH_POLICY_SLUG }}
-          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
-          wait-for-completion: true
-          output-artifact-directory: Releases   # 서명된 Setup.exe로 덮어써 업로드에 반영
 
       - name: Upload to GitHub Release
         run: vpk upload github --repoUrl https://github.com/YOOJUNGYU/agent-hub --token ${{ secrets.GITHUB_TOKEN }} --publish --releaseName "Agent Hub ${{ steps.ver.outputs.version }}" --tag ${{ github.ref_name }}

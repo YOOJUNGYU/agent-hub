@@ -9,10 +9,6 @@
 3. **Branch**: `main`, 폴더: `/docs` → **Save**
 4. 몇 분 후 게시됩니다: **https://yoojungyu.github.io/agent-hub/**
 
-## SignPath homepage URL
-
-- SignPath 프로젝트 설정의 **homepage URL**(필수 값)에 위 주소(`https://yoojungyu.github.io/agent-hub/`)를 입력합니다.
-
 ## 편집 방법 (중요)
 
 - **`docs/index.html`이 정본(single source)입니다.** 자체 완결형(인라인 CSS/JS, 외부 리소스 없음)이라 파일 하나로 동작합니다.

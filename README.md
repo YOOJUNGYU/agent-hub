@@ -77,11 +77,6 @@ Claude Code에는 세션을 원격에서 이어받는 공식 **Remote Control** 
 
 ---
 
-## 코드 서명
-
-Windows용 설치 파일의 코드 서명은 [SignPath.io](https://signpath.io)가 오픈소스 프로젝트에 무료로 제공하며, 인증서는 [SignPath Foundation](https://signpath.org) 명의로 발급됩니다.
-
----
 
 ## 문의
 
