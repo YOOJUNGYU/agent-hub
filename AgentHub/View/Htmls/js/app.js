@@ -71,9 +71,29 @@ function setPendingState(mode) {
 function applyAuth(status) {
   authReceived = true;
   authApproved = (status === 'approved');
+  // 오프라인 재실행 시 마지막 상태를 바로 보여주기 위해 승인 여부를 기억한다.
+  try { if (status === 'approved') localStorage.setItem('agenthub.approved', '1'); else localStorage.removeItem('agenthub.approved'); } catch (_) {}
   if (status === 'approved') { showScreen('monitor'); ensurePushSubscribed(); }
   else if (status === 'pending') { setPendingState('pending'); showScreen('authPending'); }
   else showScreen('authRequest'); // none | revoked
+}
+
+// 이전에 승인+세션 스냅샷을 캐시해 둔 적이 있으면(=오프라인 실행 가능) true.
+function hasCachedApproved() {
+  try { return localStorage.getItem('agenthub.approved') === '1' && !!localStorage.getItem('agenthub.lastSessions'); }
+  catch (_) { return false; }
+}
+// 서버 접속 전/오프라인: 마지막 세션 목록을 즉시 모니터에 렌더(연결은 백그라운드에서 계속 시도).
+function showCachedMonitor() {
+  if (!hasCachedApproved()) return false;
+  try {
+    authApproved = true;
+    setBadge(false); // 붙기 전까진 '연결 끊김' 표시 → agent-hub.exe에 붙으면 onopen에서 '연결됨'으로 갱신
+    renderSessions(JSON.parse(localStorage.getItem('agenthub.lastSessions')));
+    showScreen('monitor');
+    refreshNotifyBtn();
+    return true;
+  } catch (_) { return false; }
 }
 
 // ---- 인증 요청 ----
@@ -105,11 +125,11 @@ function connect() {
   // 연결을 강제 종료해 오프라인(인증서 재설치 안내) 흐름으로 넘긴다. onclose가 재접속을 예약한다.
   if (connectTimer) clearTimeout(connectTimer);
   connectTimer = setTimeout(() => {
-    if (!authReceived) { setBadge(false); setPendingState('offline'); }
+    if (!authReceived) { setBadge(false); if (!hasCachedApproved()) setPendingState('offline'); } // 캐시 있으면 마지막 상태 유지(배지만 '연결 끊김')
     try { ws.close(); } catch (e) { /* noop */ }
   }, 7000);
   ws.onopen = () => { if (connectTimer) { clearTimeout(connectTimer); connectTimer = null; } setBadge(true); if (!authReceived) setPendingState('connecting'); };
-  ws.onclose = () => { if (connectTimer) { clearTimeout(connectTimer); connectTimer = null; } setBadge(false); if (!authReceived) setPendingState('offline'); setTimeout(connect, 3000); };
+  ws.onclose = () => { if (connectTimer) { clearTimeout(connectTimer); connectTimer = null; } setBadge(false); if (!authReceived && !hasCachedApproved()) setPendingState('offline'); setTimeout(connect, 3000); };
   ws.onerror = () => { try { ws.close(); } catch (e) { /* noop */ } };
   ws.onmessage = ev => {
     try {
@@ -141,6 +161,7 @@ let firstActivityRender = false; // 상세 진입 직후 첫 렌더는 무조건
 
 function renderSessions(sessions) {
   lastSessions = sessions || [];
+  try { localStorage.setItem('agenthub.lastSessions', JSON.stringify(lastSessions)); } catch (_) {} // 오프라인 재실행용 마지막 상태
   const list = $('#sessionList');
   const sum = $('#summary');
   if (lastSessions.length === 0) {
@@ -186,7 +207,7 @@ function cardHtml(s) {
   const badge = '<span class="badge-status ' + esc(s.status) + '">' + esc(s.status) + '</span>';
   const engine = s.engine ? '<span class="badge-engine ' + esc(s.engine) + '">' + esc(s.engine) + '</span>' : '';
   const waitPill = waiting ? '<span class="card-wait">' + esc(t('card.waiting')) + '</span>' : '';
-  return '<div class="session-card' + (s.status ? ' card-' + esc(s.status) : '') + (waiting ? ' waiting' : '') + '" data-id="' + esc(s.id) + '">'
+  return '<div class="session-card' + (waiting ? ' waiting' : '') + '" data-id="' + esc(s.id) + '">'
     + '<div class="card-top">' + badge + engine + '<span class="card-title">' + esc(s.title) + '</span>' + waitPill + '</div>'
     + '<div class="card-meta">' + esc(s.project || '') + (s.gitBranch ? ' · ' + esc(s.gitBranch) : '') + '</div>'
     + '<div class="card-task">' + esc(s.currentTask || '') + '</div>'
@@ -665,8 +686,9 @@ window.addEventListener('popstate', () => {
   if (currentSessionId !== null) backToList();
 });
 
-setPendingState('connecting'); // 최초: WS 응답 전까지 '연결 확인 중'(승인 대기로 오인 방지)
-showScreen('authPending');
+// 오프라인이어도 실행되도록: 캐시된 마지막 상태가 있으면 즉시 모니터를 보여주고(배지로 연결상태 표시),
+// 없을 때만 '연결 확인 중' 화면을 띄운다. 연결은 백그라운드에서 계속 시도한다.
+if (!showCachedMonitor()) { setPendingState('connecting'); showScreen('authPending'); }
 connect();
 refreshNotifyBtn();
 
@@ -708,13 +730,13 @@ if ('serviceWorker' in navigator) {
   var THEME_KEY = 'agenthub.theme';
   var root = document.documentElement;
   var btn = document.getElementById('themeBtn');
-  var meta = document.querySelector('meta[name="theme-color"]');
   function apply(theme) {
     var light = theme === 'light';
     if (light) root.setAttribute('data-theme', 'light');
     else root.removeAttribute('data-theme');
     if (btn) btn.textContent = light ? '☀️' : '🌙';
-    if (meta) meta.setAttribute('content', light ? '#e7ecf8' : '#181c2a');
+    // theme-color 메타는 고정(정적 <meta>)으로 둔다. 토글 시 값을 바꾸면 안드로이드가
+    // 시스템바/동적 뷰포트(dvh)를 재계산해 하단 여백(레이아웃)이 흔들리기 때문.
   }
   var saved = null;
   try { saved = localStorage.getItem(THEME_KEY); } catch (e) {}

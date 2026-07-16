@@ -187,15 +187,6 @@ body.host-shell #sessionterm.view.active{ display:flex; flex-direction:column; o
 .session-list { display: flex; flex-direction: column; gap: 10px; }
 .session-card { background: #1b2030; border: 1px solid #2a3145; border-radius: 12px; padding: 12px 14px; cursor: pointer; }
 .session-card:active { background: #222941; }
-/* active 세션: 테두리에 심장박동(더블 비트) 링으로 idle/ended와 구분. 대기중(waiting)은 앰버가 우선. */
-.session-card.card-active:not(.waiting) { border-color: #2c5a3f; animation: cardHeartbeat 2.8s ease-in-out infinite; }
-@keyframes cardHeartbeat {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); }
-  50% { box-shadow: 0 0 7px 0 rgba(74,222,128,.20); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .session-card.card-active:not(.waiting) { animation: none; box-shadow: 0 0 5px 0 rgba(74,222,128,.14); }
-}
 /* 응답 대기중: 카드를 앰버로 강조해 목록에서 바로 눈에 띄게 한다(상단 배너 대체). */
 .session-card.waiting { border-color: #f5c451; background: #2a2413; box-shadow: 0 0 0 1px rgba(245,196,81,.35); }
 .card-wait { margin-left: auto; flex: 0 0 auto; font-size: 11px; font-weight: 700; padding: 2px 8px;
@@ -411,7 +402,6 @@ body:not(.host-shell) #terminal:not([hidden]){ flex:1 1 auto; min-height:0; disp
 
 [data-theme="light"] .session-card{ background:#ffffff; border-color:#dbe1ee; }
 [data-theme="light"] .session-card:active{ background:#eef1f8; }
-[data-theme="light"] .session-card.card-active:not(.waiting){ border-color:#7fca9f; }
 [data-theme="light"] .session-card.waiting{ background:#fff7e2; border-color:#e6b23c; }
 [data-theme="light"] .card-meta,
 [data-theme="light"] .run{ color:#5b6478; }
@@ -467,10 +457,20 @@ body:not(.host-shell) #terminal:not([hidden]){ flex:1 1 auto; min-height:0; disp
 
 /* 세션 상세 하단 자유 텍스트 주입 입력 바 */
 #detail .inject-bar { flex: 0 0 auto; }
-.inject-bar { padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); background: var(--panel); }
-.inject-hint { font-size: 12px; line-height: 1.4; color: var(--muted); margin-bottom: 6px; }
-.inject-row { display: flex; gap: 8px; }
+/* 하단 답변 입력 바 — 배경과 자연스럽게 이어지는 채팅 입력(둥근 필드 + 아이콘 전송) */
+/* 하단 여백은 고정값(입력 컨트롤 높이의 약 절반). env(safe-area-inset-bottom)는 안드로이드에서 theme-color에
+   따라 값이 흔들려 라이트/다크 간극이 달라지므로 사용하지 않는다 → 두 테마 동일 여백. */
+.inject-bar { padding: 8px 10px 22px; border-top: 1px solid var(--border); background: var(--bg); }
+.inject-hint { font-size: 12px; line-height: 1.45; color: var(--muted); margin: 0 6px 6px; }
+.inject-row { display: flex; align-items: center; gap: 2px; padding: 3px 5px 3px 14px; background: var(--panel); border: 1px solid var(--border); border-radius: 22px; transition: border-color .15s ease; }
+.inject-row:focus-within { border-color: var(--accent); }
 .inject-row[hidden] { display: none; }
-.inject-input { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--fore); font-size: 15px; }
-.inject-send { flex: none; padding: 10px 16px; border-radius: 10px; border: none; background: var(--accent); color: #fff; font-size: 15px; font-weight: 600; }
-.inject-send:active { opacity: .85; }
+/* font-size는 16px 이상 유지 — iOS에서 입력 포커스 시 자동 확대(뷰포트 틀어짐) 방지 */
+.inject-input { flex: 1; min-width: 0; padding: 9px 0; border: none; background: transparent; color: var(--fore); font-size: 16px; line-height: 1.35; }
+.inject-input:focus { outline: none; }
+.inject-input::placeholder { color: var(--muted); }
+.inject-send { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: none; border-radius: 50%; background: transparent; color: var(--muted); cursor: pointer; transition: color .15s ease; }
+.inject-send svg { width: 21px; height: 21px; display: block; }
+/* 입력이 있으면 전송 아이콘이 강조색으로 살아난다(Teams 느낌) */
+.inject-input:not(:placeholder-shown) ~ .inject-send { color: var(--accent); }
+.inject-send:active { opacity: .6; }
