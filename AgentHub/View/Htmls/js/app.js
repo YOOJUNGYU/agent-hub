@@ -300,6 +300,7 @@ function rel(iso) {
 
 // 라이브 elicit이 없을 때 pendingAsk로 답변 폼을 띄운다(만료/주입 모드). Codex는 제외.
 function maybeShowPendingForm(id) {
+  if (document.getElementById('detail').hidden) return; // 상세 화면일 때만 폼 표시(터미널/목록 위 오버레이 방지)
   if (!id || elicit) return;                                   // 이미 폼(라이브/pending) 있음 → 방해 금지
   if (!document.getElementById('elicit').hidden) return;       // 폼 열려 있음
   const s = sessionsById[id];
