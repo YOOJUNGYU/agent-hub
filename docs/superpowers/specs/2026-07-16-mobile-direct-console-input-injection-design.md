@@ -108,15 +108,27 @@ ConsoleInputInjector.Inject(pid, text, appendEnter: true)
 
 - 파일: `AgentHub/View/Htmls/index.html`, `AgentHub/View/Htmls/js/app.js`
 - **UI**: detail 화면 하단에 입력 바(텍스트 `input` + 전송 `button`) 추가. 기존 detail 레이아웃/스타일을 따른다.
-- **엔진 가드**: 현재 세션의 `engine`이 `codex`면 입력 바를 숨기고 "Codex 세션은 직접 입력을 지원하지 않습니다" 안내를 표시. `engine`은 `sessions` 브로드캐스트의 `SessionSummary.Engine`에서 얻는다(현재 열람 중 세션 요약을 참조).
+- **엔진 가드**: 현재 세션의 `engine`이 `codex`면 입력 바를 숨기고 **대체 방법 안내**(아래 "안내 문구")를 표시. `engine`은 `sessions` 브로드캐스트의 `SessionSummary.Engine`에서 얻는다(현재 열람 중 세션 요약을 참조).
+- **안내 영역**: detail 화면 하단 입력 바 옆/위에 `#injectHint` 영역을 둔다. 주입이 불가능한 상황(codex 엔진, 또는 전송 실패 `noconsole`/`nopid`)에서 **가능한 대체 방법을 구체적으로 안내**한다. (사용자 요청: "답변 불가 세션에서는 cmd/PowerShell로 claude를 실행하라는 등 가능한 방법을 안내")
 - **전송**: 버튼 클릭/Enter 키 →
   ```js
   send({ type: 'inject', sessionId: currentSessionId, text: value });
   ```
   (텍스트만 전송; Enter 제출은 백엔드가 `appendEnter:true`로 처리)
 - **결과 처리**: `app.js`의 메시지 dispatch(`m.type` 분기, 현재 `auth/sessions/activity/ask/done/elicit/permission/answerBlocked`)에 `injectResult` 추가:
-  - `ok` → 입력창 비우기(+간단한 성공 피드백).
-  - `!ok` → `reason`별 안내: `engine`(미지원)·`nopid`(세션을 찾을 수 없음)·`noconsole`(이 세션은 Windows Terminal/ConPTY라 직접 입력 불가)·`failed`(주입 실패).
+  - `ok` → 입력창 비우기 + `#injectHint` 지우기.
+  - `!ok` → `reason`별 **대체 방법 안내**를 `#injectHint`에 표시(아래 표).
+
+#### 안내 문구 (i18n 키)
+
+| 상황 | 키 | 문구(ko) |
+|---|---|---|
+| codex 엔진(입력 바 숨김) | `inject.hintCodex` | Codex(데스크톱 앱) 세션은 모바일 직접 입력을 지원하지 않습니다. PC의 Codex 앱에서 답하거나, "터미널 열기"(이어받기)로 진행하세요. |
+| `noconsole`(ConPTY) | `inject.hintNoConsole` | 이 세션은 직접 입력이 안 되는 터미널(Windows Terminal 등)에서 실행 중입니다. **cmd.exe 또는 PowerShell 창에서 `claude`를 실행**하면 모바일에서 바로 답할 수 있어요. (또는 "터미널 열기"로 이어받아 진행) |
+| `nopid` | `inject.hintNoPid` | 실행 중인 세션 프로세스를 찾을 수 없습니다(종료됐거나 훅 미보고). PC에서 직접 답하거나 세션을 다시 시작하세요. |
+| `failed` | `inject.hintFailed` | 전송에 실패했습니다. 잠시 후 다시 시도해 주세요. |
+
+영어 문구는 i18n.js의 `en` 블록에 동일 키로 대응 추가.
 - **화면 가드**: 신규 입력 UI는 detail 화면 내부 요소이므로 별도 화면 추가 아님. `sessions` 브로드캐스트 수신 시 화면 강제 전환 가드(`currentSessionId`/terminal 표시 조건)는 기존 그대로 유효(메모리 `mobile-sessions-broadcast-force-switch` 준수 — 신규 화면을 추가하지 않으므로 가드 변경 불필요).
 
 ### D. 사용 가이드 동기화 (필수)
@@ -128,13 +140,13 @@ ConsoleInputInjector.Inject(pid, text, appendEnter: true)
 
 `injectResult.reason` 값:
 
-| reason | 의미 | 모바일 안내 |
+| reason | 의미 | 모바일 안내(§6C "안내 문구") |
 |---|---|---|
-| (ok=true) | 주입 성공 | 입력창 비움 |
-| `engine` | Codex 등 비-Claude 세션 | 미지원(입력창은 애초에 숨김; 안전망) |
-| `nopid` | PID 미보고(세션 종료/훅 미실행) | "세션을 찾을 수 없습니다" |
-| `noconsole` | AttachConsole 실패(ConPTY 등) | "이 세션은 직접 입력을 지원하지 않는 터미널에서 실행 중입니다" |
-| `failed` | WriteConsoleInput/기타 실패 | "전송에 실패했습니다" |
+| (ok=true) | 주입 성공 | 입력창·힌트 비움 |
+| `engine` | Codex 등 비-Claude 세션 | `inject.hintCodex` (입력 바는 애초에 숨김; 안전망) |
+| `nopid` | PID 미보고(세션 종료/훅 미실행) | `inject.hintNoPid` |
+| `noconsole` | AttachConsole 실패(ConPTY 등) | `inject.hintNoConsole` (cmd/PowerShell로 실행 권유) |
+| `failed` | WriteConsoleInput/기타 실패 | `inject.hintFailed` |
 
 ## 8. 동시성 / 안전
 
