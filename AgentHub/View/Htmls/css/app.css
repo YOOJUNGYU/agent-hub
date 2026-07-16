@@ -450,12 +450,14 @@ body:not(.host-shell) #terminal:not([hidden]){ flex:1 1 auto; min-height:0; disp
 [data-theme="light"] .badge-status.ended{ background:#e6e0ea; color:#6a6270; }
 [data-theme="light"] .badge-engine.claude{ background:#f6e6d3; color:#a6641a; }
 
+[data-theme="light"] .badge-engine.codex{ background:#d3edf2; color:#136273; }
+
 /* 세션 상세 하단 자유 텍스트 주입 입력 바 */
 #detail .inject-bar { flex: 0 0 auto; }
 .inject-bar { padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); background: var(--panel); }
 .inject-hint { font-size: 12px; line-height: 1.4; color: var(--muted); margin-bottom: 6px; }
 .inject-row { display: flex; gap: 8px; }
+.inject-row[hidden] { display: none; }
 .inject-input { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--fore); font-size: 15px; }
 .inject-send { flex: none; padding: 10px 16px; border-radius: 10px; border: none; background: var(--accent); color: #fff; font-size: 15px; font-weight: 600; }
 .inject-send:active { opacity: .85; }
-[data-theme="light"] .badge-engine.codex{ background:#d3edf2; color:#136273; }
