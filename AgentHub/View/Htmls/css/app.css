@@ -188,16 +188,13 @@ body.host-shell #sessionterm.view.active{ display:flex; flex-direction:column; o
 .session-card { background: #1b2030; border: 1px solid #2a3145; border-radius: 12px; padding: 12px 14px; cursor: pointer; }
 .session-card:active { background: #222941; }
 /* active 세션: 테두리에 심장박동(더블 비트) 링으로 idle/ended와 구분. 대기중(waiting)은 앰버가 우선. */
-.session-card.card-active:not(.waiting) { border-color: #2f6b45; animation: cardHeartbeat 1.4s ease-in-out infinite; }
+.session-card.card-active:not(.waiting) { border-color: #2c5a3f; animation: cardHeartbeat 2.8s ease-in-out infinite; }
 @keyframes cardHeartbeat {
   0%, 100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); }
-  12% { box-shadow: 0 0 0 2px rgba(74,222,128,.55); }
-  24% { box-shadow: 0 0 0 0 rgba(74,222,128,.10); }
-  36% { box-shadow: 0 0 0 4px rgba(74,222,128,.50); }
-  52% { box-shadow: 0 0 0 0 rgba(74,222,128,0); }
+  50% { box-shadow: 0 0 7px 0 rgba(74,222,128,.20); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .session-card.card-active:not(.waiting) { animation: none; box-shadow: 0 0 0 2px rgba(74,222,128,.4); }
+  .session-card.card-active:not(.waiting) { animation: none; box-shadow: 0 0 5px 0 rgba(74,222,128,.14); }
 }
 /* 응답 대기중: 카드를 앰버로 강조해 목록에서 바로 눈에 띄게 한다(상단 배너 대체). */
 .session-card.waiting { border-color: #f5c451; background: #2a2413; box-shadow: 0 0 0 1px rgba(245,196,81,.35); }
