@@ -77,6 +77,10 @@
 
   /* 목업 안 재사용 UI */
   .card{background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:11px 12px; margin-bottom:9px}
+  /* active 세션 카드: 테두리 심장박동(더블 비트)으로 idle/ended와 구분 */
+  .card.card-active{border-color:#2f6b45; animation:cardBeat 1.4s ease-in-out infinite}
+  @keyframes cardBeat{0%,100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}12%{box-shadow:0 0 0 2px rgba(74,222,128,.55)}24%{box-shadow:0 0 0 0 rgba(74,222,128,.1)}36%{box-shadow:0 0 0 4px rgba(74,222,128,.5)}52%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
+  @media (prefers-reduced-motion:reduce){.card.card-active{animation:none; box-shadow:0 0 0 2px rgba(74,222,128,.4)}}
   .card .top{display:flex; align-items:center; gap:7px; margin-bottom:5px}
   .chip{font-family:var(--mono); font-size:9px; text-transform:uppercase; letter-spacing:.5px; padding:2px 7px; border-radius:999px}
   .chip.active{background:#0f2a1a; color:var(--ok); border:1px solid #14532d}
@@ -236,11 +240,11 @@
         <div class="screen">
           <div class="s-head"><span class="logo">◈</span> Agent Hub <span class="badge">🟢 LIVE</span></div>
           <div class="s-body">
-            <div class="card"><div class="top"><span class="chip active">active</span><span class="title">EmbedIOServer 리팩터</span></div>
+            <div class="card card-active"><div class="top"><span class="chip active">active</span><span class="title">EmbedIOServer 리팩터</span></div>
               <div class="meta">agent-hub · main</div><div class="task">🔧 Edit  EmbedIOServer.cs</div></div>
             <div class="card"><div class="top"><span class="chip idle">idle</span><span class="title">문서 작성</span></div>
               <div class="meta">docs · feat/guide</div><div class="task">💬 초안 검토 중…</div></div>
-            <div class="card"><div class="top"><span class="chip active">active</span><span class="title">테스트 실행</span></div>
+            <div class="card card-active"><div class="top"><span class="chip active">active</span><span class="title">테스트 실행</span></div>
               <div class="meta">api · main</div><div class="task">🔧 Bash  dotnet test</div></div>
             <div class="card" style="display:flex;align-items:center;gap:8px"><span class="dot"></span>
               <span class="meta" style="margin:0">실시간 업데이트 중</span></div>
@@ -489,8 +493,8 @@
     <div class="txt">
       <div class="stepno">STEP 05</div>
       <h2><span class="ko">세션 지켜보기</span><span class="en">Watch the sessions</span></h2>
-      <p><span class="ko">PC에서 돌아가는 <b>Claude</b>와 <b>Codex</b> 세션이 한 목록에 카드로 보이고, 각 카드에 <b>엔진 배지</b>(Claude/Codex)가 붙습니다. <b>active</b>(작업 중) · <b>idle</b>(대기) · <b>ended</b>(종료). 카드를 탭하면 실시간 활동 피드로 들어갑니다. 세션이 <b>작업 중이면</b> 카드·상세에 <b>펄스 점 + 회전 상태어</b>(예: <i>Channeling…</i>)로 살아있음을 보여주고, <b>세션 경과 시간과 누적 토큰</b>(예: <i>11m 38s · 31.8k tok</i>)도 함께 표시합니다.</span>
-         <span class="en">Both <b>Claude</b> and <b>Codex</b> sessions running on your PC show in one list, each card tagged with an <b>engine badge</b> (Claude/Codex): <b>active</b> · <b>idle</b> · <b>ended</b>. Tap a card for its live activity feed. When a session is <b>working</b>, the card and detail show a <b>pulsing dot + a rotating status word</b> (e.g. <i>Channeling…</i>) so you can see it's alive, along with the <b>session's elapsed time and cumulative tokens</b> (e.g. <i>11m 38s · 31.8k tok</i>).</span></p>
+      <p><span class="ko">PC에서 돌아가는 <b>Claude</b>와 <b>Codex</b> 세션이 한 목록에 카드로 보이고, 각 카드에 <b>엔진 배지</b>(Claude/Codex)가 붙습니다. <b>active</b>(작업 중) · <b>idle</b>(대기) · <b>ended</b>(종료). 카드를 탭하면 실시간 활동 피드로 들어갑니다. 세션이 <b>작업 중이면</b> 카드·상세에 <b>펄스 점 + 회전 상태어</b>(예: <i>Channeling…</i>)로 살아있음을 보여주고, <b>세션 경과 시간과 누적 토큰</b>(예: <i>11m 38s · 31.8k tok</i>)도 함께 표시합니다. 또한 <b>active 세션은 카드 테두리가 심장박동처럼 맥동</b>해 idle과 한눈에 구분됩니다.</span>
+         <span class="en">Both <b>Claude</b> and <b>Codex</b> sessions running on your PC show in one list, each card tagged with an <b>engine badge</b> (Claude/Codex): <b>active</b> · <b>idle</b> · <b>ended</b>. Tap a card for its live activity feed. When a session is <b>working</b>, the card and detail show a <b>pulsing dot + a rotating status word</b> (e.g. <i>Channeling…</i>) so you can see it's alive, along with the <b>session's elapsed time and cumulative tokens</b> (e.g. <i>11m 38s · 31.8k tok</i>). <b>Active sessions</b> also show a <b>heartbeat pulse on the card border</b>, so they stand out from idle ones at a glance.</span></p>
       <ol class="ck">
         <li><span class="ko">카드 = 세션(엔진 배지·제목·프로젝트·현재 작업·상태)</span><span class="en">Card = a session (engine badge, title, project, current task, status)</span></li>
         <li><span class="ko">탭 → 도구 호출·메시지가 시간순으로 흐르는 피드</span><span class="en">Tap → a feed of tool calls and messages in order</span></li>
