@@ -99,6 +99,6 @@ namespace AgentHub.Server.Terminal
         [DllImport("kernel32.dll", SetLastError = true)] private static extern IntPtr GetStdHandle(int nStdHandle);
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode, EntryPoint = "WriteConsoleInputW")]
         private static extern bool WriteConsoleInput(IntPtr hConsoleInput, INPUT_RECORD[] lpBuffer, uint nLength, out uint written);
-        [DllImport("user32.dll")] private static extern short VkKeyScan(char ch);
+        [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "VkKeyScanW")] private static extern short VkKeyScan(char ch);
     }
 }
