@@ -368,7 +368,7 @@ function handlePickerAnswerResult(m) {
   const key = m.reason === 'noconsole' ? 'inject.hintNoConsole'
     : m.reason === 'nopid' ? 'inject.hintNoPid'
     : m.reason === 'engine' ? 'inject.hintCodex'
-    : 'inject.hintFailed';
+    : 'qna.sendFailed'; // 폼이 억제돼 폰 재시도 불가 → '다시 시도' 대신 PC 안내
   showPendingNote(t(key)); // 만료 제출 실패 안내(지속). answeredPendingKey로 폼 재표시는 억제됨
 }
 document.getElementById('injectSend') && document.getElementById('injectSend').addEventListener('click', sendInject);
