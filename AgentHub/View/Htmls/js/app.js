@@ -712,6 +712,10 @@ setInterval(function () {
   document.querySelectorAll('.run.working .run-verb').forEach(function (v) { v.textContent = pickVerb() + '…'; });
 }, 2500);
 
+// 오프라인 실행에 쓰는 캐시·localStorage가 OS(안드로이드 등)에 의해 evict되지 않도록 영속 저장을 요청한다.
+// 설치된 PWA에서는 대개 프롬프트 없이 승인된다. 실패해도 무해(영속 안 돼도 SW의 stale-while-revalidate가 복구).
+try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {}); } catch (e) {}
+
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
   // 새 서비스워커가 제어를 넘겨받으면(=새 버전 활성화) 한 번만 새로고침해 최신 화면 반영.
