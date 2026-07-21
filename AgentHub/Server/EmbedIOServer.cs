@@ -48,10 +48,15 @@ namespace AgentHub.Server
         /// <summary>서버 재시작(포트 변경 등) 완료 후 발생. 구독자는 새 <see cref="CurrentUrl"/>로 재이동할 수 있다.</summary>
         public static event Action Restarted;
 
-        /// <summary>연결된 모든 네트워크 인터페이스의 사설 IPv4 목록(10.x / 172.16-31.x / 192.168.x).</summary>
+        /// <summary>
+        /// 접속 가능 IPv4 목록. LAN 사설 대역(10.x / 172.16-31.x / 192.168.x)을 앞에, NetBird·Tailscale 등
+        /// 오버레이 VPN의 CGNAT 대역(100.64.0.0/10)을 뒤에 둔다. 표시용 호스트는 앞쪽(LAN)을 우선 선택하고,
+        /// 인증서 SAN에는 전체를 넣어 다른 네트워크(NetBird)에서 IP로 붙어도 인증서가 그 IP를 커버하게 한다.
+        /// </summary>
         private static List<string> GetPrivateIPv4List()
         {
-            var result = new List<string>();
+            var lan = new List<string>();
+            var cgnat = new List<string>();
             try
             {
                 foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
@@ -63,10 +68,12 @@ namespace AgentHub.Server
                     {
                         if (ua.Address.AddressFamily != AddressFamily.InterNetwork) continue;
                         var b = ua.Address.GetAddressBytes();
-                        var isPrivate = b[0] == 10
+                        var isLan = b[0] == 10
                             || (b[0] == 172 && b[1] >= 16 && b[1] <= 31)
                             || (b[0] == 192 && b[1] == 168);
-                        if (isPrivate) result.Add(ua.Address.ToString());
+                        var isCgnat = b[0] == 100 && b[1] >= 64 && b[1] <= 127; // NetBird/Tailscale 오버레이 VPN
+                        if (isLan) lan.Add(ua.Address.ToString());
+                        else if (isCgnat) cgnat.Add(ua.Address.ToString());
                     }
                 }
             }
@@ -74,7 +81,8 @@ namespace AgentHub.Server
             {
                 LogService.Instance.Error(ex);
             }
-            return result;
+            lan.AddRange(cgnat); // LAN을 표시 호스트로 우선, CGNAT(NetBird)는 SAN 용도로 뒤에 붙인다.
+            return lan;
         }
 
         private static bool CertCoversHost(X509Certificate2 cert, string host)
@@ -102,7 +110,8 @@ namespace AgentHub.Server
                     try
                     {
                         var cached = new X509Certificate2(pfxFilePathName, certPw);
-                        if (CertCoversHost(cached, CurrentHost)) return cached;
+                        // 접속 IP(LAN + NetBird 등)를 모두 커버할 때만 재사용. NetBird IP가 새로 생기면 재발급된다.
+                        if (privateIps.All(ip => CertCoversHost(cached, ip))) return cached;
                     }
                     catch { /* 손상/불일치 → 재발급 */ }
                 }

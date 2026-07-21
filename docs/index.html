@@ -284,6 +284,8 @@
       </ol>
       <div class="note"><span class="ko">⚠️ 보안 경고는 자체 서명 인증서라서 나옵니다. 다음 단계에서 인증서를 등록하면 경고 없이 접속되고 홈 화면 추가(앱 설치)도 됩니다.</span>
         <span class="en">⚠️ The warning appears because the certificate is self‑signed. Installing it (next step) removes the warning and enables Add to Home Screen.</span></div>
+      <div class="note"><span class="ko">🌍 <b>다른 네트워크(외부)에서도 접속</b>하고 싶다면 <b>NetBird</b>·Tailscale 같은 오버레이 VPN을 쓰세요. PC와 휴대폰을 같은 가상 네트워크에 연결한 뒤, PC의 <b>VPN IP</b>(NetBird 기준 <code>100.x.x.x</code>)로 접속하면 됩니다. 인증서가 이 VPN IP도 자동으로 포함해 발급되므로 추가 설정은 필요 없습니다 — 자세한 내용은 아래 <b>‘다른 네트워크에서 접속 (VPN)’</b> 참고.</span>
+        <span class="en">🌍 To connect from <b>another network</b> too, use an overlay VPN like <b>NetBird</b> or Tailscale. Put the PC and phone on the same virtual network, then connect using the PC's <b>VPN IP</b> (<code>100.x.x.x</code> on NetBird). The certificate is issued to cover that VPN IP automatically, so no extra setup is needed — see <b>‘Connect from another network (VPN)’</b> below.</span></div>
     </div>
     <div>
       <div class="phone" aria-hidden="true"><div class="screen">
@@ -624,6 +626,11 @@
         <summary>✈️ <span class="ko">오프라인·다른 네트워크에서도 바로 실행</span><span class="en">Runs offline / on another network</span></summary>
         <div class="mbody"><span class="ko">PC가 꺼져 있거나 <b>다른 네트워크</b>일 때 앱을 열면, 아이콘 화면에서 멈추지 않고 <b>마지막으로 봤던 세션 카드 목록</b>으로 바로 들어갑니다(기기에 캐시된 상태). 서버에 다시 연결되면 <b>자동으로 최신 내역으로 갱신</b>됩니다. 이 기능을 쓰려면 <b>같은 네트워크에서 한 번 이상 정상 접속</b>해 화면이 저장돼 있어야 합니다.</span>
           <span class="en">If the PC is off or you're on <b>another network</b>, opening the app no longer stalls on the icon screen — it goes straight to the <b>last session‑card list you saw</b> (cached on the device). Once it reconnects to the server it <b>refreshes to the latest</b> automatically. This needs at least <b>one successful connect on the same network</b> first so the screen is cached.</span></div>
+      </details>
+      <details class="more">
+        <summary>🌍 <span class="ko">다른 네트워크에서 접속 (VPN)</span><span class="en">Connect from another network (VPN)</span></summary>
+        <div class="mbody"><span class="ko">Agent Hub는 기본적으로 <b>같은 LAN 전용</b>이지만, <b>NetBird·Tailscale</b> 같은 오버레이 VPN을 쓰면 <b>다른 네트워크(외부)</b>에서도 접속할 수 있습니다. PC와 휴대폰 <b>양쪽에 VPN을 설치·연결(connected)</b>하면 두 기기가 같은 가상 네트워크에 들어갑니다. 이후 휴대폰 브라우저에서 <b>PC의 VPN IP</b>(NetBird 기준 <code>100.x.x.x</code>)로 <code>https://&lt;그 IP&gt;:&lt;포트&gt;</code> 를 열면 됩니다. 인증서는 이 VPN IP도 자동 포함해 발급되므로 별도 설정이 필요 없습니다(기존 인증서가 있으면 <b>Agent Hub를 한 번 재시작</b>하면 VPN IP를 포함해 갱신됩니다). 포트는 PC 콘솔 <b>설정</b>에서 자유롭게 지정할 수 있습니다.</span>
+          <span class="en">Agent Hub is <b>same‑LAN only</b> by default, but an overlay VPN like <b>NetBird or Tailscale</b> lets you connect from <b>another network</b>. Install and <b>connect the VPN on both</b> the PC and the phone so they share one virtual network. Then, in the phone browser, open <code>https://&lt;that IP&gt;:&lt;port&gt;</code> using the <b>PC's VPN IP</b> (<code>100.x.x.x</code> on NetBird). The certificate is issued to <b>cover that VPN IP automatically</b>, so no extra setup is needed — if a cert already exists, <b>restart Agent Hub once</b> to reissue it including the VPN IP. The port is freely configurable in the PC console's <b>Settings</b>.</span></div>
       </details>
       <details class="more">
         <summary>🚀 <span class="ko">Windows 시작 시 자동 실행 (기본 켜짐)</span><span class="en">Launch on Windows startup (on by default)</span></summary>
