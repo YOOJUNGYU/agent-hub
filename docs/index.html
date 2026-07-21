@@ -218,12 +218,12 @@
 <section class="hero">
   <div class="wrap">
     <div>
-      <p class="eyebrow">PC → <span class="ko">휴대폰</span><span class="en">Phone</span> · LAN</p>
+      <p class="eyebrow">PC → <span class="ko">휴대폰</span><span class="en">Phone</span> · LAN &amp; VPN</p>
       <h1><span class="ko">내 PC의 AI 에이전트를<br><span class="grad">휴대폰에서</span> 지켜보세요</span>
           <span class="en">Watch your PC's AI agent<br><span class="grad">from your phone</span></span></h1>
       <p class="lead">
-        <span class="ko">자리를 비워도, 같은 네트워크의 휴대폰으로 Claude가 지금 뭘 하는지 보고 <b>질문에 답하고, 위험한 작업을 승인하고, 명령까지</b> 보냅니다. 모두 <b>내가 PC에서 승인한 기기</b>만, 안전한 로컬 네트워크 안에서.</span>
-        <span class="en">Step away and still use a phone on the same network to see what Claude is doing and <b>answer its questions, approve risky actions, and send commands</b> — only from <b>devices you approved on your PC</b>, all within your local network.</span>
+        <span class="ko">자리를 비워도, 휴대폰으로 Claude가 지금 뭘 하는지 보고 <b>질문에 답하고, 위험한 작업을 승인하고, 명령까지</b> 보냅니다. 집·회사에선 같은 네트워크로, 밖에선 <b>NetBird·Tailscale 같은 VPN으로 어디서나</b>. 모두 <b>내가 PC에서 승인한 기기</b>만, 클라우드를 거치지 않고 내 기기끼리 직접.</span>
+        <span class="en">Step away and still use your phone to see what Claude is doing and <b>answer its questions, approve risky actions, and send commands</b>. On your home/office network directly, or <b>from anywhere via a VPN like NetBird or Tailscale</b> — only from <b>devices you approved on your PC</b>, device‑to‑device with no cloud relay.</span>
       </p>
       <div class="herobtns">
         <a class="dl" href="https://github.com/YOOJUNGYU/agent-hub/releases/latest" target="_blank" rel="noopener">
@@ -254,9 +254,9 @@
 <!-- 핵심 가치 밴드 -->
 <section class="valband" aria-label="핵심">
   <div class="wrap">
-    <div class="valcard"><span class="vi">🏠</span><div>
-      <b><span class="ko">같은 네트워크(LAN)</span><span class="en">Same network (LAN)</span></b>
-      <span class="d"><span class="ko">보고·답하고·제어하는 통신은 집·회사 네트워크(LAN) 안에서만. 앱을 닫았을 때 오는 알림만 암호화되어 외부 푸시 서비스를 거칩니다.</span><span class="en">Monitoring &amp; control traffic stays inside your home/office network (LAN). Only closed‑app push alerts pass through an external, encrypted push service.</span></span>
+    <div class="valcard"><span class="vi">🌍</span><div>
+      <b><span class="ko">어디서나 · 클라우드 없이</span><span class="en">Anywhere · no cloud relay</span></b>
+      <span class="d"><span class="ko">집·회사에선 같은 네트워크로, 밖에선 <b>VPN(NetBird·Tailscale)</b>으로. 보고·답하고·제어하는 통신은 <b>우리 클라우드를 거치지 않고</b> 내 기기끼리 직접 오갑니다. 앱을 닫았을 때 오는 알림만 암호화되어 외부 푸시 서비스를 거칩니다.</span><span class="en">On your home/office network directly, or from outside via a <b>VPN (NetBird / Tailscale)</b>. Monitoring &amp; control traffic goes <b>device‑to‑device with no cloud relay</b>. Only closed‑app push alerts pass through an external, encrypted push service.</span></span>
     </div></div>
     <div class="valcard"><span class="vi">📱</span><div>
       <b><span class="ko">자리 비워도 원격 제어</span><span class="en">Control while away</span></b>
@@ -274,9 +274,9 @@
   <div class="wrap">
     <div class="txt">
       <div class="stepno">STEP 01</div>
-      <h2><span class="ko">같은 네트워크로 접속</span><span class="en">Connect on the same network</span></h2>
-      <p><span class="ko">PC에서 Agent Hub를 실행하면 콘솔 상단에 접속 주소가 나옵니다. 휴대폰을 PC와 <b>같은 네트워크</b>(같은 공유기·랜, 유선/무선 무관)에 두고 그 주소를 브라우저에 입력하세요.</span>
-         <span class="en">Run Agent Hub on your PC — the console shows an access address at the top. Put your phone on the <b>same network</b> as the PC (same router/LAN, wired or wireless) and open that address in its browser.</span></p>
+      <h2><span class="ko">휴대폰에서 접속하기</span><span class="en">Connect from your phone</span></h2>
+      <p><span class="ko">PC에서 Agent Hub를 실행하면 콘솔 상단에 접속 주소가 나옵니다. <b>집·회사</b>라면 휴대폰을 PC와 같은 네트워크(같은 공유기·랜)에 두고 그 주소를 브라우저에 입력하세요. <b>다른 네트워크(외부·LTE)</b>에서 접속하려면 아래 <a href="#vpn" style="color:var(--accent)">‘VPN으로 어디서나 접속’</a> 단계를 먼저 진행하면 됩니다.</span>
+         <span class="en">Run Agent Hub on your PC — the console shows an access address at the top. <b>At home/office</b>, put your phone on the same network (same router/LAN) as the PC and open that address in its browser. To connect from a <b>different network (remote / mobile data)</b>, set up <a href="#vpn" style="color:var(--accent)">‘Connect from anywhere with a VPN’</a> below first.</span></p>
       <ol class="ck">
         <li><span class="ko">PC 콘솔의 주소 확인 — 예: <b>https://192.168.0.10:47600</b></span><span class="en">Find the address in the PC console — e.g. <b>https://192.168.0.10:47600</b></span></li>
         <li><span class="ko">휴대폰 브라우저 주소창에 입력</span><span class="en">Type it into your phone's browser</span></li>
@@ -284,8 +284,8 @@
       </ol>
       <div class="note"><span class="ko">⚠️ 보안 경고는 자체 서명 인증서라서 나옵니다. 다음 단계에서 인증서를 등록하면 경고 없이 접속되고 홈 화면 추가(앱 설치)도 됩니다.</span>
         <span class="en">⚠️ The warning appears because the certificate is self‑signed. Installing it (next step) removes the warning and enables Add to Home Screen.</span></div>
-      <div class="note"><span class="ko">🌍 <b>다른 네트워크(외부)에서도 접속</b>하고 싶다면 <b>NetBird</b>·Tailscale 같은 오버레이 VPN을 쓰세요. PC와 휴대폰을 같은 가상 네트워크에 연결한 뒤, PC의 <b>VPN IP</b>(NetBird 기준 <code>100.x.x.x</code>)로 접속하면 됩니다. 인증서가 이 VPN IP도 자동으로 포함해 발급되므로 추가 설정은 필요 없습니다 — 자세한 내용은 아래 <b>‘다른 네트워크에서 접속 (VPN)’</b> 참고.</span>
-        <span class="en">🌍 To connect from <b>another network</b> too, use an overlay VPN like <b>NetBird</b> or Tailscale. Put the PC and phone on the same virtual network, then connect using the PC's <b>VPN IP</b> (<code>100.x.x.x</code> on NetBird). The certificate is issued to cover that VPN IP automatically, so no extra setup is needed — see <b>‘Connect from another network (VPN)’</b> below.</span></div>
+      <div class="note"><span class="ko">🌍 <b>집·회사 밖에서도 접속</b>하려면 <b>NetBird·Tailscale</b> 같은 VPN을 쓰세요. 설정 방법과 모바일 접속·IP 안내는 바로 아래 <a href="#vpn" style="color:var(--accent)"><b>‘VPN으로 어디서나 접속’</b></a>에 정리되어 있습니다.</span>
+        <span class="en">🌍 To connect from <b>outside your home/office</b>, use a VPN like <b>NetBird or Tailscale</b>. Full setup, mobile access, and the IP details are in <a href="#vpn" style="color:var(--accent)"><b>‘Connect from anywhere with a VPN’</b></a> right below.</span></div>
     </div>
     <div>
       <div class="phone" aria-hidden="true"><div class="screen">
@@ -297,6 +297,63 @@
           <div style="margin-top:8px"><span style="color:var(--accent);font-size:13px"><span class="ko">고급 → 계속 이동</span><span class="en">Advanced → Proceed</span></span></div>
         </div>
       </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 1.5 VPN으로 어디서나 접속 -->
+<section class="step" id="vpn">
+  <div class="wrap" style="grid-template-columns:1fr; gap:12px">
+    <div class="txt">
+      <div class="stepno">🌍 <span class="ko">VPN으로 어디서나 접속</span><span class="en">CONNECT FROM ANYWHERE · VPN</span></div>
+      <h2><span class="ko">집·회사 밖에서도, VPN으로 어디서나 접속</span><span class="en">Connect from anywhere with a VPN</span></h2>
+      <p><span class="ko">Agent Hub는 클라우드 서버가 없어 기본적으로 <b>같은 네트워크</b>에서만 보입니다. 하지만 <b>NetBird</b>나 <b>Tailscale</b> 같은 오버레이 VPN을 PC와 휴대폰 <b>양쪽에 깔아 로그인</b>하면, 두 기기가 하나의 가상 네트워크로 묶여 <b>어느 네트워크에 있든(집·회사·카페·LTE) 접속</b>할 수 있습니다. 둘 다 개인용은 무료이고, 통신은 여전히 <b>내 기기끼리 직접(WireGuard 암호화)</b> 오갑니다. 둘 중 하나만 고르면 됩니다.</span>
+         <span class="en">Agent Hub has no cloud server, so by default it's only reachable on the <b>same network</b>. But if you install an overlay VPN like <b>NetBird</b> or <b>Tailscale</b> on <b>both the PC and the phone and sign in</b>, the two devices join one virtual network and you can connect <b>from any network</b> — home, office, cafe, or mobile data. Both are free for personal use, and traffic still flows <b>device‑to‑device (WireGuard‑encrypted)</b>. Pick just one.</span></p>
+    </div>
+
+    <div class="certgrid" style="align-items:start">
+      <!-- NetBird -->
+      <div>
+        <div style="font-weight:700;font-size:17px;margin:0 0 4px;display:flex;align-items:center;gap:9px">
+          <span>🐦</span>NetBird<span class="req"><span class="ko">추천</span><span class="en">recommended</span></span></div>
+        <p style="font-size:13px;margin:0 0 10px"><span class="ko">무료 클라우드로 바로, 원하면 내 서버로도.</span><span class="en">Free cloud out of the box, or host it yourself.</span></p>
+        <ol class="ck">
+          <li><span class="ko"><b>PC</b>: <code>netbird.io</code>에서 Windows용을 설치하고 실행 → <b>Connect</b> 클릭 → 브라우저가 열리면 로그인</span>
+              <span class="en"><b>PC</b>: install the Windows app from <code>netbird.io</code>, launch it, click <b>Connect</b>, and sign in when the browser opens</span></li>
+          <li><span class="ko"><b>휴대폰</b>: Play 스토어·App Store에서 <b>NetBird</b> 앱을 설치하고 <b>같은 계정</b>으로 로그인 <i>(자체 호스팅이면 메뉴 ☰ → Change Server에서 관리서버 주소 입력)</i></span>
+              <span class="en"><b>Phone</b>: install the <b>NetBird</b> app and sign in with the <b>same account</b> <i>(self‑hosted: set your management server under ☰ → Change Server)</i></span></li>
+          <li><span class="ko">두 기기가 같은 오버레이 네트워크에 연결되고 기기마다 고정 IP(<code>100.x.x.x</code>)를 받습니다. PC의 IP는 NetBird 대시보드나 앱에서 확인</span>
+              <span class="en">Both devices connect to one overlay network and each gets a fixed IP (<code>100.x.x.x</code>). See the PC's IP in the NetBird dashboard or app</span></li>
+          <li><span class="ko">휴대폰 브라우저에서 <code>https://&lt;PC의 NetBird IP&gt;:&lt;포트&gt;</code> 접속</span>
+              <span class="en">On the phone browser open <code>https://&lt;PC's NetBird IP&gt;:&lt;port&gt;</code></span></li>
+        </ol>
+      </div>
+
+      <!-- Tailscale -->
+      <div>
+        <div style="font-weight:700;font-size:17px;margin:0 0 4px;display:flex;align-items:center;gap:9px">
+          <span>🐾</span>Tailscale<span class="req"><span class="ko">가장 쉬움</span><span class="en">easiest</span></span></div>
+        <p style="font-size:13px;margin:0 0 10px"><span class="ko">계정 로그인만으로 끝. 서버가 필요 없어요.</span><span class="en">Just sign in — no server to run.</span></p>
+        <ol class="ck">
+          <li><span class="ko"><b>PC</b>: <code>tailscale.com/download</code>에서 Windows용을 설치하고, Google·Microsoft·GitHub·Apple 계정 중 하나로 로그인</span>
+              <span class="en"><b>PC</b>: install the Windows app from <code>tailscale.com/download</code> and sign in with a Google / Microsoft / GitHub / Apple account</span></li>
+          <li><span class="ko"><b>휴대폰</b>: Play 스토어·App Store에서 <b>Tailscale</b> 앱을 설치하고 <b>같은 계정</b>으로 로그인</span>
+              <span class="en"><b>Phone</b>: install the <b>Tailscale</b> app from the Play Store / App Store and sign in with the <b>same account</b></span></li>
+          <li><span class="ko">두 기기가 자동으로 같은 사설망(tailnet)에 묶입니다. PC의 <b>Tailscale IP</b>(<code>100.x.x.x</code>)는 트레이 아이콘 또는 <code>tailscale ip</code>로 확인</span>
+              <span class="en">Both devices join one private network (tailnet). Find the PC's <b>Tailscale IP</b> (<code>100.x.x.x</code>) in the tray icon or via <code>tailscale ip</code></span></li>
+          <li><span class="ko">휴대폰 브라우저에서 <code>https://&lt;PC의 Tailscale IP&gt;:&lt;포트&gt;</code> 접속. <b>MagicDNS</b>를 켜면 IP 대신 <code>https://&lt;PC이름&gt;:&lt;포트&gt;</code> 같은 이름으로도 접속 가능</span>
+              <span class="en">On the phone browser open <code>https://&lt;PC's Tailscale IP&gt;:&lt;port&gt;</code>. With <b>MagicDNS</b> on you can also use a name like <code>https://&lt;pc-name&gt;:&lt;port&gt;</code></span></li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="txt" style="margin-top:4px">
+      <div class="note" style="color:var(--accent); background:rgba(122,162,255,.08); border-color:rgba(122,162,255,.25)">
+        <span class="ko">💡 <b>“네트워크를 옮기면 IP가 달라지잖아”</b> — 맞습니다. 카페·LTE로 옮기면 일반 IP(<code>192.168.x.x</code>)는 매번 바뀝니다. 하지만 <b>VPN IP(<code>100.x.x.x</code>)는 기기마다 고정</b>이라, 어느 네트워크에 있든 그대로예요. 그래서 이 <b>VPN 주소로 한 번 홈 화면에 앱 설치(또는 북마크)</b>해 두면 집에서든 밖에서든 <b>항상 같은 주소</b>로 열립니다. (Tailscale은 IP 대신 <b>MagicDNS 이름</b>을 쓰면 더 편합니다.)</span>
+        <span class="en">💡 <b>“But the IP changes when I switch networks”</b> — right, your ordinary IP (<code>192.168.x.x</code>) changes on every network. But the <b>VPN IP (<code>100.x.x.x</code>) is fixed per device</b> and stays the same wherever you are. So <b>install this VPN address to the Home Screen (or bookmark it) once</b> and it opens with the <b>same address</b> from home or away. (Tailscale's <b>MagicDNS name</b> is even handier than the IP.)</span></div>
+      <div class="note">
+        <span class="ko">✅ Agent Hub 인증서는 이 <b>VPN IP 대역(<code>100.64.0.0/10</code>)을 자동 포함</b>해 발급되므로 경고 없이 접속됩니다. VPN을 나중에 깔았다면 <b>Agent Hub를 한 번 재시작</b>하면 VPN IP까지 넣어 인증서가 갱신돼요. 그다음 <b>STEP 02 인증서 등록 · STEP 03 앱 설치</b>는 이 <b>VPN 주소</b>로 똑같이 진행하면 됩니다. 포트는 PC 콘솔 <b>설정</b>에서 지정합니다.</span>
+        <span class="en">✅ Agent Hub's certificate <b>automatically covers this VPN IP range (<code>100.64.0.0/10</code>)</b>, so there's no warning. If you set the VPN up later, <b>restart Agent Hub once</b> to reissue the cert including the VPN IP. Then do <b>STEP 02 (install cert) &amp; STEP 03 (install app)</b> exactly the same way, just using the <b>VPN address</b>. Set the port in the PC console's <b>Settings</b>.</span></div>
     </div>
   </div>
 </section>
@@ -580,10 +637,10 @@
           <tbody>
             <tr><th><span class="ko">연결 경로</span><span class="en">Connection path</span></th>
               <td><span class="ko">Anthropic 클라우드(API) 경유</span><span class="en">Via Anthropic cloud (API)</span></td>
-              <td class="hi"><b><span class="ko">내 LAN 안 로컬 서버만</span><span class="en">Local server on your LAN only</span></b> <span class="ko">— 제어·모니터링이 외부로 안 나감</span><span class="en">— control &amp; monitoring never leave</span></td></tr>
+              <td class="hi"><b><span class="ko">내 기기(로컬 서버)에 직접</span><span class="en">Direct to your local server</span></b> <span class="ko">— 제어·모니터링이 외부 클라우드를 안 거침</span><span class="en">— control &amp; monitoring never pass a cloud</span></td></tr>
             <tr><th><span class="ko">접근 범위</span><span class="en">Reach</span></th>
               <td><span class="ko">인터넷 어디서나</span><span class="en">Anywhere over the internet</span></td>
-              <td class="hi"><b><span class="ko">같은 네트워크(집·회사 LAN) 안</span><span class="en">Same network (home/office LAN)</span></b></td></tr>
+              <td class="hi"><b><span class="ko">같은 네트워크 + VPN으로 어디서나</span><span class="en">Same network — or anywhere via VPN</span></b> <span class="ko">(내 기기끼리 직접)</span><span class="en">(device‑to‑device)</span></td></tr>
             <tr><th><span class="ko">필요 조건</span><span class="en">Requirements</span></th>
               <td><span class="ko">Pro/Max/Team/Enterprise 구독 + 계정 로그인</span><span class="en">Pro/Max/Team/Enterprise plan + account login</span></td>
               <td class="hi"><b><span class="ko">구독 무관</span><span class="en">No plan needed</span></b> <span class="ko">— 로컬에 Claude Code만 있으면 됨</span><span class="en">— just local Claude Code</span></td></tr>
@@ -599,8 +656,8 @@
           </tbody>
         </table>
       </div>
-      <div class="note" style="color:var(--accent); background:rgba(122,162,255,.08); border-color:rgba(122,162,255,.25)"><span class="ko">💡 한마디로, <b>클라우드를 거치지 않고 내 네트워크 안에서, 내가 승인한 기기만</b> 쓰고 싶을 때 Agent Hub가 맞습니다. (앱을 닫았을 때 오는 알림만 암호화되어 외부 푸시 서비스를 거칩니다.)</span>
-        <span class="en">💡 In short: pick Agent Hub when you want <b>no cloud relay — inside your own network, only devices you approved.</b> (Only closed‑app push alerts pass through an external, encrypted push service.)</span></div>
+      <div class="note" style="color:var(--accent); background:rgba(122,162,255,.08); border-color:rgba(122,162,255,.25)"><span class="ko">💡 한마디로, <b>클라우드를 거치지 않고 내 기기끼리 직접, 내가 승인한 기기만</b> 쓰고 싶을 때 Agent Hub가 맞습니다. 집·회사에선 같은 네트워크로, 밖에선 VPN으로 어디서나. (앱을 닫았을 때 오는 알림만 암호화되어 외부 푸시 서비스를 거칩니다.)</span>
+        <span class="en">💡 In short: pick Agent Hub when you want <b>no cloud relay — device‑to‑device, only devices you approved.</b> On your network at home/office, or anywhere via VPN. (Only closed‑app push alerts pass through an external, encrypted push service.)</span></div>
     </div>
   </div>
 </section>
@@ -623,8 +680,8 @@
       </details>
       <details class="more">
         <summary>🌍 <span class="ko">다른 네트워크에서 접속 (VPN)</span><span class="en">Connect from another network (VPN)</span></summary>
-        <div class="mbody"><span class="ko">Agent Hub는 기본적으로 <b>같은 LAN 전용</b>이지만, <b>NetBird·Tailscale</b> 같은 오버레이 VPN을 쓰면 <b>다른 네트워크(외부)</b>에서도 접속할 수 있습니다. PC와 휴대폰 <b>양쪽에 VPN을 설치·연결(connected)</b>하면 두 기기가 같은 가상 네트워크에 들어갑니다. 이후 휴대폰 브라우저에서 <b>PC의 VPN IP</b>(NetBird 기준 <code>100.x.x.x</code>)로 <code>https://&lt;그 IP&gt;:&lt;포트&gt;</code> 를 열면 됩니다. 인증서는 이 VPN IP도 자동 포함해 발급되므로 별도 설정이 필요 없습니다(기존 인증서가 있으면 <b>Agent Hub를 한 번 재시작</b>하면 VPN IP를 포함해 갱신됩니다). 포트는 PC 콘솔 <b>설정</b>에서 자유롭게 지정할 수 있습니다.</span>
-          <span class="en">Agent Hub is <b>same‑LAN only</b> by default, but an overlay VPN like <b>NetBird or Tailscale</b> lets you connect from <b>another network</b>. Install and <b>connect the VPN on both</b> the PC and the phone so they share one virtual network. Then, in the phone browser, open <code>https://&lt;that IP&gt;:&lt;port&gt;</code> using the <b>PC's VPN IP</b> (<code>100.x.x.x</code> on NetBird). The certificate is issued to <b>cover that VPN IP automatically</b>, so no extra setup is needed — if a cert already exists, <b>restart Agent Hub once</b> to reissue it including the VPN IP. The port is freely configurable in the PC console's <b>Settings</b>.</span></div>
+        <div class="mbody"><span class="ko">Agent Hub는 클라우드 서버가 없어 기본은 <b>같은 네트워크 전용</b>이지만, <b>NetBird·Tailscale</b> 같은 VPN을 쓰면 <b>어디서나</b> 접속할 수 있습니다. 설치·설정 단계, 모바일 접속, IP가 바뀌는 문제까지 위쪽 <a href="#vpn"><b>‘VPN으로 어디서나 접속’</b></a> 섹션에 정리해 두었습니다.</span>
+          <span class="en">Agent Hub has no cloud server, so it's <b>same‑network only</b> by default — but a VPN like <b>NetBird or Tailscale</b> lets you connect from <b>anywhere</b>. Full setup, mobile access, and the changing‑IP question are covered in the <a href="#vpn"><b>‘Connect from anywhere with a VPN’</b></a> section above.</span></div>
       </details>
       <details class="more">
         <summary>🚀 <span class="ko">Windows 시작 시 자동 실행 (기본 켜짐)</span><span class="en">Launch on Windows startup (on by default)</span></summary>
