@@ -263,8 +263,6 @@ namespace AgentHub.Server
                     .WithWebApi("/api", m => m.WithController<ApiController>())
                     .WithModule(agentModule)
                     .WithModule(new HostMonitorModule("/ws/host"))
-                    .WithModule(new TerminalModule("/ws/term"))
-                    .WithModule(new SessionTerminalModule("/ws/session"))
                     // /host, /host.html 는 PC(loopback)에서만 접근 허용. 그 외는 정적 폴더로 통과.
                     .WithAction("/host", HttpVerbs.Any, GuardHostAsync)
                     .WithAction("/host.html", HttpVerbs.Any, GuardHostAsync)
@@ -413,8 +411,6 @@ namespace AgentHub.Server
             try
             {
                 AgentMonitorService.Stop();
-                Socket.TerminalModule.DisableAllInstances();
-                Socket.SessionTerminalModule.DisableAllInstances();
                 _cts?.Cancel();
                 try { _server?.Dispose(); } catch (Exception ex) { LogService.Instance.Error(ex); }
                 try { _certServer?.Dispose(); } catch (Exception ex) { LogService.Instance.Error(ex); } // 앞 dispose 예외에도 반드시 정리

@@ -20,17 +20,8 @@
     <Setting Name="ServerCertPassword" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
-    <Setting Name="TerminalEnabled" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">False</Value>
-    </Setting>
     <Setting Name="HookAutoInstalled" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
-    </Setting>
-    <Setting Name="TerminalShell" Type="System.String" Scope="User">
-      <Value Profile="(Default)">cmd.exe</Value>
-    </Setting>
-    <Setting Name="TerminalWorkingDir" Type="System.String" Scope="User">
-      <Value Profile="(Default)" />
     </Setting>
     <Setting Name="ConsoleLang" Type="System.String" Scope="User">
       <Value Profile="(Default)" />

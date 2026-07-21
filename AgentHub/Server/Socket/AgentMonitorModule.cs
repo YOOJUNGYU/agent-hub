@@ -101,7 +101,7 @@ namespace AgentHub.Server.Socket
                 }
                 else if (msg.Type == "inject" && !string.IsNullOrEmpty(msg.SessionId) && !string.IsNullOrEmpty(msg.Text))
                 {
-                    // 원본 kill 없이 세션 콘솔에 직접 주입(Claude 전용). /ws/session의 resume 경로와 별개.
+                    // 원본 kill 없이 세션 콘솔에 직접 주입(Claude 전용).
                     bool ok = false; string reason;
                     if (AgentMonitorService.EngineOf(msg.SessionId) != "claude")
                         reason = "engine"; // Codex 등: 콘솔 없음 → 미지원
@@ -140,7 +140,6 @@ namespace AgentHub.Server.Socket
                         type = "pickerAnswerResult", sessionId = msg.SessionId, ok, reason
                     }));
                 }
-                // 세션 제어(프롬프트/슬래시/답변)는 /ws/session 대화형 터미널에서 수행한다.
             }
             catch (Exception ex) { LogService.Instance.Error(ex); }
         }

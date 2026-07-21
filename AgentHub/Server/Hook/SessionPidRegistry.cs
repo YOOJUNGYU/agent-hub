@@ -8,9 +8,9 @@ namespace AgentHub.Server.Hook
 {
     /// <summary>
     /// sessionId → 그 세션을 실행 중인 claude 프로세스 PID. 훅(claude 프로세스 안에서 실행)이
-    /// process.ppid를 보고해 채운다. 모바일이 세션을 처음 가져올 때 원본 프로세스를 종료하는 데 쓴다.
-    /// 디스크에 영속화한다 — AgentHub 재시작 후에도(살아있는 원본 세션의) PID를 복구해 종료할 수 있도록.
-    /// 죽었거나 재사용된 PID는 ProcessKiller가 이름 가드로 안전하게 무시한다.
+    /// process.ppid를 보고해 채운다. 모바일이 세션 콘솔에 답변/프롬프트를 직접 주입할 때
+    /// 대상 프로세스를 찾는 데 쓴다(ConsoleInputInjector).
+    /// 디스크에 영속화한다 — AgentHub 재시작 후에도(살아있는 원본 세션의) PID를 복구할 수 있도록.
     /// </summary>
     public static class SessionPidRegistry
     {

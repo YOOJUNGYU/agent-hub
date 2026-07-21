@@ -37,7 +37,7 @@ function applyCertUrls() {
 
 // ---- 화면 전환 ----
 function showScreen(name) {
-  ['authRequest', 'authPending', 'monitor', 'detail', 'terminal'].forEach(id => {
+  ['authRequest', 'authPending', 'monitor', 'detail'].forEach(id => {
     $('#' + id).hidden = (id !== name);
   });
 }
@@ -137,7 +137,7 @@ function connect() {
       if (m.type === 'auth') applyAuth(m.status);
       else if (m.type === 'sessions') {
         renderSessions(m.sessions);
-        if (currentSessionId === null && document.getElementById('terminal').hidden) { showScreen('monitor'); refreshNotifyBtn(); }
+        if (currentSessionId === null) { showScreen('monitor'); refreshNotifyBtn(); }
         else if (currentSessionId) syncPendingForm(currentSessionId); // 연속 Q&A: pendingAsk로 폼 표시/정리
       }
       else if (m.type === 'activity') { renderActivity(m.sessionId, m.events); }
@@ -395,13 +395,6 @@ function handlePickerAnswerResult(m) {
 document.getElementById('injectSend') && document.getElementById('injectSend').addEventListener('click', sendInject);
 document.getElementById('injectInput') && document.getElementById('injectInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') { e.preventDefault(); sendInject(); }
-});
-
-// ---- 세션 터미널 열기 (claude --resume attach) ----
-document.getElementById('openSessionTermBtn') && document.getElementById('openSessionTermBtn').addEventListener('click', () => {
-  if (!currentSessionId || !window.openSessionTerminal) return;
-  if (!confirm(t('term.confirmOpen'))) return;
-  window.openSessionTerminal(currentSessionId, sessionsById[currentSessionId] && sessionsById[currentSessionId].title);
 });
 
 // ---- 알림 권한 ----

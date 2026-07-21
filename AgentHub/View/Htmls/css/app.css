@@ -101,15 +101,6 @@ body.host-shell #logs.view.active{display:flex; flex-direction:column; overflow:
 .settings-form button{background:var(--accent); color:#0c1020; border:none; padding:.8rem; border-radius:10px; font-weight:700; font-size:1rem; cursor:pointer}
 .hint{color:var(--muted); font-size:.85rem; min-height:1.2em; margin:.2rem 0}
 
-/* ===== 호스트 세션 터미널 탭 ===== */
-body.host-shell #sessionterm.view.active{ display:flex; flex-direction:column; overflow:hidden; }
-#sessionterm .st-bar{ flex:0 0 auto; display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; margin-bottom:.6rem; }
-#sessionterm .st-bar label{ color:var(--muted); font-size:.9rem; }
-#sessionterm .st-bar select{ background:var(--panel); border:1px solid var(--border); color:var(--fore); padding:.5rem; border-radius:8px; min-width:220px; max-width:60vw; }
-#sessionterm .st-bar button{ background:var(--accent); color:#0c1020; border:none; padding:.55rem 1rem; border-radius:8px; font-weight:700; cursor:pointer; }
-#sessionterm #stView{ flex:1 1 auto; min-height:0; width:100%; }
-#sessionterm #stKeys{ flex:0 0 auto; }
-
 /* ===== Loading spinner ===== */
 @keyframes spin{to{transform:rotate(360deg)}}
 .spinner{
@@ -241,11 +232,9 @@ body.host-shell #sessionterm.view.active{ display:flex; flex-direction:column; o
 .cert-dl:active { background: #6690f0; }
 .cert-help .hint { font-size: 12px; color: #8b93a7; margin: 6px 0; line-height: 1.55; white-space: pre-line; }
 
-/* ---- 웹 터미널 (xterm.js) ---- */
+/* ---- 공용 버튼(알림 켜기 등) · 경고 텍스트(인증서 주소 등) ---- */
 .term-btn { margin: 0 0 10px; padding: 8px 14px; background: #222941; color: #c9d1e4; border: 1px solid #2a3145; border-radius: 8px; cursor: pointer; white-space: nowrap; }
 .term-warn { color: #fbbf24; font-size: 12px; margin: 4px 0 8px; }
-#termView { width: 100%; }
-#terminal .detail-head { margin-bottom: 8px; }
 
 /* ---- 질문 알림 배너 ---- */
 .ask-banner { margin: 0 0 10px; padding: 10px 12px; background: #3a2f14; border: 1px solid #6b5a1e; border-radius: 10px; display: flex; flex-direction: column; gap: 8px; }
@@ -289,13 +278,6 @@ body.host-shell #sessionterm.view.active{ display:flex; flex-direction:column; o
 .perm-detail { font-family: Consolas,'D2Coding',monospace; font-size: 12px; color: #e6e9f2; background: #0d0f17; border: 1px solid #2a3145; border-radius: 8px; padding: 8px 10px; word-break: break-all; overflow-wrap: anywhere; max-height: 8em; overflow-y: auto; overflow-x: hidden; }
 #permAllow { background: #2e9e5b; color: #08130c; font-weight: 700; }
 #permDeny { background: #b3423a; color: #fff; font-weight: 700; }
-
-/* ---- 터미널 특수키 바 (모바일에서 못 넣는 키를 버튼으로) ---- */
-/* 특수키 바: 가로 스크롤 대신 줄바꿈 — 좁은 화면에서도 모든 키가 잘리거나 가로 스크롤 없이 보이게. */
-.term-keys { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0 calc(2px + env(safe-area-inset-bottom)); }
-.key-btn { flex: 0 0 auto; min-width: 44px; padding: 9px 12px; font-size: 13px; font-weight: 600;
-  background: #222941; color: #c9d1e4; border: 1px solid #2a3145; border-radius: 8px; cursor: pointer; }
-.key-btn:active { background: #2a3350; }
 
 /* 사용 가이드 링크 */
 .guide-link { display: inline-block; margin: 8px 0 0; font-size: 13px; color: #7aa2ff; text-decoration: none; }
@@ -347,27 +329,16 @@ body:not(.host-shell) #monitor:not([hidden]){ flex:1 1 auto; min-height:0; displ
   border:2px solid var(--border); border-top-color:var(--accent); animation:ptr-rot .7s linear infinite; }
 @keyframes ptr-rot{ to{ transform:rotate(360deg); } }
 
-/* 상세: 헤드 고정 + 피드 스크롤(flex:1). 헤드의 '터미널 열기'는 우측 정렬 */
+/* 상세: 헤드 고정 + 피드 스크롤(flex:1). */
 body:not(.host-shell) #detail:not([hidden]){ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
 #detail .detail-head{ flex:0 0 auto; }
 #detail .detail-title{ flex:1 1 auto; min-width:0; }
-#detail .term-btn{ flex:0 0 auto; }
 #detail .activity-feed{ flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; padding-bottom:calc(16px + env(safe-area-inset-bottom)); }
 #detail .ev{ min-width:0; }
 
 /* 인증 화면은 스크롤 허용 */
 body:not(.host-shell) #authRequest:not([hidden]),
 body:not(.host-shell) #authPending:not([hidden]){ flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; }
-
-/* 터미널 화면: 헤드/경고/입력창 고정 + xterm이 남은 공간 채움 */
-body:not(.host-shell) #terminal:not([hidden]){ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
-#terminal .detail-head, #terminal .term-warn, #terminal #termKeys{ flex:0 0 auto; }
-#terminal #termViewWrap{ flex:1 1 auto; min-height:0; position:relative; }
-#terminal #termView{ width:100%; height:100%; }
-.term-loading{ position:absolute; inset:0; z-index:5; display:flex; align-items:center; justify-content:center;
-  gap:.5rem; background:#0b0f1a; color:var(--muted); font-size:.95rem; }
-/* [hidden] 속성이 위 display:flex(author 규칙)를 이기도록 명시 — 로딩 완료(첫 출력 바이트) 시 오버레이를 확실히 숨긴다. */
-.term-loading[hidden]{ display:none; }
 
 /* 설치 유도 배너 — 미설치(브라우저) 접속 시 #monitor 상단에 표시 */
 .install-promo{ display:flex; align-items:center; gap:10px; flex-wrap:wrap;

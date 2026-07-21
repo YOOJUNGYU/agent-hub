@@ -26,7 +26,6 @@
   <nav class="tabs">
     <button class="tab active" data-view="devices" data-i18n="tab.devices">기기 관리</button>
     <button class="tab" data-view="clients" data-i18n="tab.clients">연결된 기기</button>
-    <button class="tab" data-view="sessionterm" data-i18n="tab.sessionTerm">세션 터미널</button>
     <button class="tab" data-view="logs" data-i18n="tab.logs">로그</button>
     <button class="tab" data-view="settings" data-i18n="tab.settings">설정</button>
   </nav>
@@ -48,26 +47,6 @@
         <div class="loading"><span class="spinner"></span><span data-i18n="clients.loading">접속 기기 정보를 불러오는 중…</span></div>
       </div>
     </section>
-    <section id="sessionterm" class="view">
-      <div class="st-bar">
-        <label for="stSession" data-i18n="sessionTerm.pick">세션</label>
-        <select id="stSession"></select>
-        <button type="button" id="stOpen" data-i18n="sessionTerm.open">터미널 열기</button>
-        <span class="hint" id="stHint" data-i18n="sessionTerm.hint">폰에서 연 세션과 실시간으로 공유됩니다.</span>
-      </div>
-      <div id="stView"></div>
-      <div id="stKeys" class="term-keys">
-        <button class="key-btn" data-seq="&#x1b;">Esc</button>
-        <button class="key-btn" data-seq="&#x09;">Tab</button>
-        <button class="key-btn" data-seq="&#x1b;[A">↑</button>
-        <button class="key-btn" data-seq="&#x1b;[B">↓</button>
-        <button class="key-btn" data-seq="&#x1b;[D">←</button>
-        <button class="key-btn" data-seq="&#x1b;[C">→</button>
-        <button class="key-btn" data-seq="&#x0d;">Enter</button>
-        <button class="key-btn" data-seq="&#x03;">Ctrl-C</button>
-        <button class="key-btn" data-seq="&#x1a;">Ctrl-Z</button>
-      </div>
-    </section>
     <section id="logs" class="view">
       <div class="log-list" id="logList"></div>
     </section>
@@ -87,26 +66,10 @@
           <label class="chk"><input type="checkbox" id="autoStart" /> <span data-i18n="settings.autoStart">Windows 시작 시 자동 실행</span></label>
           <p class="hint" data-i18n="settings.autoStartHint">로그인하면 Agent Hub가 자동으로 실행됩니다(기본 켜짐). 설치본에서만 적용됩니다.</p>
         </div>
-        <div class="settings-col">
-          <h3 class="settings-h" data-i18n="settings.terminalGroup">터미널</h3>
-          <label class="chk"><input type="checkbox" id="termEnabled" /> <span data-i18n="settings.termEnable">웹 터미널 허용(모바일에서 PC 명령 실행)</span></label>
-          <p class="hint" data-i18n="settings.termWarn">승인된 기기가 이 PC에서 명령을 실행할 수 있게 됩니다. 필요할 때만 켜세요.</p>
-          <label for="termShell" data-i18n="settings.termShell">기본 셸</label>
-          <input type="text" id="termShell" placeholder="cmd.exe" />
-          <p class="hint" data-i18n="settings.termShellHint">기본은 cmd.exe 입니다. PowerShell을 쓰려면 powershell.exe(Windows PowerShell) 또는 pwsh.exe(PowerShell 7)를 입력하세요. 저장 후 새로 여는 터미널부터 적용됩니다.</p>
-          <label for="termCwd" data-i18n="settings.termCwd">시작 폴더 (비우면 사용자 홈)</label>
-          <input type="text" id="termCwd" placeholder="%USERPROFILE%" />
-          <button type="button" id="termSaveBtn" data-i18n="settings.termSave">터미널 설정 저장</button>
-          <p class="hint" id="termHint"></p>
-        </div>
       </form>
     </section>
   </main>
-  <link rel="stylesheet" href="/css/xterm.css" />
-  <script src="/js/xterm.js"></script>
-  <script src="/js/addon-fit.js"></script>
   <script src="/js/i18n.js"></script>
   <script src="/js/host.js"></script>
-  <script src="/js/host-term.js"></script>
 </body>
 </html>

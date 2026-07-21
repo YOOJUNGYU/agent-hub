@@ -18,10 +18,6 @@
     <Compile Include="..\AgentHub\Common\Models\PendingAsk.cs" Link="Linked\PendingAsk.cs" />
     <Compile Include="..\AgentHub\Common\Models\SessionSummary.cs" Link="Linked\SessionSummary.cs" />
     <Compile Include="..\AgentHub\Common\Models\ActivityEvent.cs" Link="Linked\ActivityEvent.cs" />
-    <Compile Include="..\AgentHub\Server\Terminal\TerminalGate.cs" Link="Linked\TerminalGate.cs" />
-    <Compile Include="..\AgentHub\Server\Terminal\ConPtyInterop.cs" Link="Linked\ConPtyInterop.cs" />
-    <Compile Include="..\AgentHub\Server\Terminal\ConPtySession.cs" Link="Linked\ConPtySession.cs" />
-    <Compile Include="..\AgentHub\Server\Terminal\EngineSpec.cs" Link="Linked\EngineSpec.cs" />
     <Compile Include="..\AgentHub\Server\Hook\HookConfigMerger.cs" Link="Linked\HookConfigMerger.cs" />
     <Compile Include="..\AgentHub\Server\Hook\PermissionRegistry.cs" Link="Linked\PermissionRegistry.cs" />
     <Compile Include="..\AgentHub\Server\Hook\RemoteAnswerConfig.cs" Link="Linked\RemoteAnswerConfig.cs" />

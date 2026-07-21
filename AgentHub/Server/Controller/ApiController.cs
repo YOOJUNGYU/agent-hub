@@ -157,38 +157,6 @@ namespace AgentHub.Server.Controller
             return SendJsonAsync(Json.Serialize(new { ok = DeviceRegistry.Delete(id) }));
         }
 
-        // ---- 터미널 설정 ----
-
-        [Route(HttpVerbs.Get, "/terminal/status")]
-        public Task TerminalStatus()
-            => SendJsonAsync(Json.Serialize(new { enabled = Properties.Settings.Default.TerminalEnabled }));
-
-        [Route(HttpVerbs.Get, "/terminal/config")]
-        public Task GetTerminalConfig()
-        {
-            if (!IsLoopback()) return Forbidden();
-            return SendJsonAsync(Json.Serialize(new
-            {
-                enabled = Properties.Settings.Default.TerminalEnabled,
-                shell = Properties.Settings.Default.TerminalShell,
-                workingDir = Properties.Settings.Default.TerminalWorkingDir
-            }));
-        }
-
-        [Route(HttpVerbs.Post, "/terminal/config")]
-        public async Task SaveTerminalConfig()
-        {
-            if (!IsLoopback()) { await Forbidden(); return; }
-            var raw = await HttpContext.GetRequestBodyAsStringAsync();
-            var body = Json.Deserialize<TerminalConfigBody>(raw) ?? new TerminalConfigBody();
-            Properties.Settings.Default.TerminalEnabled = body.Enabled;
-            if (body.Shell != null) Properties.Settings.Default.TerminalShell = body.Shell.Trim();
-            if (body.WorkingDir != null) Properties.Settings.Default.TerminalWorkingDir = body.WorkingDir.Trim();
-            Properties.Settings.Default.Save();
-            if (!body.Enabled) TerminalModule.DisableAllInstances();
-            await SendJsonAsync(Json.Serialize(new { ok = true, enabled = body.Enabled }));
-        }
-
         // ---- Windows 시작 시 자동 실행 (PC/loopback 전용) ----
 
         [Route(HttpVerbs.Get, "/autostart")]
@@ -526,13 +494,6 @@ namespace AgentHub.Server.Controller
         public class PortSetting
         {
             public int Port { get; set; }
-        }
-
-        internal class TerminalConfigBody
-        {
-            public bool Enabled { get; set; }
-            public string Shell { get; set; }
-            public string WorkingDir { get; set; }
         }
 
         internal class AutoStartBody

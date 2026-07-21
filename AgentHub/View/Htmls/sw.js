@@ -1,7 +1,7 @@
 const CACHE = 'agent-hub-{{VER}}'; // {{VER}}는 서버가 /sw.js 서빙 시 자산 해시로 치환(빌드마다 자동 무효화)
 // index.html이 로드하는 렌더 블로킹 자산은 모두 포함해야 한다. 특히 /js/i18n.js 가 빠지면 오프라인에서
 // 이 블로킹 스크립트를 네트워크에서 받으려다 멈춰 페이지가 페인트되지 못한다(아이콘 스플래시 영구 정지).
-const ASSETS = ['/', '/index.html', '/css/app.css', '/js/i18n.js', '/js/app.js', '/icons/icon-192.png', '/icons/icon-512.png', '/manifest.webmanifest', '/js/xterm.js', '/js/addon-fit.js', '/css/xterm.css', '/js/term.js'];
+const ASSETS = ['/', '/index.html', '/css/app.css', '/js/i18n.js', '/js/app.js', '/icons/icon-192.png', '/icons/icon-512.png', '/manifest.webmanifest'];
 
 self.addEventListener('install', e => {
   // addAll은 원자적이라 자산 하나만 실패해도(모바일 WiFi 순간 끊김 등) 전체 캐시가 비어 오프라인이 깨진다.

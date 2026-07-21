@@ -214,12 +214,6 @@ async function loadSettings() {
   try { const s = await (await fetch('/api/settings')).json(); $('#portInput').value = s.port; }
   catch (e) { /* ignore */ }
   try {
-    const c = await (await fetch('/api/terminal/config')).json();
-    $('#termEnabled').checked = !!c.enabled;
-    $('#termShell').value = c.shell || '';
-    $('#termCwd').value = c.workingDir || '';
-  } catch (e) { /* noop */ }
-  try {
     const a = await (await fetch('/api/autostart')).json();
     $('#autoStart').checked = !!a.enabled;
   } catch (e) { /* noop */ }
@@ -248,18 +242,6 @@ $('#settingsForm').addEventListener('submit', async e => {
     hint.textContent = t('settings.reqFail') + err.message;
   }
 });
-$('#termSaveBtn').addEventListener('click', async () => {
-  const hint = $('#termHint');
-  hint.textContent = t('settings.saving');
-  try {
-    const res = await (await fetch('/api/terminal/config', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ enabled: $('#termEnabled').checked, shell: $('#termShell').value, workingDir: $('#termCwd').value })
-    })).json();
-    hint.textContent = res.ok ? t('settings.saved').replace('{url}', '') : (t('settings.error'));
-  } catch (e) { hint.textContent = t('settings.reqFail') + e.message; }
-});
-
 // 콘솔에서 사용자가 고른 표시 언어를 서버에 저장 → PWA가 /server/status의 Lang으로 이 값을 따라간다.
 function saveConsoleLang() {
   try {
