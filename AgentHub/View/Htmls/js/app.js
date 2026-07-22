@@ -148,6 +148,7 @@ function connect() {
       else if (m.type === 'answerBlocked') { handleAnswerBlocked(m); }
       else if (m.type === 'injectResult') { handleInjectResult(m); }
       else if (m.type === 'pickerAnswerResult') { handlePickerAnswerResult(m); }
+      else if (m.type === 'reopenResult') { handleReopenResult(m); }
     } catch (e) { /* ignore malformed */ }
   };
 }
@@ -387,6 +388,7 @@ function refreshInjectBar(id) {
     if (connect) connect.hidden = true;
     if (row) row.hidden = false;
     if (!injectSending) showInjectHint(null);
+    if (reopenTimer) { clearTimeout(reopenTimer); reopenTimer = null; }
     reopening = false;
     return;
   }
@@ -434,11 +436,13 @@ function handleInjectResult(m) {
   setInjectSending(false);
   const input = document.getElementById('injectInput');
   if (m.ok) { if (input) { input.value = ''; autoGrowInject(); } showInjectHint(null); return; }
-  const key = m.reason === 'noconsole' ? 'inject.hintNoConsole'
-    : m.reason === 'nopid' ? 'inject.hintNoPid'
-    : m.reason === 'engine' ? 'inject.hintCodex'
-    : 'inject.hintFailed';
-  showInjectHint(key);
+  if (m.reason === 'noconsole' || m.reason === 'nopid') {
+    injectFailedSet.add(m.sessionId);     // 이 세션은 세션연결로 전환
+    showInjectHint(null);
+    refreshInjectBar(m.sessionId);
+    return;
+  }
+  showInjectHint(m.reason === 'engine' ? 'inject.hintCodex' : 'inject.hintFailed');
 }
 function handlePickerAnswerResult(m) {
   if (m.sessionId !== currentSessionId) return;
@@ -454,6 +458,26 @@ document.getElementById('injectInput') && document.getElementById('injectInput')
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendInject(); }
 });
 document.getElementById('injectInput') && document.getElementById('injectInput').addEventListener('input', autoGrowInject);
+let reopenTimer = null;
+document.getElementById('sessionConnectBtn') && document.getElementById('sessionConnectBtn').addEventListener('click', () => {
+  if (!currentSessionId || reopening) return;
+  if (!confirm(t('session.connectConfirm'))) return;
+  injectFailedSet.delete(currentSessionId); // 재실행으로 복구 시도 → 강제 세션연결 해제
+  reopening = true;
+  refreshInjectBar(currentSessionId);        // '연결 중…' 표시
+  send({ type: 'reopen', sessionId: currentSessionId });
+  // 안전망: reopenResult/injectable 스냅샷이 안 오면 복구.
+  reopenTimer = setTimeout(() => {
+    if (reopening) { reopening = false; showInjectHint('session.reopenFailed'); refreshInjectBar(currentSessionId); }
+  }, 20000);
+});
+function handleReopenResult(m) {
+  if (m.sessionId !== currentSessionId) return;
+  if (m.ok) return; // 실행 성공 → injectable 스냅샷을 기다림(연결 중 유지, 안전망이 커버)
+  reopening = false; if (reopenTimer) { clearTimeout(reopenTimer); reopenTimer = null; }
+  showInjectHint('session.reopenFailed');
+  refreshInjectBar(m.sessionId);
+}
 
 // ---- 알림 권한 ----
 function refreshNotifyBtn() {
