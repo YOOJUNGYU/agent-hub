@@ -443,6 +443,11 @@ body:not(.host-shell) #authPending:not([hidden]){ flex:1 1 auto; min-height:0; o
 /* 하단 여백은 고정값(입력 컨트롤 높이의 약 절반). env(safe-area-inset-bottom)는 안드로이드에서 theme-color에
    따라 값이 흔들려 라이트/다크 간극이 달라지므로 사용하지 않는다 → 두 테마 동일 여백. */
 .inject-bar { padding: 8px 10px; border-top: 1px solid var(--border); background: var(--bg); }
+.session-connect { padding: 4px 6px 8px; }
+.session-connect-desc { font-size: 12px; line-height: 1.45; color: var(--muted); margin: 0 0 8px; }
+.session-connect-btn { width: 100%; padding: 11px; border: none; border-radius: 22px;
+  background: var(--accent); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; }
+.session-connect-btn:disabled { opacity: .6; cursor: default; }
 .inject-hint { font-size: 12px; line-height: 1.45; color: var(--muted); margin: 0 6px 6px; }
 .inject-row { display: flex; align-items: center; gap: 2px; padding: 3px 5px 3px 14px; background: var(--panel); border: 1px solid var(--border); border-radius: 22px; transition: border-color .15s ease; }
 .inject-row:focus-within { border-color: var(--accent); }

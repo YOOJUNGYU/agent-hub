@@ -138,7 +138,7 @@ function connect() {
       else if (m.type === 'sessions') {
         renderSessions(m.sessions);
         if (currentSessionId === null) { showScreen('monitor'); refreshNotifyBtn(); }
-        else if (currentSessionId) syncPendingForm(currentSessionId); // 연속 Q&A: pendingAsk로 폼 표시/정리
+        else if (currentSessionId) { syncPendingForm(currentSessionId); refreshInjectBar(currentSessionId); }
       }
       else if (m.type === 'activity') { renderActivity(m.sessionId, m.events); }
       else if (m.type === 'ask') { handleAsk(m); }
@@ -284,6 +284,7 @@ function backToList() {
   hidePendingNote(); answeredPendingKey = null;
   currentSessionId = null;
   { const bar = document.getElementById('injectBar'); if (bar) bar.hidden = true; }
+  setInjectSending(false); reopening = false;
   showScreen('monitor');
   rerenderSessions(); // openDetail에서 해제한 대기표시를 목록에 반영(다음 스냅샷 전 최신화)
 }
@@ -353,17 +354,47 @@ function showInjectHint(key) {
   hint.textContent = key ? t(key) : '';
   hint.hidden = !key;
 }
-// 상세 진입/세션 전환 시 입력 바 상태 초기화. codex면 입력줄 숨기고 안내만.
+let reopening = false;               // '세션연결' 진행 중(연결 중 UI)
+const injectFailedSet = new Set();   // 전송이 noconsole/nopid로 실패한 세션(강제 세션연결 모드)
+
+// 상세 진입 시: 입력값 초기화 + 상태 리셋 후 바 갱신.
 function updateInjectBar(id) {
+  const input = document.getElementById('injectInput');
+  if (input) { input.value = ''; }
+  setInjectSending(false);
+  reopening = false;
+  autoGrowInject();
+  refreshInjectBar(id);
+}
+
+// 스냅샷/전환 시: 세션의 injectable·engine에 맞춰 입력창/세션연결/코덱스안내 중 하나를 표시.
+// 사용자가 입력 중인 값·전송 중 상태는 건드리지 않는다.
+function refreshInjectBar(id) {
   const bar = document.getElementById('injectBar');
   const row = document.getElementById('injectRow');
-  const input = document.getElementById('injectInput');
+  const connect = document.getElementById('sessionConnect');
   if (!bar) return;
   bar.hidden = false;
-  if (input) input.value = '';
-  const isCodex = sessionsById[id] && sessionsById[id].engine === 'codex';
-  if (row) row.hidden = !!isCodex;
-  showInjectHint(isCodex ? 'inject.hintCodex' : null);
+  const s = sessionsById[id];
+  const engine = s && s.engine;
+  if (engine === 'codex') { // 콘솔 없음 → 안내만
+    if (row) row.hidden = true; if (connect) connect.hidden = true;
+    showInjectHint('inject.hintCodex');
+    return;
+  }
+  const injectable = !!(s && s.injectable) && !injectFailedSet.has(id);
+  if (injectable) {         // 일반 입력
+    if (connect) connect.hidden = true;
+    if (row) row.hidden = false;
+    if (!injectSending) showInjectHint(null);
+    reopening = false;
+    return;
+  }
+  // claude + 주입 불가 → 세션연결
+  if (row) row.hidden = true;
+  if (connect) connect.hidden = false;
+  const btn = document.getElementById('sessionConnectBtn');
+  if (btn) { btn.disabled = reopening; btn.textContent = t(reopening ? 'session.connecting' : 'session.connect'); }
 }
 // textarea 높이를 내용에 맞춰 재계산(최대 높이는 CSS max-height가 clamp, 초과 시 스크롤).
 function autoGrowInject() {
