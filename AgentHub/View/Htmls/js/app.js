@@ -455,9 +455,7 @@ function handlePickerAnswerResult(m) {
   showPendingNote(t(key)); // 만료 제출 실패 안내(지속). answeredPendingKey로 폼 재표시는 억제됨
 }
 document.getElementById('injectSend') && document.getElementById('injectSend').addEventListener('click', sendInject);
-document.getElementById('injectInput') && document.getElementById('injectInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendInject(); }
-});
+// Enter는 줄바꿈(textarea 기본 동작). 전송은 전송 버튼으로만.
 document.getElementById('injectInput') && document.getElementById('injectInput').addEventListener('input', autoGrowInject);
 let reopenTimer = null;
 document.getElementById('sessionConnectBtn') && document.getElementById('sessionConnectBtn').addEventListener('click', () => {
