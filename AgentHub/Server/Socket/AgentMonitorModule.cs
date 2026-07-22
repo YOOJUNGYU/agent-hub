@@ -109,7 +109,9 @@ namespace AgentHub.Server.Socket
                         reason = "nopid";  // PID 미보고(세션 종료/훅 미실행)
                     else
                     {
-                        var r = AgentHub.Server.Terminal.ConsoleInputInjector.Inject(pid, msg.Text, appendEnter: true);
+                        // 텍스트→지연→Enter(별도) 시퀀스에 sleep이 있어 소켓 핸들러를 막지 않도록 Task.Run으로 처리.
+                        var r = await System.Threading.Tasks.Task.Run(() =>
+                            AgentHub.Server.Terminal.ConsoleInputInjector.Inject(pid, msg.Text, appendEnter: true));
                         ok = r == AgentHub.Server.Terminal.ConsoleInputInjector.Result.Ok;
                         reason = ok ? null
                             : (r == AgentHub.Server.Terminal.ConsoleInputInjector.Result.NoConsole ? "noconsole" : "failed");

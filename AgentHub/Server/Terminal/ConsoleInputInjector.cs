@@ -31,9 +31,20 @@ namespace AgentHub.Server.Terminal
         public static Result Inject(int pid, string text, bool appendEnter)
         {
             if (pid <= 0) return Result.Failed;
-            string payload = (text ?? "") + (appendEnter ? "\r" : "");
-            if (payload.Length == 0) return Result.Ok;
-            lock (_gate) { return WriteOnce(pid, payload); }
+            string body = text ?? "";
+            lock (_gate)
+            {
+                if (body.Length > 0)
+                {
+                    var r = WriteOnce(pid, body);
+                    if (r != Result.Ok) return r;
+                }
+                if (!appendEnter) return Result.Ok;
+                // raw-mode TUI(claude)는 텍스트와 Enter가 한 배치로 들어오면 Enter를 '제출'로 인식하지 못할 때가 있다.
+                // 텍스트가 반영될 시간을 준 뒤 Enter를 '별도' 이벤트로 보낸다(picker 주입과 동일 패턴).
+                if (body.Length > 0) System.Threading.Thread.Sleep(PickerStepDelayMs);
+                return WriteOnce(pid, "\r");
+            }
         }
 
         private const int PickerStepDelayMs = 500;
