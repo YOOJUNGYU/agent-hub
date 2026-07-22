@@ -158,27 +158,22 @@ let sessionsById = {};
 let lastSessions = [];          // 마지막 세션 스냅샷(대기 표시만 바뀔 때 재렌더용)
 const awaitingSet = new Set();  // '응답 대기중' 트랜지언트 신호(권한/일반 알림). 질문(AskUserQuestion)은 pendingAsk가 담당.
 let firstActivityRender = false; // 상세 진입 직후 첫 렌더는 무조건 최하단
-// '입력 가능만' 목록 필터: 켜면 injectable(claude+살아있는 PID) 세션만 표시. 상태는 localStorage에 기억.
-let showInjectableOnly = false;
-try { showInjectableOnly = localStorage.getItem('agenthub.injectableOnly') === '1'; } catch (_) {}
 
 function renderSessions(sessions) {
   lastSessions = sessions || [];
   try { localStorage.setItem('agenthub.lastSessions', JSON.stringify(lastSessions)); } catch (_) {} // 오프라인 재실행용 마지막 상태
   const list = $('#sessionList');
   const sum = $('#summary');
-  sessionsById = {}; lastSessions.forEach(s => { sessionsById[s.id] = s; }); // 상세 조회는 전체 기준(필터와 무관)
-  const shown = showInjectableOnly ? lastSessions.filter(s => s.injectable) : lastSessions;
-  if (shown.length === 0) {
-    const key = showInjectableOnly ? 'monitor.emptyInjectable' : 'monitor.empty';
-    list.innerHTML = '<div class="empty" data-i18n="' + key + '">' + esc(t(key)) + '</div>';
+  if (lastSessions.length === 0) {
+    list.innerHTML = '<div class="empty" data-i18n="monitor.empty">최근 활동한 세션이 없습니다.</div>';
     sum.textContent = '';
     if (window.I18n) I18n.apply();
     return;
   }
-  const active = shown.filter(s => s.status === 'active').length;
-  sum.textContent = t('summary.count') + ': ' + shown.length + ' · active ' + active;
-  list.innerHTML = shown.map(cardHtml).join('');
+  sessionsById = {}; lastSessions.forEach(s => { sessionsById[s.id] = s; });
+  const active = lastSessions.filter(s => s.status === 'active').length;
+  sum.textContent = t('summary.count') + ': ' + lastSessions.length + ' · active ' + active;
+  list.innerHTML = lastSessions.map(cardHtml).join('');
   list.querySelectorAll('.session-card').forEach(el =>
     el.addEventListener('click', () => openDetail(el.getAttribute('data-id'))));
   updateDetailRun(); // 스냅샷 갱신 시 상세 헤더의 실행지표(토큰·작업중)도 최신화
@@ -465,18 +460,6 @@ document.getElementById('notifyBtn') && document.getElementById('notifyBtn').add
   try { await Notification.requestPermission(); } catch (_) {}
   refreshNotifyBtn();
 });
-
-// '입력 가능만' 목록 필터 토글: 상태 기억 + 즉시 재렌더.
-(function () {
-  const cb = document.getElementById('injectableOnly');
-  if (!cb) return;
-  cb.checked = showInjectableOnly;
-  cb.addEventListener('change', () => {
-    showInjectableOnly = cb.checked;
-    try { localStorage.setItem('agenthub.injectableOnly', showInjectableOnly ? '1' : '0'); } catch (_) {}
-    renderSessions(lastSessions);
-  });
-})();
 
 // ---- Web Push 구독(앱 종료/백그라운드 알림) ----
 // 승인 + 알림 권한이 있을 때 1회 구독하고 서버에 등록. 실패는 무시(연결 시 인앱 알림으로 폴백).
