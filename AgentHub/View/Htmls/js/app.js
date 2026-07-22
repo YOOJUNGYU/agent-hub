@@ -364,8 +364,9 @@ function updateInjectBar(id) {
   if (input) { input.value = ''; }
   setInjectSending(false);
   reopening = false;
-  autoGrowInject();
+  showInjectHint(null);
   refreshInjectBar(id);
+  autoGrowInject();
 }
 
 // 스냅샷/전환 시: 세션의 injectable·engine에 맞춰 입력창/세션연결/코덱스안내 중 하나를 표시.
