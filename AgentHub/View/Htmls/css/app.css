@@ -215,7 +215,14 @@ body.host-shell #logs.view.active{display:flex; flex-direction:column; overflow:
 .ev { background: #171b28; border-left: 3px solid #2a3145; border-radius: 8px; padding: 8px 10px; }
 .ev-tool_use { border-left-color: #7aa2ff; }
 .ev-tool_result { border-left-color: #4ade80; }
-.ev-user_prompt { border-left-color: #fbbf24; }
+.ev-user_prompt {
+  align-self: flex-end;
+  max-width: 85%;
+  background: #1c2740;
+  border-left: 3px solid #7aa2ff;
+  border-radius: 10px 10px 4px 10px;
+}
+.ev-user_prompt .ev-summary { color: #cdd8f2; }
 .ev-head { display: flex; gap: 8px; align-items: center; font-size: 13px; min-width: 0; }
 .ev-icon { flex: 0 0 auto; }
 .ev-summary { min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
@@ -386,7 +393,11 @@ body:not(.host-shell) #authPending:not([hidden]){ flex:1 1 auto; min-height:0; o
 [data-theme="light"] .ev{ background:#f6f8fc; border-left-color:#d6dced; }
 [data-theme="light"] .ev-tool_use{ border-left-color:#3b6fd4; }
 [data-theme="light"] .ev-tool_result{ border-left-color:#12a06a; }
-[data-theme="light"] .ev-user_prompt{ border-left-color:#d98a1a; }
+[data-theme="light"] .ev-user_prompt {
+  background: #e8effc;
+  border-left-color: #3b6fd4;
+}
+[data-theme="light"] .ev-user_prompt .ev-summary { color: #1f2b45; }
 [data-theme="light"] .ev-text{ color:#4a5468; }
 
 [data-theme="light"] .hdr-btn{ background:#eef1f8; color:#2a3244; border-color:#d6dced; }
