@@ -448,7 +448,13 @@ body:not(.host-shell) #authPending:not([hidden]){ flex:1 1 auto; min-height:0; o
 .inject-row:focus-within { border-color: var(--accent); }
 .inject-row[hidden] { display: none; }
 /* font-size는 16px 이상 유지 — iOS에서 입력 포커스 시 자동 확대(뷰포트 틀어짐) 방지 */
-.inject-input { flex: 1; min-width: 0; padding: 9px 0; border: none; background: transparent; color: var(--fore); font-size: 16px; line-height: 1.35; }
+.inject-input {
+  flex: 1; min-width: 0; padding: 9px 0; border: none; background: transparent;
+  color: var(--fore); font-size: 16px; line-height: 1.35;
+  resize: none; overflow-y: auto;
+  max-height: calc(6 * 1.35 * 16px + 18px); /* 6줄 + 상하 패딩 */
+  font-family: inherit;
+}
 .inject-input:focus { outline: none; }
 .inject-input::placeholder { color: var(--muted); }
 .inject-send { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: none; border-radius: 50%; background: transparent; color: var(--muted); cursor: pointer; transition: color .15s ease; }

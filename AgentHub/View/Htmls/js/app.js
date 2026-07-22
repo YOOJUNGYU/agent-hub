@@ -365,6 +365,13 @@ function updateInjectBar(id) {
   if (row) row.hidden = !!isCodex;
   showInjectHint(isCodex ? 'inject.hintCodex' : null);
 }
+// textarea 높이를 내용에 맞춰 재계산(최대 높이는 CSS max-height가 clamp, 초과 시 스크롤).
+function autoGrowInject() {
+  const ta = document.getElementById('injectInput');
+  if (!ta) return;
+  ta.style.height = 'auto';
+  ta.style.height = ta.scrollHeight + 'px';
+}
 function sendInject() {
   const input = document.getElementById('injectInput');
   if (!input || !currentSessionId) return;
@@ -394,8 +401,9 @@ function handlePickerAnswerResult(m) {
 }
 document.getElementById('injectSend') && document.getElementById('injectSend').addEventListener('click', sendInject);
 document.getElementById('injectInput') && document.getElementById('injectInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') { e.preventDefault(); sendInject(); }
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendInject(); }
 });
+document.getElementById('injectInput') && document.getElementById('injectInput').addEventListener('input', autoGrowInject);
 
 // ---- 알림 권한 ----
 function refreshNotifyBtn() {
