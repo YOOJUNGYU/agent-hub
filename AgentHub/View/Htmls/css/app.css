@@ -462,3 +462,10 @@ body:not(.host-shell) #authPending:not([hidden]){ flex:1 1 auto; min-height:0; o
 /* 입력이 있으면 전송 아이콘이 강조색으로 살아난다(Teams 느낌) */
 .inject-input:not(:placeholder-shown) ~ .inject-send { color: var(--accent); }
 .inject-send:active { opacity: .6; }
+.btn-spinner { display: none; width: 18px; height: 18px; border: 2px solid var(--muted);
+  border-top-color: transparent; border-radius: 50%; animation: btnspin .7s linear infinite; }
+@keyframes btnspin { to { transform: rotate(360deg); } }
+.inject-bar.sending .inject-send > svg { display: none; }
+.inject-bar.sending .inject-send > .btn-spinner { display: block; }
+.inject-input:disabled { opacity: .55; }
+.inject-send:disabled { cursor: default; opacity: .6; }

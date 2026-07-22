@@ -372,18 +372,37 @@ function autoGrowInject() {
   ta.style.height = 'auto';
   ta.style.height = ta.scrollHeight + 'px';
 }
+let injectSending = false;
+let injectTimer = null;
+function setInjectSending(on) {
+  injectSending = on;
+  const bar = document.getElementById('injectBar');
+  const ta = document.getElementById('injectInput');
+  const btn = document.getElementById('injectSend');
+  if (bar) bar.classList.toggle('sending', on);
+  if (ta) ta.disabled = on;
+  if (btn) btn.disabled = on;
+  if (!on && injectTimer) { clearTimeout(injectTimer); injectTimer = null; }
+}
 function sendInject() {
   const input = document.getElementById('injectInput');
-  if (!input || !currentSessionId) return;
+  if (!input || !currentSessionId || injectSending) return; // 전송 중이면 무시(중복 차단)
   const v = input.value;
-  if (!v) return;
+  if (!v.trim()) return;
+  setInjectSending(true);
+  showInjectHint(null);
   send({ type: 'inject', sessionId: currentSessionId, text: v });
-  // 회신(injectResult)에서 성공 시 비운다.
+  // 안전망: 회신이 없으면 무한 비활성 방지 후 재시도 안내.
+  injectTimer = setTimeout(() => {
+    if (injectSending) { setInjectSending(false); showInjectHint('inject.hintFailed'); }
+  }, 12000);
+  // 성공/실패는 injectResult 회신(handleInjectResult)에서 처리.
 }
 function handleInjectResult(m) {
   if (m.sessionId !== currentSessionId) return;
+  setInjectSending(false);
   const input = document.getElementById('injectInput');
-  if (m.ok) { if (input) input.value = ''; showInjectHint(null); return; }
+  if (m.ok) { if (input) { input.value = ''; autoGrowInject(); } showInjectHint(null); return; }
   const key = m.reason === 'noconsole' ? 'inject.hintNoConsole'
     : m.reason === 'nopid' ? 'inject.hintNoPid'
     : m.reason === 'engine' ? 'inject.hintCodex'
