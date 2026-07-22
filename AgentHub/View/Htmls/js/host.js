@@ -29,17 +29,21 @@ $$('.tab').forEach(btn => btn.addEventListener('click', () => {
 async function refreshStatus() {
   try {
     const s = await (await fetch('/api/server/status')).json();
-    const badge = $('#statusBadge'), url = $('#serverUrl');
+    const badge = $('#statusBadge'), box = $('#serverUrls');
     if (s.active) {
       badge.textContent = t('server.active');
       badge.className = 'badge on';
-      url.textContent = s.url;
-      url.href = s.url;
+      // 엔드포인트 목록(LAN + VPN)을 label 배지와 함께 여러 줄로. 옛 서버(필드 없음)는 url 한 줄로 폴백.
+      const eps = (s.endpoints && s.endpoints.length) ? s.endpoints
+                : (s.url ? [{ url: s.url, kind: 'lan' }] : []);
+      box.innerHTML = eps.map(e =>
+        `<span class="ep"><a class="server-url" href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.url)}</a>`
+        + `<span class="ep-label ${esc(e.kind)}">${esc(t('endpoint.' + e.kind))}</span></span>`
+      ).join('');
     } else {
       badge.textContent = t('server.stopped');
       badge.className = 'badge off';
-      url.textContent = '';
-      url.removeAttribute('href');
+      box.innerHTML = '';
     }
   } catch (e) { /* ignore */ }
 }

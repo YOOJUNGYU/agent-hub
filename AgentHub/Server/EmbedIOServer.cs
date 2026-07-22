@@ -16,6 +16,7 @@ using EmbedIO.Files;
 using EmbedIO.Security;
 using EmbedIO.WebApi;
 using Swan.Logging;
+using AgentHub.Common.Models;
 using AgentHub.Common.Util;
 using AgentHub.Server.Agents;
 using AgentHub.Server.Controller;
@@ -40,6 +41,9 @@ namespace AgentHub.Server
         /// <summary>표시/접속용 호스트 — 사설망(LAN) IPv4. 없으면 127.0.0.1.</summary>
         public static string CurrentHost { get; private set; } = "127.0.0.1";
 
+        /// <summary>콘솔 상단에 label과 함께 표시할 접속 경로 목록(LAN + VPN). 서버 시작 시 1회 계산.</summary>
+        public static List<EndpointInfo> CurrentEndpoints { get; private set; } = new List<EndpointInfo>();
+
         public static string CurrentUrl => $"https://{CurrentHost}:{CurrentPort}";
 
         /// <summary>PC(호스트 콘솔) 전용 loopback URL. WebView2가 이 주소로 /host를 로드한다.</summary>
@@ -53,27 +57,50 @@ namespace AgentHub.Server
         /// 오버레이 VPN의 CGNAT 대역(100.64.0.0/10)을 뒤에 둔다. 표시용 호스트는 앞쪽(LAN)을 우선 선택하고,
         /// 인증서 SAN에는 전체를 넣어 다른 네트워크(NetBird)에서 IP로 붙어도 인증서가 그 IP를 커버하게 한다.
         /// </summary>
-        private static List<string> GetPrivateIPv4List()
+        // 폰에서 닿지 않는 가상 어댑터(사설 IP를 붙이지만 LAN이 아닌 것) 제외용 키워드.
+        // NetBird/Tailscale은 CGNAT 분기에서 먼저 처리되므로 이 목록에 걸리지 않는다.
+        private static readonly string[] VirtualNicKeywords =
+            { "virtualbox", "vmware", "vmnet", "hyper-v", "vethernet", "wsl", "docker", "loopback", "npcap", "tap-windows", "bluetooth" };
+
+        /// <summary>
+        /// 접속 가능한 IPv4 엔드포인트를 종류(kind)와 함께 반환한다. LAN 사설 대역(10 / 172.16-31 / 192.168)을
+        /// 앞에, 오버레이 VPN CGNAT 대역(100.64.0.0/10)을 뒤에 둔다. LAN 중 가상 어댑터(VirtualBox·Hyper-V·WSL 등)
+        /// IP는 폰에서 닿지 않으므로 어댑터명으로 제외한다. VPN은 어댑터명으로 netbird/tailscale을 식별하고,
+        /// 못 하면 일반 "vpn"으로 둔다.
+        /// kind: "lan" | "netbird" | "tailscale" | "vpn".
+        /// </summary>
+        private static List<(string ip, string kind)> GetLocalEndpoints()
         {
-            var lan = new List<string>();
-            var cgnat = new List<string>();
+            var lan = new List<(string, string)>();
+            var vpn = new List<(string, string)>();
             try
             {
                 foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
                 {
                     if (ni.OperationalStatus != OperationalStatus.Up) continue;
                     if (ni.NetworkInterfaceType == NetworkInterfaceType.Loopback) continue;
+                    var nicName = ((ni.Name ?? "") + " " + (ni.Description ?? "")).ToLowerInvariant();
 
                     foreach (var ua in ni.GetIPProperties().UnicastAddresses)
                     {
                         if (ua.Address.AddressFamily != AddressFamily.InterNetwork) continue;
                         var b = ua.Address.GetAddressBytes();
+                        var ip = ua.Address.ToString();
+                        var isCgnat = b[0] == 100 && b[1] >= 64 && b[1] <= 127; // NetBird/Tailscale 오버레이 VPN
+                        if (isCgnat)
+                        {
+                            string kind = nicName.Contains("netbird") ? "netbird"
+                                : (nicName.Contains("tailscale") || nicName.Contains("tailnet")) ? "tailscale"
+                                : "vpn";
+                            vpn.Add((ip, kind));
+                            continue;
+                        }
                         var isLan = b[0] == 10
                             || (b[0] == 172 && b[1] >= 16 && b[1] <= 31)
                             || (b[0] == 192 && b[1] == 168);
-                        var isCgnat = b[0] == 100 && b[1] >= 64 && b[1] <= 127; // NetBird/Tailscale 오버레이 VPN
-                        if (isLan) lan.Add(ua.Address.ToString());
-                        else if (isCgnat) cgnat.Add(ua.Address.ToString());
+                        if (!isLan) continue;
+                        if (VirtualNicKeywords.Any(k => nicName.Contains(k))) continue; // 가상 어댑터 IP 제외
+                        lan.Add((ip, "lan"));
                     }
                 }
             }
@@ -81,9 +108,13 @@ namespace AgentHub.Server
             {
                 LogService.Instance.Error(ex);
             }
-            lan.AddRange(cgnat); // LAN을 표시 호스트로 우선, CGNAT(NetBird)는 SAN 용도로 뒤에 붙인다.
+            lan.AddRange(vpn); // LAN을 표시 호스트로 우선, VPN(CGNAT)은 뒤에 붙인다.
             return lan;
         }
+
+        /// <summary>접속 IPv4 목록(표시 호스트·인증서 SAN용). LAN 우선, VPN(NetBird 등) 뒤.</summary>
+        private static List<string> GetPrivateIPv4List()
+            => GetLocalEndpoints().Select(e => e.ip).ToList();
 
         private static bool CertCoversHost(X509Certificate2 cert, string host)
         {
@@ -238,8 +269,12 @@ namespace AgentHub.Server
                 }
                 catch (Exception ex) { LogService.Instance.Error(ex); }
 
-                var privateIps = GetPrivateIPv4List();
+                var endpoints = GetLocalEndpoints();
+                var privateIps = endpoints.Select(e => e.ip).ToList();
                 CurrentHost = privateIps.Count > 0 ? privateIps[0] : "127.0.0.1";
+                CurrentEndpoints = endpoints
+                    .Select(e => new EndpointInfo { Url = $"https://{e.ip}:{CurrentPort}", Kind = e.kind })
+                    .ToList();
 
                 var certificate = GetSelfSignedCertificate(privateIps);
                 var htmlPath = Path.Combine(Application.StartupPath, "View", "Htmls");

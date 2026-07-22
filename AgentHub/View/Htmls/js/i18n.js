@@ -11,6 +11,11 @@
       'server.active': '🟢 서버 활성',
       'server.stopped': '🔴 중지',
       'server.checking': '확인 중…',
+      // 콘솔 상단 접속 경로 label (서버가 내려주는 endpoint.kind에 매핑)
+      'endpoint.lan': '사설망(LAN)',
+      'endpoint.netbird': 'NetBird',
+      'endpoint.tailscale': 'Tailscale',
+      'endpoint.vpn': 'VPN',
       // 콘솔 탭
       'tab.devices': '기기 관리',
       'tab.clients': '연결된 기기',
@@ -138,6 +143,10 @@
       'server.active': '🟢 Server active',
       'server.stopped': '🔴 Stopped',
       'server.checking': 'Checking…',
+      'endpoint.lan': 'Local network (LAN)',
+      'endpoint.netbird': 'NetBird',
+      'endpoint.tailscale': 'Tailscale',
+      'endpoint.vpn': 'VPN',
       'tab.devices': 'Devices',
       'tab.clients': 'Connected',
       'tab.logs': 'Logs',

@@ -26,6 +26,7 @@ namespace AgentHub.Server.Controller
                 Host = EmbedIOServer.CurrentHost,
                 Port = EmbedIOServer.CurrentPort,
                 Url = EmbedIOServer.CurrentUrl,
+                Endpoints = EmbedIOServer.CurrentEndpoints,
                 CertHttpPort = EmbedIOServer.CurrentCertHttpPort,
                 // PC 콘솔에서 사용자가 고른 언어(저장값) 우선, 없으면 PC UI 문화권으로 폴백(지원 언어 ko/en). PWA가 이 값을 따라간다.
                 Lang = ResolveConsoleLang()
