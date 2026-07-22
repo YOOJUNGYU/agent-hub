@@ -156,6 +156,7 @@ function connect() {
 let currentSessionId = null;
 let sessionsById = {};
 let lastSessions = [];          // 마지막 세션 스냅샷(대기 표시만 바뀔 때 재렌더용)
+let lastActivityEvents = [];    // 최근 활동 이벤트(주입 echo 매칭 baseline 계산용)
 const awaitingSet = new Set();  // '응답 대기중' 트랜지언트 신호(권한/일반 알림). 질문(AskUserQuestion)은 pendingAsk가 담당.
 let firstActivityRender = false; // 상세 진입 직후 첫 렌더는 무조건 최하단
 
@@ -265,6 +266,7 @@ function openDetail(id) {
   awaitingSet.delete(id); // 상세를 여는 순간 트랜지언트 대기 표시는 해제(사용자가 확인함)
   currentSessionId = id;
   firstActivityRender = true;
+  lastActivityEvents = [];
   document.getElementById('detailTitle').textContent = (sessionsById[id] && sessionsById[id].title) || '';
   $('#activityFeed').innerHTML =
     '<div class="loading"><span class="spinner"></span></div>';
@@ -291,6 +293,8 @@ function backToList() {
 
 function renderActivity(sessionId, events) {
   if (sessionId !== currentSessionId) return;
+  lastActivityEvents = events || [];
+  maybeFinishInjectEcho(lastActivityEvents); // 내 입력이 user_prompt로 되돌아왔으면 로딩 해제
   const feed = $('#activityFeed');
   if (!events || events.length === 0) { feed.innerHTML = '<div class="empty">—</div>'; return; }
   // 재렌더 전 스크롤 상태 캡처: 최하단 근처(40px 이내)를 보고 있었는지.
@@ -399,6 +403,8 @@ function autoGrowInject() {
 }
 let injectSending = false;
 let injectTimer = null;
+let pendingInjectText = null;   // 주입 후 세션 반영(user_prompt echo) 대기 중인 텍스트. null=대기 없음
+let pendingInjectBaseline = 0;  // 전송 시점 피드에 이미 있던 동일 텍스트 user_prompt 개수(오검출 방지)
 function setInjectSending(on) {
   injectSending = on;
   const bar = document.getElementById('injectBar');
@@ -408,26 +414,58 @@ function setInjectSending(on) {
   if (ta) ta.disabled = on;
   if (btn) btn.disabled = on;
   if (!on && injectTimer) { clearTimeout(injectTimer); injectTimer = null; }
+  if (!on) pendingInjectText = null; // 로딩 해제 시 왕복 대기도 함께 종료
+}
+// 피드 이벤트 중 주어진 텍스트와 일치하는 user_prompt(내 입력) 개수.
+function countInjectEcho(events, text) {
+  if (!text || !events) return 0;
+  let n = 0;
+  for (const e of events) {
+    if (e && e.kind === 'user_prompt' && e.text != null && String(e.text).trim() === text) n++;
+  }
+  return n;
+}
+// 내가 주입한 텍스트가 세션 상세(user_prompt)로 새로 되돌아왔으면 왕복 완료 → 로딩 해제.
+function maybeFinishInjectEcho(events) {
+  if (!injectSending || pendingInjectText == null) return;
+  if (countInjectEcho(events, pendingInjectText) <= pendingInjectBaseline) return;
+  setInjectSending(false); // pendingInjectText도 함께 해제됨
+  const input = document.getElementById('injectInput');
+  if (input) { input.value = ''; autoGrowInject(); }
+  showInjectHint(null);
 }
 function sendInject() {
   const input = document.getElementById('injectInput');
   if (!input || !currentSessionId || injectSending) return; // 전송 중이면 무시(중복 차단)
   const v = input.value;
   if (!v.trim()) return;
+  // 왕복 반영(user_prompt echo) 감지용: 대기 텍스트와 기존 동일 프롬프트 개수를 먼저 기록.
+  pendingInjectText = v.trim();
+  pendingInjectBaseline = countInjectEcho(lastActivityEvents, pendingInjectText);
   setInjectSending(true);
   showInjectHint(null);
   send({ type: 'inject', sessionId: currentSessionId, text: v });
-  // 안전망: 회신이 없으면 무한 비활성 방지 후 재시도 안내.
+  // 안전망: PC의 주입 회신조차 없으면 무한 비활성 방지 후 재시도 안내.
   injectTimer = setTimeout(() => {
     if (injectSending) { setInjectSending(false); showInjectHint('inject.hintFailed'); }
   }, 12000);
-  // 성공/실패는 injectResult 회신(handleInjectResult)에서 처리.
+  // 주입 성공/실패는 injectResult 회신(handleInjectResult)에서, 세션 반영 완료는 renderActivity에서 처리.
 }
 function handleInjectResult(m) {
   if (m.sessionId !== currentSessionId) return;
-  setInjectSending(false);
   const input = document.getElementById('injectInput');
-  if (m.ok) { if (input) { input.value = ''; autoGrowInject(); } showInjectHint(null); return; }
+  if (m.ok) {
+    // 주입만 성공한 단계. 아직 세션에 반영 전이므로 로딩을 유지하고,
+    // 내 입력이 user_prompt로 되돌아올 때까지(renderActivity) 기다린다.
+    if (injectTimer) { clearTimeout(injectTimer); injectTimer = null; }
+    showInjectHint('inject.hintSyncing');
+    // echo가 끝내 안 와도 무한 대기 방지: 조용히 해제(주입은 성공했으므로 오류 아님).
+    injectTimer = setTimeout(() => {
+      if (injectSending) { setInjectSending(false); if (input) { input.value = ''; autoGrowInject(); } showInjectHint(null); }
+    }, 10000);
+    return;
+  }
+  setInjectSending(false);
   if (m.reason === 'noconsole' || m.reason === 'nopid') {
     injectFailedSet.add(m.sessionId);     // 비활성 쉘 → 입력 숨기고 안내(refreshInjectBar가 힌트 설정)
     refreshInjectBar(m.sessionId);
