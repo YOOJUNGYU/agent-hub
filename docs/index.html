@@ -218,12 +218,12 @@
 <section class="hero">
   <div class="wrap">
     <div>
-      <p class="eyebrow">PC → <span class="ko">휴대폰</span><span class="en">Phone</span> · LAN &amp; VPN</p>
+      <p class="eyebrow">PC → <span class="ko">휴대폰</span><span class="en">Phone</span> · <span class="ko">NetBird로 어디서나</span><span class="en">anywhere via NetBird</span></p>
       <h1><span class="ko">내 PC의 AI 에이전트를<br><span class="grad">휴대폰에서</span> 지켜보세요</span>
           <span class="en">Watch your PC's AI agent<br><span class="grad">from your phone</span></span></h1>
       <p class="lead">
-        <span class="ko">자리를 비워도, 휴대폰으로 Claude가 지금 뭘 하는지 보고 <b>질문에 답하고, 위험한 작업을 승인하고, 명령까지</b> 보냅니다. 집·회사에선 같은 네트워크로, 밖에선 <b>NetBird·Tailscale 같은 VPN으로 어디서나</b>. 모두 <b>내가 PC에서 승인한 기기</b>만, 클라우드를 거치지 않고 내 기기끼리 직접.</span>
-        <span class="en">Step away and still use your phone to see what Claude is doing and <b>answer its questions, approve risky actions, and send commands</b>. On your home/office network directly, or <b>from anywhere via a VPN like NetBird or Tailscale</b> — only from <b>devices you approved on your PC</b>, device‑to‑device with no cloud relay.</span>
+        <span class="ko">자리를 비워도, 휴대폰으로 Claude가 지금 뭘 하는지 보고 <b>질문에 답하고, 위험한 작업을 승인하고, 명령까지</b> 보냅니다. <b>NetBird로 PC·폰을 직접(peer-to-peer) 연결</b>해 <b>유선·무선·어느 네트워크에 있든 어디서나</b>. 모두 <b>내가 PC에서 승인한 기기</b>만, 클라우드를 거치지 않고 내 기기끼리 직접.</span>
+        <span class="en">Step away and still use your phone to see what Claude is doing and <b>answer its questions, approve risky actions, and send commands</b>. <b>NetBird links your PC and phone directly (peer‑to‑peer)</b>, so you reach it <b>from anywhere — wired or Wi‑Fi, on any network</b>, only from <b>devices you approved on your PC</b>, device‑to‑device with no cloud relay.</span>
       </p>
       <div class="herobtns">
         <a class="dl" href="https://github.com/YOOJUNGYU/agent-hub/releases/latest" target="_blank" rel="noopener">
@@ -256,7 +256,7 @@
   <div class="wrap">
     <div class="valcard"><span class="vi">🌍</span><div>
       <b><span class="ko">어디서나 · 클라우드 없이</span><span class="en">Anywhere · no cloud relay</span></b>
-      <span class="d"><span class="ko">집·회사에선 같은 네트워크로, 밖에선 <b>VPN(NetBird·Tailscale)</b>으로. 보고·답하고·제어하는 통신은 <b>우리 클라우드를 거치지 않고</b> 내 기기끼리 직접 오갑니다. 앱을 닫았을 때 오는 알림만 암호화되어 외부 푸시 서비스를 거칩니다.</span><span class="en">On your home/office network directly, or from outside via a <b>VPN (NetBird / Tailscale)</b>. Monitoring &amp; control traffic goes <b>device‑to‑device with no cloud relay</b>. Only closed‑app push alerts pass through an external, encrypted push service.</span></span>
+      <span class="d"><span class="ko"><b>NetBird</b> 같은 P2P VPN으로 PC·폰을 직접 연결 — <b>유선·무선·어느 네트워크</b>든 상관없이. 보고·답하고·제어하는 통신은 <b>우리 클라우드를 거치지 않고</b> 내 기기끼리 직접 오갑니다. 앱을 닫았을 때 오는 알림만 암호화되어 외부 푸시 서비스를 거칩니다.</span><span class="en">Connect the PC and phone directly through a P2P VPN like <b>NetBird</b> — <b>wired or Wi‑Fi, on any network</b>. Monitoring &amp; control traffic goes <b>device‑to‑device with no cloud relay</b>. Only closed‑app push alerts pass through an external, encrypted push service.</span></span>
     </div></div>
     <div class="valcard"><span class="vi">📱</span><div>
       <b><span class="ko">자리 비워도 원격 제어</span><span class="en">Control while away</span></b>
@@ -269,46 +269,14 @@
   </div>
 </section>
 
-<!-- 1. 접속 -->
+<!-- 1. 접속 (NetBird) -->
 <section class="step" id="connect">
-  <div class="wrap">
-    <div class="txt">
-      <div class="stepno">STEP 01</div>
-      <h2><span class="ko">휴대폰에서 접속하기</span><span class="en">Connect from your phone</span></h2>
-      <p><span class="ko">PC에서 Agent Hub를 실행하면 콘솔 상단에 접속 주소가 나옵니다. <b>집·회사</b>라면 휴대폰을 PC와 같은 네트워크(같은 공유기·랜)에 두고 그 주소를 브라우저에 입력하세요. <b>다른 네트워크(외부·LTE)</b>에서 접속하려면 아래 <a href="#vpn" style="color:var(--accent)">‘VPN으로 어디서나 접속’</a> 단계를 먼저 진행하면 됩니다.</span>
-         <span class="en">Run Agent Hub on your PC — the console shows an access address at the top. <b>At home/office</b>, put your phone on the same network (same router/LAN) as the PC and open that address in its browser. To connect from a <b>different network (remote / mobile data)</b>, set up <a href="#vpn" style="color:var(--accent)">‘Connect from anywhere with a VPN’</a> below first.</span></p>
-      <ol class="ck">
-        <li><span class="ko">PC 콘솔의 주소 확인 — 예: <b>https://192.168.0.10:47600</b></span><span class="en">Find the address in the PC console — e.g. <b>https://192.168.0.10:47600</b></span></li>
-        <li><span class="ko">휴대폰 브라우저 주소창에 입력</span><span class="en">Type it into your phone's browser</span></li>
-        <li><span class="ko">보안 경고가 뜨면 <b>고급 → 계속(이동)</b></span><span class="en">If a security warning appears, tap <b>Advanced → Proceed</b></span></li>
-      </ol>
-      <div class="note"><span class="ko">⚠️ 보안 경고는 자체 서명 인증서라서 나옵니다. 다음 단계에서 인증서를 등록하면 경고 없이 접속되고 홈 화면 추가(앱 설치)도 됩니다.</span>
-        <span class="en">⚠️ The warning appears because the certificate is self‑signed. Installing it (next step) removes the warning and enables Add to Home Screen.</span></div>
-      <div class="note"><span class="ko">🌍 <b>집·회사 밖에서도 접속</b>하려면 <b>NetBird·Tailscale</b> 같은 VPN을 쓰세요. 설정 방법과 모바일 접속·IP 안내는 바로 아래 <a href="#vpn" style="color:var(--accent)"><b>‘VPN으로 어디서나 접속’</b></a>에 정리되어 있습니다.</span>
-        <span class="en">🌍 To connect from <b>outside your home/office</b>, use a VPN like <b>NetBird or Tailscale</b>. Full setup, mobile access, and the IP details are in <a href="#vpn" style="color:var(--accent)"><b>‘Connect from anywhere with a VPN’</b></a> right below.</span></div>
-    </div>
-    <div>
-      <div class="phone" aria-hidden="true"><div class="screen">
-        <div class="s-head" style="justify-content:center;color:var(--muted)">🔒 192.168.0.10:47600</div>
-        <div class="s-body" style="display:flex;flex-direction:column;justify-content:center;text-align:center;gap:12px">
-          <div style="font-size:40px">🛡️</div>
-          <div style="font-weight:700"><span class="ko">연결이 비공개로 설정되어 있지 않습니다</span><span class="en">Your connection is not private</span></div>
-          <div class="meta" style="font-size:12px"><span class="ko">내 PC의 자체 인증서라서 나오는 안내입니다.</span><span class="en">Shown because it's your PC's own certificate.</span></div>
-          <div style="margin-top:8px"><span style="color:var(--accent);font-size:13px"><span class="ko">고급 → 계속 이동</span><span class="en">Advanced → Proceed</span></span></div>
-        </div>
-      </div></div>
-    </div>
-  </div>
-</section>
-
-<!-- 1.5 VPN으로 어디서나 접속 -->
-<section class="step" id="vpn">
   <div class="wrap" style="grid-template-columns:1fr; gap:12px">
     <div class="txt">
-      <div class="stepno">🌍 <span class="ko">VPN으로 어디서나 접속</span><span class="en">CONNECT FROM ANYWHERE · VPN</span></div>
-      <h2><span class="ko">집·회사 밖에서도, VPN으로 어디서나 접속</span><span class="en">Connect from anywhere with a VPN</span></h2>
-      <p><span class="ko">Agent Hub는 클라우드 서버가 없어 기본적으로 <b>같은 네트워크</b>에서만 보입니다. 하지만 <b>NetBird</b>나 <b>Tailscale</b> 같은 오버레이 VPN을 PC와 휴대폰 <b>양쪽에 깔아 로그인</b>하면, 두 기기가 하나의 가상 네트워크로 묶여 <b>어느 네트워크에 있든(집·회사·카페·LTE) 접속</b>할 수 있습니다. 둘 다 개인용은 무료이고, 통신은 여전히 <b>내 기기끼리 직접(WireGuard 암호화)</b> 오갑니다. 둘 중 하나만 고르면 됩니다.</span>
-         <span class="en">Agent Hub has no cloud server, so by default it's only reachable on the <b>same network</b>. But if you install an overlay VPN like <b>NetBird</b> or <b>Tailscale</b> on <b>both the PC and the phone and sign in</b>, the two devices join one virtual network and you can connect <b>from any network</b> — home, office, cafe, or mobile data. Both are free for personal use, and traffic still flows <b>device‑to‑device (WireGuard‑encrypted)</b>. Pick just one.</span></p>
+      <div class="stepno">STEP 01</div>
+      <h2><span class="ko">NetBird로 어디서나 연결</span><span class="en">Connect from anywhere with NetBird</span></h2>
+      <p><span class="ko">Agent Hub는 클라우드 서버가 없어 PC와 휴대폰이 <b>서로 직접(peer-to-peer)</b> 연결됩니다. <b>NetBird</b> 같은 오버레이 VPN을 PC와 휴대폰 <b>양쪽에 깔아 같은 계정으로 로그인</b>하면 두 기기가 하나의 가상 네트워크로 묶여, <b>유선이든 무선이든·집·회사·카페·LTE 등 어느 네트워크에 있든</b> 그대로 접속됩니다. 통신은 여전히 <b>내 기기끼리 직접(WireGuard 암호화)</b> 오가고, 개인용은 무료입니다. (더 간단한 <b>Tailscale</b>도 대안으로 쓸 수 있어요 — 둘 중 하나만 고르면 됩니다.)</span>
+         <span class="en">Agent Hub has no cloud server, so the PC and phone connect <b>directly (peer‑to‑peer)</b>. Install an overlay VPN like <b>NetBird</b> on <b>both the PC and phone and sign in with the same account</b>: the two join one virtual network and stay reachable <b>on wired or Wi‑Fi, at home, office, cafe, or on mobile data — whatever network you're on</b>. Traffic still flows <b>device‑to‑device (WireGuard‑encrypted)</b>, and it's free for personal use. (The simpler <b>Tailscale</b> works as an alternative — pick just one.)</span></p>
     </div>
 
     <div class="certgrid" style="align-items:start">
@@ -354,6 +322,12 @@
       <div class="note">
         <span class="ko">✅ Agent Hub 인증서는 이 <b>VPN IP 대역(<code>100.64.0.0/10</code>)을 자동 포함</b>해 발급되므로 경고 없이 접속됩니다. VPN을 나중에 깔았다면 <b>Agent Hub를 한 번 재시작</b>하면 VPN IP까지 넣어 인증서가 갱신돼요. 그다음 <b>STEP 02 인증서 등록 · STEP 03 앱 설치</b>는 이 <b>VPN 주소</b>로 똑같이 진행하면 됩니다. 포트는 PC 콘솔 <b>설정</b>에서 지정합니다.</span>
         <span class="en">✅ Agent Hub's certificate <b>automatically covers this VPN IP range (<code>100.64.0.0/10</code>)</b>, so there's no warning. If you set the VPN up later, <b>restart Agent Hub once</b> to reissue the cert including the VPN IP. Then do <b>STEP 02 (install cert) &amp; STEP 03 (install app)</b> exactly the same way, just using the <b>VPN address</b>. Set the port in the PC console's <b>Settings</b>.</span></div>
+
+      <details class="more" style="margin-top:6px">
+        <summary>🏠 <span class="ko">VPN 없이 — 같은 네트워크(집·회사)라면 바로 접속</span><span class="en">No VPN — connect directly on the same network</span></summary>
+        <div class="mbody"><span class="ko">PC와 휴대폰이 <b>같은 네트워크(같은 공유기·랜)</b>에 있다면 VPN 없이도 바로 접속할 수 있습니다. PC 콘솔 상단의 주소(예: <b>https://192.168.0.10:47600</b>)를 휴대폰 브라우저 주소창에 입력 → 보안 경고가 뜨면 <b>고급 → 계속(이동)</b>. ⚠️ 경고는 자체 서명 인증서라서 나오며, 아래 <b>STEP 02</b>에서 인증서를 등록하면 사라집니다. 단, 이 방식은 <b>같은 네트워크에 있을 때만</b> 동작하고 네트워크를 옮기면 IP가 바뀌므로, 어디서나 같은 주소로 쓰려면 위 <b>NetBird</b>를 권장합니다.</span>
+          <span class="en">If the PC and phone are on the <b>same network (same router/LAN)</b>, you can connect without a VPN: type the address from the top of the PC console (e.g. <b>https://192.168.0.10:47600</b>) into the phone browser → if a warning appears, tap <b>Advanced → Proceed</b>. ⚠️ The warning is from the self‑signed cert; installing it in <b>STEP 02</b> below removes it. This works <b>only while on the same network</b> and the IP changes when you switch networks, so use <b>NetBird</b> above for one address everywhere.</span></div>
+      </details>
     </div>
   </div>
 </section>
@@ -584,7 +558,7 @@
       <ol class="ck">
         <li><span class="ko">🔔 <b>알림 켜기</b> — 폰에서 한 번 켜면(PC 훅 자동 설치) <b>앱을 닫아도</b> 세션이 당신을 기다릴 때 푸시가 옵니다. 알림 본문에 Claude의 <b>마지막 메시지</b>가 담겨 완료인지 질문인지 바로 압니다. <b>같은 내용은 반복해서 울리지 않고</b>, 메시지가 바뀔 때만 새로 알립니다.</span><span class="en">🔔 <b>Enable alerts</b> — turn it on once (the PC hook installs itself). <b>Even with the app closed</b>, a push arrives when a session needs you, carrying Claude's <b>last message</b> so you know at a glance if it's done or asking. <b>The same message won't buzz again</b> — you're re‑alerted only when it changes.</span></li>
         <li><span class="ko">💬 <b>질문에 답하기</b> — Claude가 선택지 질문을 하면 <b>질문·답변 카드</b>가 떠, 옵션이나 <b>직접 입력</b>을 골라 <b>답변 보내기</b>. 실행 중인 그 세션에 바로 반영(새 터미널 불필요).</span><span class="en">💬 <b>Answer questions</b> — a <b>Q&amp;A card</b> pops up; pick an option or <b>type your own</b> and <b>Send</b>. Applied to the running session, no terminal needed.</span></li>
-        <li><span class="ko">⌨️ <b>자유 답변 입력</b> — 세션 상세 화면 하단 입력창은 <b>여러 줄</b>로 쓸 수 있습니다(<b>Enter</b>=줄바꿈, 전송은 <b>전송 버튼</b>으로만). <b>전송</b>하면 질문 카드 없이도 PC에서 실행 중인 그 세션 콘솔에 그대로 입력되고, 전송 중에는 입력창이 잠기고 로딩이 표시되며 전달이 확인돼야 다시 입력할 수 있어 <b>중복 전송</b>을 막습니다. 내가 보낸 답변은 <b>오른쪽 말풍선</b>으로 구분되어 표시됩니다. 입력창은 <b>PC에서 CLI(cmd·PowerShell 등)로 실행한 활성 claude 세션</b>에서만 나타나고, 그 외(Windows Terminal 실행·종료된 세션·Codex)에서는 입력창 대신 안내만 표시됩니다.</span><span class="en">⌨️ <b>Free‑text reply</b> — the input bar at the bottom of the session detail screen supports <b>multiple lines</b> (<b>Enter</b>=newline; send only via the <b>Send button</b>). Hitting <b>Send</b> types it straight into that session's console on the PC, even without a pending question card; while sending, the input bar locks and shows a loading state, and only unlocks once delivery is confirmed — preventing duplicate sends. Replies you send show up in a <b>right‑aligned bubble</b> so they're easy to spot. The input bar appears <b>only for active claude sessions started from a CLI (cmd, PowerShell) on the PC</b>; otherwise (Windows Terminal, exited sessions, or Codex) a short note is shown instead.</span></li>        <li><span class="ko">🔐 <b>권한 승인</b> — Bash·파일 편집 등 위험 작업 요청 시 <b>🔐 카드</b>에서 <b>허용/거부</b>. 그 세션에 바로 적용됩니다.</span><span class="en">🔐 <b>Approve permissions</b> — for risky tools (Bash, file edits…) a <b>🔐 card</b> lets you <b>Allow/Deny</b>, applied to that session.</span></li>
+        <li><span class="ko">⌨️ <b>자유 답변 입력</b> — 세션 상세 화면 하단 입력창은 <b>여러 줄</b>로 쓸 수 있습니다(<b>Enter</b>=줄바꿈, 전송은 <b>전송 버튼</b>으로만). <b>전송</b>하면 질문 카드 없이도 PC에서 실행 중인 그 세션 콘솔에 그대로 입력되고, 전송하면 입력창과 전송 버튼이 잠기고 로딩이 표시되며 <b>내 답변이 세션 상세에 다시 나타날 때(왕복 완료)까지</b> 유지돼 <b>중복 전송</b>을 막습니다. 내가 보낸 답변은 <b>오른쪽 말풍선</b>으로 구분되어 표시됩니다. 입력창은 <b>PC에서 CLI(cmd·PowerShell 등)로 실행한 활성 claude 세션</b>에서만 나타나고, 그 외(Windows Terminal 실행·종료된 세션·Codex)에서는 입력창 대신 안내만 표시됩니다.</span><span class="en">⌨️ <b>Free‑text reply</b> — the input bar at the bottom of the session detail screen supports <b>multiple lines</b> (<b>Enter</b>=newline; send only via the <b>Send button</b>). Hitting <b>Send</b> types it straight into that session's console on the PC, even without a pending question card; the input bar and Send button then lock and show a loading state that stays <b>until your reply reappears in the session detail (the full round‑trip)</b> — preventing duplicate sends. Replies you send show up in a <b>right‑aligned bubble</b> so they're easy to spot. The input bar appears <b>only for active claude sessions started from a CLI (cmd, PowerShell) on the PC</b>; otherwise (Windows Terminal, exited sessions, or Codex) a short note is shown instead.</span></li>        <li><span class="ko">🔐 <b>권한 승인</b> — Bash·파일 편집 등 위험 작업 요청 시 <b>🔐 카드</b>에서 <b>허용/거부</b>. 그 세션에 바로 적용됩니다.</span><span class="en">🔐 <b>Approve permissions</b> — for risky tools (Bash, file edits…) a <b>🔐 card</b> lets you <b>Allow/Deny</b>, applied to that session.</span></li>
         <li><span class="ko">🟡 <b>응답 대기중</b> — 당신이 답해야 하는 세션은 목록에서 <b>앰버색 카드</b>로 표시됩니다. 탭하면 답변 화면이 다시 열립니다.</span><span class="en">🟡 <b>Waiting for you</b> — sessions needing your reply turn <b>amber</b> in the list; tap to reopen the answer sheet.</span></li>
       </ol>
       <details class="more">
@@ -639,7 +613,7 @@
               <td class="hi"><b><span class="ko">내 기기(로컬 서버)에 직접</span><span class="en">Direct to your local server</span></b> <span class="ko">— 제어·모니터링이 외부 클라우드를 안 거침</span><span class="en">— control &amp; monitoring never pass a cloud</span></td></tr>
             <tr><th><span class="ko">접근 범위</span><span class="en">Reach</span></th>
               <td><span class="ko">인터넷 어디서나</span><span class="en">Anywhere over the internet</span></td>
-              <td class="hi"><b><span class="ko">같은 네트워크 + VPN으로 어디서나</span><span class="en">Same network — or anywhere via VPN</span></b> <span class="ko">(내 기기끼리 직접)</span><span class="en">(device‑to‑device)</span></td></tr>
+              <td class="hi"><b><span class="ko">NetBird 등 VPN으로 어디서나</span><span class="en">Anywhere via a VPN like NetBird</span></b> <span class="ko">(내 기기끼리 직접)</span><span class="en">(device‑to‑device)</span></td></tr>
             <tr><th><span class="ko">필요 조건</span><span class="en">Requirements</span></th>
               <td><span class="ko">Pro/Max/Team/Enterprise 구독 + 계정 로그인</span><span class="en">Pro/Max/Team/Enterprise plan + account login</span></td>
               <td class="hi"><b><span class="ko">구독 무관</span><span class="en">No plan needed</span></b> <span class="ko">— 로컬에 Claude Code만 있으면 됨</span><span class="en">— just local Claude Code</span></td></tr>
@@ -655,8 +629,8 @@
           </tbody>
         </table>
       </div>
-      <div class="note" style="color:var(--accent); background:rgba(122,162,255,.08); border-color:rgba(122,162,255,.25)"><span class="ko">💡 한마디로, <b>클라우드를 거치지 않고 내 기기끼리 직접, 내가 승인한 기기만</b> 쓰고 싶을 때 Agent Hub가 맞습니다. 집·회사에선 같은 네트워크로, 밖에선 VPN으로 어디서나. (앱을 닫았을 때 오는 알림만 암호화되어 외부 푸시 서비스를 거칩니다.)</span>
-        <span class="en">💡 In short: pick Agent Hub when you want <b>no cloud relay — device‑to‑device, only devices you approved.</b> On your network at home/office, or anywhere via VPN. (Only closed‑app push alerts pass through an external, encrypted push service.)</span></div>
+      <div class="note" style="color:var(--accent); background:rgba(122,162,255,.08); border-color:rgba(122,162,255,.25)"><span class="ko">💡 한마디로, <b>클라우드를 거치지 않고 내 기기끼리 직접, 내가 승인한 기기만</b> 쓰고 싶을 때 Agent Hub가 맞습니다. NetBird 같은 VPN으로 유선·무선 상관없이 어디서나. (앱을 닫았을 때 오는 알림만 암호화되어 외부 푸시 서비스를 거칩니다.)</span>
+        <span class="en">💡 In short: pick Agent Hub when you want <b>no cloud relay — device‑to‑device, only devices you approved.</b> Anywhere via a VPN like NetBird, on wired or Wi‑Fi. (Only closed‑app push alerts pass through an external, encrypted push service.)</span></div>
     </div>
   </div>
 </section>
@@ -674,13 +648,13 @@
       </details>
       <details class="more">
         <summary>✈️ <span class="ko">오프라인·다른 네트워크에서도 바로 실행</span><span class="en">Runs offline / on another network</span></summary>
-        <div class="mbody"><span class="ko">PC가 꺼져 있거나 <b>다른 네트워크</b>일 때 앱을 열면, 아이콘 화면에서 멈추지 않고 <b>마지막으로 봤던 세션 카드 목록</b>으로 바로 들어갑니다(기기에 캐시된 상태). 서버에 다시 연결되면 <b>자동으로 최신 내역으로 갱신</b>됩니다. 이 기능을 쓰려면 <b>같은 네트워크에서 한 번 이상 정상 접속</b>해 화면이 저장돼 있어야 합니다.</span>
-          <span class="en">If the PC is off or you're on <b>another network</b>, opening the app no longer stalls on the icon screen — it goes straight to the <b>last session‑card list you saw</b> (cached on the device). Once it reconnects to the server it <b>refreshes to the latest</b> automatically. This needs at least <b>one successful connect on the same network</b> first so the screen is cached.</span></div>
+        <div class="mbody"><span class="ko">PC가 꺼져 있거나 <b>다른 네트워크</b>일 때 앱을 열면, 아이콘 화면에서 멈추지 않고 <b>마지막으로 봤던 세션 카드 목록</b>으로 바로 들어갑니다(기기에 캐시된 상태). 서버에 다시 연결되면 <b>자동으로 최신 내역으로 갱신</b>됩니다. 이 기능을 쓰려면 <b>한 번 이상 정상 접속</b>해 화면이 저장돼 있어야 합니다.</span>
+          <span class="en">If the PC is off or you're on <b>another network</b>, opening the app no longer stalls on the icon screen — it goes straight to the <b>last session‑card list you saw</b> (cached on the device). Once it reconnects to the server it <b>refreshes to the latest</b> automatically. This needs at least <b>one successful connect</b> first so the screen is cached.</span></div>
       </details>
       <details class="more">
         <summary>🌍 <span class="ko">다른 네트워크에서 접속 (VPN)</span><span class="en">Connect from another network (VPN)</span></summary>
-        <div class="mbody"><span class="ko">Agent Hub는 클라우드 서버가 없어 기본은 <b>같은 네트워크 전용</b>이지만, <b>NetBird·Tailscale</b> 같은 VPN을 쓰면 <b>어디서나</b> 접속할 수 있습니다. 설치·설정 단계, 모바일 접속, IP가 바뀌는 문제까지 위쪽 <a href="#vpn"><b>‘VPN으로 어디서나 접속’</b></a> 섹션에 정리해 두었습니다.</span>
-          <span class="en">Agent Hub has no cloud server, so it's <b>same‑network only</b> by default — but a VPN like <b>NetBird or Tailscale</b> lets you connect from <b>anywhere</b>. Full setup, mobile access, and the changing‑IP question are covered in the <a href="#vpn"><b>‘Connect from anywhere with a VPN’</b></a> section above.</span></div>
+        <div class="mbody"><span class="ko">Agent Hub는 클라우드 서버가 없어 PC와 휴대폰이 직접 연결됩니다. <b>NetBird</b> 같은 VPN을 쓰면 <b>유선·무선·어느 네트워크</b>에서든 접속할 수 있어요. 설치·설정 단계, 모바일 접속, IP가 바뀌는 문제까지 위 <a href="#connect"><b>STEP 01 ‘NetBird로 어디서나 연결’</b></a>에 정리해 두었습니다.</span>
+          <span class="en">Agent Hub has no cloud server, so the PC and phone connect directly. A VPN like <b>NetBird</b> lets you connect <b>on wired or Wi‑Fi, on any network</b>. Full setup, mobile access, and the changing‑IP question are covered in <a href="#connect"><b>STEP 01 ‘Connect from anywhere with NetBird’</b></a> above.</span></div>
       </details>
       <details class="more">
         <summary>🚀 <span class="ko">Windows 시작 시 자동 실행 (기본 켜짐)</span><span class="en">Launch on Windows startup (on by default)</span></summary>
