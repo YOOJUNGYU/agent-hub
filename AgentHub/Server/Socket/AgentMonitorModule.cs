@@ -121,25 +121,6 @@ namespace AgentHub.Server.Socket
                         type = "injectResult", sessionId = msg.SessionId, ok, reason
                     }));
                 }
-                else if (msg.Type == "reopen" && !string.IsNullOrEmpty(msg.SessionId))
-                {
-                    // 직접입력 불가 claude 세션을 PC에서 claude --resume 으로 재실행(고전 콘솔).
-                    bool ok = false; string reason;
-                    if (AgentMonitorService.EngineOf(msg.SessionId) != "claude")
-                        reason = "engine"; // Codex 등: 세션연결 미지원
-                    else
-                    {
-                        var cwd = AgentMonitorService.CwdOf(msg.SessionId); // 미상 세션이면 null → NoCwd
-                        var r = AgentHub.Server.Terminal.SessionReopener.Reopen(msg.SessionId, cwd);
-                        ok = r == AgentHub.Server.Terminal.SessionReopener.Result.Ok;
-                        reason = ok ? null
-                            : (r == AgentHub.Server.Terminal.SessionReopener.Result.NoCwd ? "nocwd" : "failed");
-                    }
-                    await SendSafe(context, Json.Serialize(new
-                    {
-                        type = "reopenResult", sessionId = msg.SessionId, ok, reason
-                    }));
-                }
                 else if (msg.Type == "pickerAnswer" && !string.IsNullOrEmpty(msg.SessionId))
                 {
                     bool ok = false; string reason;

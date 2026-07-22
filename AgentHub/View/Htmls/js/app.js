@@ -148,7 +148,6 @@ function connect() {
       else if (m.type === 'answerBlocked') { handleAnswerBlocked(m); }
       else if (m.type === 'injectResult') { handleInjectResult(m); }
       else if (m.type === 'pickerAnswerResult') { handlePickerAnswerResult(m); }
-      else if (m.type === 'reopenResult') { handleReopenResult(m); }
     } catch (e) { /* ignore malformed */ }
   };
 }
@@ -285,7 +284,7 @@ function backToList() {
   hidePendingNote(); answeredPendingKey = null;
   currentSessionId = null;
   { const bar = document.getElementById('injectBar'); if (bar) bar.hidden = true; }
-  setInjectSending(false); reopening = false;
+  setInjectSending(false);
   showScreen('monitor');
   rerenderSessions(); // openDetail에서 해제한 대기표시를 목록에 반영(다음 스냅샷 전 최신화)
 }
@@ -355,49 +354,41 @@ function showInjectHint(key) {
   hint.textContent = key ? t(key) : '';
   hint.hidden = !key;
 }
-let reopening = false;               // '세션연결' 진행 중(연결 중 UI)
-const injectFailedSet = new Set();   // 전송이 noconsole/nopid로 실패한 세션(강제 세션연결 모드)
+const injectFailedSet = new Set();   // 전송이 noconsole/nopid로 실패한 세션(비활성 쉘 → 입력 숨김)
 
 // 상세 진입 시: 입력값 초기화 + 상태 리셋 후 바 갱신.
 function updateInjectBar(id) {
   const input = document.getElementById('injectInput');
   if (input) { input.value = ''; }
   setInjectSending(false);
-  reopening = false;
   showInjectHint(null);
   refreshInjectBar(id);
   autoGrowInject();
 }
 
-// 스냅샷/전환 시: 세션의 injectable·engine에 맞춰 입력창/세션연결/코덱스안내 중 하나를 표시.
+// 스냅샷/전환 시: 활성 쉘(주입 가능)일 때만 입력창을 보이고, 아니면 숨기고 안내만 표시.
 // 사용자가 입력 중인 값·전송 중 상태는 건드리지 않는다.
 function refreshInjectBar(id) {
   const bar = document.getElementById('injectBar');
   const row = document.getElementById('injectRow');
-  const connect = document.getElementById('sessionConnect');
   if (!bar) return;
   bar.hidden = false;
   const s = sessionsById[id];
   const engine = s && s.engine;
-  if (engine === 'codex') { // 콘솔 없음 → 안내만
-    if (row) row.hidden = true; if (connect) connect.hidden = true;
+  if (engine === 'codex') { // 콘솔 없음 → 입력 숨기고 안내만
+    if (row) row.hidden = true;
     showInjectHint('inject.hintCodex');
     return;
   }
   const injectable = !!(s && s.injectable) && !injectFailedSet.has(id);
-  if (injectable) {         // 일반 입력
-    if (connect) connect.hidden = true;
+  if (injectable) {         // 활성 쉘 → 입력창
     if (row) row.hidden = false;
     if (!injectSending) showInjectHint(null);
-    if (reopenTimer) { clearTimeout(reopenTimer); reopenTimer = null; }
-    reopening = false;
     return;
   }
-  // claude + 주입 불가 → 세션연결
+  // 활성 쉘 아님 → 입력 컨트롤 숨기고 안내만(PC에서 CLI로 실행된 세션만 입력 가능)
   if (row) row.hidden = true;
-  if (connect) connect.hidden = false;
-  const btn = document.getElementById('sessionConnectBtn');
-  if (btn) { btn.disabled = reopening; btn.textContent = t(reopening ? 'session.connecting' : 'session.connect'); }
+  showInjectHint('inject.hintNotShell');
 }
 // textarea 높이를 내용에 맞춰 재계산(최대 높이는 CSS max-height가 clamp, 초과 시 스크롤).
 function autoGrowInject() {
@@ -438,8 +429,7 @@ function handleInjectResult(m) {
   const input = document.getElementById('injectInput');
   if (m.ok) { if (input) { input.value = ''; autoGrowInject(); } showInjectHint(null); return; }
   if (m.reason === 'noconsole' || m.reason === 'nopid') {
-    injectFailedSet.add(m.sessionId);     // 이 세션은 세션연결로 전환
-    showInjectHint(null);
+    injectFailedSet.add(m.sessionId);     // 비활성 쉘 → 입력 숨기고 안내(refreshInjectBar가 힌트 설정)
     refreshInjectBar(m.sessionId);
     return;
   }
@@ -457,26 +447,6 @@ function handlePickerAnswerResult(m) {
 document.getElementById('injectSend') && document.getElementById('injectSend').addEventListener('click', sendInject);
 // Enter는 줄바꿈(textarea 기본 동작). 전송은 전송 버튼으로만.
 document.getElementById('injectInput') && document.getElementById('injectInput').addEventListener('input', autoGrowInject);
-let reopenTimer = null;
-document.getElementById('sessionConnectBtn') && document.getElementById('sessionConnectBtn').addEventListener('click', () => {
-  if (!currentSessionId || reopening) return;
-  if (!confirm(t('session.connectConfirm'))) return;
-  injectFailedSet.delete(currentSessionId); // 재실행으로 복구 시도 → 강제 세션연결 해제
-  reopening = true;
-  refreshInjectBar(currentSessionId);        // '연결 중…' 표시
-  send({ type: 'reopen', sessionId: currentSessionId });
-  // 안전망: reopenResult/injectable 스냅샷이 안 오면 복구.
-  reopenTimer = setTimeout(() => {
-    if (reopening) { reopening = false; showInjectHint('session.reopenFailed'); refreshInjectBar(currentSessionId); }
-  }, 20000);
-});
-function handleReopenResult(m) {
-  if (m.sessionId !== currentSessionId) return;
-  if (m.ok) return; // 실행 성공 → injectable 스냅샷을 기다림(연결 중 유지, 안전망이 커버)
-  reopening = false; if (reopenTimer) { clearTimeout(reopenTimer); reopenTimer = null; }
-  showInjectHint('session.reopenFailed');
-  refreshInjectBar(m.sessionId);
-}
 
 // ---- 알림 권한 ----
 function refreshNotifyBtn() {

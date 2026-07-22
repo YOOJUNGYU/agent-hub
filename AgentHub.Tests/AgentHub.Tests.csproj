@@ -22,6 +22,5 @@
     <Compile Include="..\AgentHub\Server\Hook\PermissionRegistry.cs" Link="Linked\PermissionRegistry.cs" />
     <Compile Include="..\AgentHub\Server\Hook\RemoteAnswerConfig.cs" Link="Linked\RemoteAnswerConfig.cs" />
     <Compile Include="..\AgentHub\Server\Agents\AgentMonitorService.Injectable.cs" Link="Linked\AgentMonitorService.Injectable.cs" />
-    <Compile Include="..\AgentHub\Server\Terminal\SessionReopener.Validation.cs" Link="Linked\SessionReopener.Validation.cs" />
   </ItemGroup>
 </Project>

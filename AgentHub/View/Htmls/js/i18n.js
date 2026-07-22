@@ -129,13 +129,9 @@
       'inject.hintNoConsole': '이 세션은 직접 입력이 안 되는 터미널(Windows Terminal 등)에서 실행 중입니다. cmd.exe 또는 PowerShell 창에서 claude를 실행하면 모바일에서 바로 답할 수 있어요.',
       'inject.hintNoPid': '실행 중인 세션 프로세스를 찾을 수 없습니다(종료됐거나 훅 미보고). PC에서 직접 답하거나 세션을 다시 시작하세요.',
       'inject.hintFailed': '전송에 실패했습니다. 잠시 후 다시 시도해 주세요.',
+      'inject.hintNotShell': 'PC에서 CLI(cmd·PowerShell 등)로 실행한 claude 세션에서만 모바일 답변을 입력할 수 있어요. 이 세션은 직접 입력을 받지 못합니다.',
       'qna.multiOnPc': '여러 문항으로 된 질문입니다. 답변 창이 지나 폰에서는 보낼 수 없으니 PC에서 답해 주세요.',
-      'qna.sendFailed': '전송에 실패했습니다. PC에서 답해 주세요.',
-      'session.connect': '세션연결',
-      'session.connecting': '연결 중…',
-      'session.connectDesc': '이 세션은 직접 입력이 안 됩니다. ‘세션연결’을 누르면 PC에서 세션을 다시 열어 답변할 수 있어요.',
-      'session.connectConfirm': 'PC에서 이 세션을 다시 열까요? (claude --resume 실행)',
-      'session.reopenFailed': '세션 재실행에 실패했습니다. PC에서 직접 열어 주세요.'
+      'qna.sendFailed': '전송에 실패했습니다. PC에서 답해 주세요.'
     },
     en: {
       'server.active': '🟢 Server active',
@@ -253,13 +249,9 @@
       'inject.hintNoConsole': 'This session runs in a terminal that does not accept direct input (e.g. Windows Terminal). Run claude in a cmd.exe or PowerShell window and you can answer from mobile.',
       'inject.hintNoPid': 'Could not find the running session process (ended or hook not reported). Answer on your PC or restart the session.',
       'inject.hintFailed': 'Send failed. Please try again in a moment.',
+      'inject.hintNotShell': 'Mobile replies work only for claude sessions started from a CLI (cmd, PowerShell, etc.) on the PC. This session does not accept direct input.',
       'qna.multiOnPc': 'This question has multiple parts. The answer window has passed, so it can not be sent from the phone — please answer on the PC.',
-      'qna.sendFailed': 'Send failed — please answer on the PC.',
-      'session.connect': 'Connect session',
-      'session.connecting': 'Connecting…',
-      'session.connectDesc': "This session can't take direct input. Tap \"Connect session\" to reopen it on the PC and answer here.",
-      'session.connectConfirm': 'Reopen this session on the PC? (runs claude --resume)',
-      'session.reopenFailed': "Couldn't reopen the session. Please open it on the PC."
+      'qna.sendFailed': 'Send failed — please answer on the PC.'
     }
   };
 
