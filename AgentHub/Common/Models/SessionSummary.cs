@@ -19,5 +19,6 @@ namespace AgentHub.Common.Models
         public long TotalTokens { get; set; }       // 세션 누적 토큰(input+cache_creation+output 합; 재사용 cache_read 제외)
         public int MessageCount { get; set; }
         public PendingAsk PendingAsk { get; set; }
+        public bool Injectable { get; set; }   // claude + 살아있는 PID → 모바일 직접 주입 가능(세션연결 판별)
     }
 }

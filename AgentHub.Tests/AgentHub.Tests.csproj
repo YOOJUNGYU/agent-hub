@@ -21,5 +21,6 @@
     <Compile Include="..\AgentHub\Server\Hook\HookConfigMerger.cs" Link="Linked\HookConfigMerger.cs" />
     <Compile Include="..\AgentHub\Server\Hook\PermissionRegistry.cs" Link="Linked\PermissionRegistry.cs" />
     <Compile Include="..\AgentHub\Server\Hook\RemoteAnswerConfig.cs" Link="Linked\RemoteAnswerConfig.cs" />
+    <Compile Include="..\AgentHub\Server\Agents\AgentMonitorService.Injectable.cs" Link="Linked\AgentMonitorService.Injectable.cs" />
   </ItemGroup>
 </Project>

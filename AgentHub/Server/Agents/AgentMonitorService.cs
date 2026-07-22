@@ -12,7 +12,7 @@ namespace AgentHub.Server.Agents
     /// 트랜스크립트를 읽어 하나의 목록으로 병합해 /ws/agents 로 push한다. 변경은 FileSystemWatcher 콜백으로 즉시 반영.
     /// sessionId 기준 조회는 엔진(소유 리더)으로 라우팅한다.
     /// </summary>
-    public static class AgentMonitorService
+    public static partial class AgentMonitorService
     {
         private static AgentMonitorModule _module;
         private const int MaxSessions = 30;
@@ -22,10 +22,13 @@ namespace AgentHub.Server.Agents
             var merged = new List<SessionSummary>();
             merged.AddRange(ClaudeSessionReader.ListSessions());
             if (CodexSessionReader.Available) merged.AddRange(CodexSessionReader.ListSessions());
-            return merged
+            var list = merged
                 .OrderByDescending(s => s.LastActivityAt ?? "", StringComparer.Ordinal)
                 .Take(MaxSessions)
                 .ToList();
+            foreach (var s in list)
+                s.Injectable = IsInjectable(s.Engine, Hook.SessionPidRegistry.TryGet(s.Id, out _));
+            return list;
         }
 
         /// <summary>sessionId가 어느 엔진 소유인지(이어받기·라우팅용). Codex 파일이 있으면 codex, 아니면 claude.</summary>
