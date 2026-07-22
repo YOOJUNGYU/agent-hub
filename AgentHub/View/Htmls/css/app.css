@@ -322,7 +322,10 @@ body:not(.host-shell) #permBanner{ flex:0 0 auto; }
 
 /* 모니터: 스크롤 컨테이너 + '새 세션' 하단(짧으면 카드 아래, 길면 sticky) */
 body:not(.host-shell) #monitor:not([hidden]){ flex:1 1 auto; min-height:0; display:block; overflow-y:auto; overflow-x:hidden; position:relative; }
-.monitor-top{ display:flex; gap:8px; flex-wrap:wrap; }
+.monitor-top{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+/* '입력 가능만' 목록 필터 토글 */
+.filter-toggle{ margin-left:auto; display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--muted); cursor:pointer; user-select:none; }
+.filter-toggle input{ width:16px; height:16px; accent-color:var(--accent); cursor:pointer; }
 
 /* 당겨서 새로고침(pull-to-refresh) 인디케이터 — 목록 맨 위에서 아래로 당길 때 표시 */
 .ptr{ position:absolute; top:8px; left:50%; z-index:6; pointer-events:none;
