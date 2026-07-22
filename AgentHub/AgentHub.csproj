@@ -155,6 +155,8 @@
     <Compile Include="Server\Socket\HostMonitorModule.cs" />
     <Compile Include="Server\Socket\MonitorClientRegistry.cs" />
     <Compile Include="Server\Terminal\ConsoleInputInjector.cs" />
+    <Compile Include="Server\Terminal\SessionReopener.cs" />
+    <Compile Include="Server\Terminal\SessionReopener.Validation.cs" />
     <Compile Include="Server\Hook\CodexHookInstaller.cs" />
     <Compile Include="Server\Hook\HookConfigMerger.cs" />
     <Compile Include="Server\Hook\PermissionRegistry.cs" />
