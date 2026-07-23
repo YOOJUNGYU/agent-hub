@@ -16,10 +16,12 @@
     <Compile Include="..\AgentHub\Server\Agents\TranscriptParser.cs" Link="Linked\TranscriptParser.cs" />
     <Compile Include="..\AgentHub\Server\Agents\CodexTranscriptParser.cs" Link="Linked\CodexTranscriptParser.cs" />
     <Compile Include="..\AgentHub\Common\Models\PendingAsk.cs" Link="Linked\PendingAsk.cs" />
+    <Compile Include="..\AgentHub\Common\Models\PendingPermission.cs" Link="Linked\PendingPermission.cs" />
     <Compile Include="..\AgentHub\Common\Models\SessionSummary.cs" Link="Linked\SessionSummary.cs" />
     <Compile Include="..\AgentHub\Common\Models\ActivityEvent.cs" Link="Linked\ActivityEvent.cs" />
     <Compile Include="..\AgentHub\Server\Hook\HookConfigMerger.cs" Link="Linked\HookConfigMerger.cs" />
     <Compile Include="..\AgentHub\Server\Hook\PermissionRegistry.cs" Link="Linked\PermissionRegistry.cs" />
+    <Compile Include="..\AgentHub\Server\Hook\PendingPermissionRegistry.cs" Link="Linked\PendingPermissionRegistry.cs" />
     <Compile Include="..\AgentHub\Server\Hook\RemoteAnswerConfig.cs" Link="Linked\RemoteAnswerConfig.cs" />
     <Compile Include="..\AgentHub\Server\Agents\AgentMonitorService.Injectable.cs" Link="Linked\AgentMonitorService.Injectable.cs" />
   </ItemGroup>

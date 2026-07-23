@@ -142,6 +142,28 @@ namespace AgentHub.Server.Socket
                         type = "pickerAnswerResult", sessionId = msg.SessionId, ok, reason
                     }));
                 }
+                else if (msg.Type == "permissionInject" && !string.IsNullOrEmpty(msg.SessionId))
+                {
+                    // "ask"로 폴백된 권한 프롬프트(터미널 번호 메뉴)에 허용/거부를 콘솔 주입.
+                    bool ok = false; string reason;
+                    if (AgentMonitorService.EngineOf(msg.SessionId) != "claude")
+                        reason = "engine";
+                    else if (!AgentHub.Server.Hook.SessionPidRegistry.TryGet(msg.SessionId, out var pid))
+                        reason = "nopid";
+                    else
+                    {
+                        var r = await System.Threading.Tasks.Task.Run(() =>
+                            AgentHub.Server.Terminal.ConsoleInputInjector.InjectPermissionAnswer(pid, msg.Choice));
+                        ok = r == AgentHub.Server.Terminal.ConsoleInputInjector.Result.Ok;
+                        reason = ok ? null
+                            : (r == AgentHub.Server.Terminal.ConsoleInputInjector.Result.NoConsole ? "noconsole" : "failed");
+                        if (ok) AgentHub.Server.Hook.PendingPermissionRegistry.Clear(msg.SessionId); // 주입 성공 → 대기 해제
+                    }
+                    await SendSafe(context, Json.Serialize(new
+                    {
+                        type = "permissionInjectResult", sessionId = msg.SessionId, ok, reason
+                    }));
+                }
             }
             catch (Exception ex) { LogService.Instance.Error(ex); }
         }
@@ -262,5 +284,6 @@ namespace AgentHub.Server.Socket
         public string Text { get; set; }      // inject: 세션 콘솔에 주입할 자유 텍스트
         public int[] Indices { get; set; }     // pickerAnswer: 선택한 옵션 0-based 인덱스들
         public int OptionCount { get; set; }   // pickerAnswer: 나열된 실제 옵션 수(Other 번호 계산용)
+        public string Choice { get; set; }     // permissionInject: "allow" | "allowAlways" | "deny"
     }
 }

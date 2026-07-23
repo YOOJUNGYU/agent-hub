@@ -126,6 +126,7 @@
     <Compile Include="Common\Models\Device.cs" />
     <Compile Include="Common\Models\ServerStatusInfo.cs" />
     <Compile Include="Common\Models\PendingAsk.cs" />
+    <Compile Include="Common\Models\PendingPermission.cs" />
     <Compile Include="Common\Models\SessionSummary.cs" />
     <Compile Include="Common\Models\ActivityEvent.cs" />
     <Compile Include="Common\Util\AppSettingsProvider.cs" />
@@ -158,6 +159,7 @@
     <Compile Include="Server\Hook\CodexHookInstaller.cs" />
     <Compile Include="Server\Hook\HookConfigMerger.cs" />
     <Compile Include="Server\Hook\PermissionRegistry.cs" />
+    <Compile Include="Server\Hook\PendingPermissionRegistry.cs" />
     <Compile Include="Server\Hook\AskRegistry.cs" />
     <Compile Include="Server\Hook\SessionPidRegistry.cs" />
     <Compile Include="Server\Hook\RemoteAnswerConfig.cs" />

@@ -21,6 +21,7 @@ namespace AgentHub.Server.Terminal
         public static KeyStroke MapChar(char c)
         {
             if (c == '\r') return new KeyStroke { Vk = 0x0D, Ch = c };
+            if (c == '\x1b') return new KeyStroke { Vk = 0x1B, Ch = c }; // Esc — 권한 거부 폴백용
             short sc = VkKeyScan(c);
             ushort vk = sc == -1 ? (ushort)0 : (ushort)(sc & 0xFF);
             return new KeyStroke { Vk = vk, Ch = c };
@@ -86,6 +87,31 @@ namespace AgentHub.Server.Terminal
                 }
                 catch (Exception ex) { LogService.Instance.Error(ex); return Result.Failed; }
             }
+        }
+
+        /// <summary>
+        /// "ask"로 폴백된 권한 프롬프트(터미널 번호 메뉴)에 답을 주입한다.
+        /// 매핑(검증 리스크 — 실제 conhost로 확인 후 조정, 한 곳에 격리):
+        ///   allow→"1" / allowAlways→"2" / deny→"3". 단일 숫자키 = picker 단일선택과 동일하게 즉시 제출.
+        /// 옵션이 2개뿐인 프롬프트에서 3이 어긋나면 거부는 Esc("\x1b")로 대체(MapChar가 VK_ESCAPE로 매핑).
+        /// </summary>
+        public static string PermissionPayload(string choice)
+        {
+            switch (choice)
+            {
+                case "allow": return "1";
+                case "allowAlways": return "2";
+                case "deny": return "3";
+                default: return null;
+            }
+        }
+
+        public static Result InjectPermissionAnswer(int pid, string choice)
+        {
+            if (pid <= 0) return Result.Failed;
+            var payload = PermissionPayload(choice);
+            if (payload == null) return Result.Failed;
+            lock (_gate) { return WriteOnce(pid, payload); }
         }
 
         // attach→write→free 원자 1회(락 없음 — 호출자가 _gate 보유). payload에 필요한 문자를 그대로(예: Enter는 "\r").

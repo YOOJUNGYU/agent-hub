@@ -116,6 +116,10 @@ $('#requestBtn').addEventListener('click', async () => {
 
 // ---- WebSocket ----
 let ws, connectTimer = null;
+// (재)연결 후 세션 상세를 보고 있으면 watch(활동 구독)를 다시 보내야 한다. openDetail의 watch는 WS가
+// OPEN이 아니면 send()에서 조용히 버려지고, 재연결 시 서버는 _watching 구독을 잃기 때문. 서버 준비가
+// 보장되는 sessions 스냅샷 수신 때 한 번만 재구독한다(스피너 영구정지·구독유실 방지).
+let pendingWatch = false;
 function connect() {
   const url = (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host
     + '/ws/agents?token=' + encodeURIComponent(token);
@@ -128,7 +132,7 @@ function connect() {
     if (!authReceived) { setBadge(false); if (!hasCachedApproved()) setPendingState('offline'); } // 캐시 있으면 마지막 상태 유지(배지만 '연결 끊김')
     try { ws.close(); } catch (e) { /* noop */ }
   }, 7000);
-  ws.onopen = () => { if (connectTimer) { clearTimeout(connectTimer); connectTimer = null; } setBadge(true); if (!authReceived) setPendingState('connecting'); };
+  ws.onopen = () => { if (connectTimer) { clearTimeout(connectTimer); connectTimer = null; } setBadge(true); if (!authReceived) setPendingState('connecting'); if (currentSessionId !== null) pendingWatch = true; };
   ws.onclose = () => { if (connectTimer) { clearTimeout(connectTimer); connectTimer = null; } setBadge(false); if (!authReceived && !hasCachedApproved()) setPendingState('offline'); setTimeout(connect, 3000); };
   ws.onerror = () => { try { ws.close(); } catch (e) { /* noop */ } };
   ws.onmessage = ev => {
@@ -138,7 +142,11 @@ function connect() {
       else if (m.type === 'sessions') {
         renderSessions(m.sessions);
         if (currentSessionId === null) { showScreen('monitor'); refreshNotifyBtn(); }
-        else if (currentSessionId) { syncPendingForm(currentSessionId); refreshInjectBar(currentSessionId); }
+        else if (currentSessionId) {
+          // (재)연결 직후면 활동 구독을 다시 건다(스피너 영구정지 복구 + 재연결 후 실시간 갱신 재개).
+          if (pendingWatch) { pendingWatch = false; send({ type: 'watch', sessionId: currentSessionId }); }
+          syncPendingForm(currentSessionId); syncPermPending(currentSessionId); refreshInjectBar(currentSessionId);
+        }
       }
       else if (m.type === 'activity') { renderActivity(m.sessionId, m.events); }
       else if (m.type === 'ask') { handleAsk(m); }
@@ -148,6 +156,7 @@ function connect() {
       else if (m.type === 'answerBlocked') { handleAnswerBlocked(m); }
       else if (m.type === 'injectResult') { handleInjectResult(m); }
       else if (m.type === 'pickerAnswerResult') { handlePickerAnswerResult(m); }
+      else if (m.type === 'permissionInjectResult') { handlePermInjectResult(m); }
     } catch (e) { /* ignore malformed */ }
   };
 }
@@ -275,8 +284,11 @@ function openDetail(id) {
   updateInjectBar(id); // 입력 바 상태(codex 숨김/안내) 초기화
   // 히스토리 항목 추가 → 기기 뒤로가기가 앱 종료 대신 popstate로 목록 복귀
   history.pushState({ screen: 'detail', id }, '');
+  const wsReady = ws && ws.readyState === 1;
   send({ type: 'watch', sessionId: id });
+  if (!wsReady) pendingWatch = true; // WS 미준비로 watch가 버려졌으면 (재)연결 후 sessions 수신 때 재구독
   maybeShowPendingForm(id); // 미답 질문 있으면 즉시 답변 폼(터미널 열기 없음)
+  syncPermPending(id);      // 만료/폴백된 권한 요청 있으면 콘솔 주입 카드 표시
 }
 
 // 상세 → 목록 복귀 (기기 back / 화면 버튼 공통 경로)
@@ -284,6 +296,7 @@ function backToList() {
   send({ type: 'unwatch' });
   if (elicit && elicit.fromPending) closeElicit(); // 뒤로가기 시 대기 답변 폼(만료) 오버레이 닫기(라이브는 유지)
   hidePendingNote(); answeredPendingKey = null;
+  hidePermPending();
   currentSessionId = null;
   { const bar = document.getElementById('injectBar'); if (bar) bar.hidden = true; }
   setInjectSending(false);
@@ -751,6 +764,64 @@ function sendPermission(decision) {
 }
 document.getElementById('permAllow') && document.getElementById('permAllow').addEventListener('click', () => sendPermission('allow'));
 document.getElementById('permDeny') && document.getElementById('permDeny').addEventListener('click', () => sendPermission('deny'));
+
+// ---- 권한 대기(만료/폴백) → 세션 상세에서 콘솔 주입으로 허용/거부 ----
+let permInjectSending = false;
+let permInjectTimer = null;
+// 스냅샷/진입 시: pendingPermission이 있으면 카드 표시(주입 가능하면 버튼, 아니면 안내).
+function syncPermPending(id) {
+  const card = document.getElementById('permPending');
+  if (!card) return;
+  const s = sessionsById[id];
+  const pp = s && s.pendingPermission;
+  if (!pp || document.getElementById('detail').hidden) { hidePermPending(); return; }
+  document.getElementById('permPendingTool').textContent = pp.tool || '';
+  document.getElementById('permPendingDetail').textContent = pp.detail || '';
+  const actions = card.querySelector('.perm-pending-actions');
+  const hint = document.getElementById('permPendingHint');
+  const injectable = !!s.injectable && s.engine !== 'codex';
+  if (actions) actions.hidden = !injectable;          // 주입 불가면 버튼 숨김
+  if (hint) hint.textContent = t(injectable ? 'perm.pendingHint'
+    : (s.engine === 'codex' ? 'inject.hintCodex' : 'inject.hintNotShell'));
+  card.hidden = false;
+  // 라이브 배너가 이 세션 것이면, 창이 지나 콘솔-대기로 넘어온 상태 → 죽은 배너 정리(카드로 일원화).
+  if (currentPermSession === id) {
+    currentPermId = null; currentPermSession = null;
+    const banner = document.getElementById('permBanner');
+    if (banner) banner.hidden = true;
+  }
+}
+function hidePermPending() {
+  const card = document.getElementById('permPending');
+  if (card) card.hidden = true;
+  setPermInjectSending(false);
+}
+function setPermInjectSending(on) {
+  permInjectSending = on;
+  const card = document.getElementById('permPending');
+  if (card) card.querySelectorAll('.perm-pending-btn').forEach(b => { b.disabled = on; });
+}
+function sendPermInject(choice) {
+  if (!currentSessionId || permInjectSending) return;
+  setPermInjectSending(true);
+  send({ type: 'permissionInject', sessionId: currentSessionId, choice });
+  // 안전망: 회신이 없어도 무한 비활성 방지.
+  permInjectTimer = setTimeout(() => { if (permInjectSending) setPermInjectSending(false); }, 12000);
+}
+function handlePermInjectResult(m) {
+  if (m.sessionId !== currentSessionId) return;
+  if (permInjectTimer) { clearTimeout(permInjectTimer); permInjectTimer = null; }
+  setPermInjectSending(false);
+  if (m.ok) { hidePermPending(); return; } // 성공: pendingPermission이 곧 스냅샷에서 사라짐.
+  const hint = document.getElementById('permPendingHint');
+  if (hint) hint.textContent = t(m.reason === 'noconsole' ? 'inject.hintNoConsole'
+    : m.reason === 'nopid' ? 'inject.hintNoPid'
+    : m.reason === 'engine' ? 'inject.hintCodex'
+    : 'perm.injectFailed');
+}
+document.getElementById('permPendingAllow') && document.getElementById('permPendingAllow').addEventListener('click', () => sendPermInject('allow'));
+document.getElementById('permPendingAlways') && document.getElementById('permPendingAlways').addEventListener('click', () => sendPermInject('allowAlways'));
+document.getElementById('permPendingDeny') && document.getElementById('permPendingDeny').addEventListener('click', () => sendPermInject('deny'));
 
 // ---- 언어 변경 시 동적 콘텐츠 재렌더 ----
 document.addEventListener('i18n:changed', () => {

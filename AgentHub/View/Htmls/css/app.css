@@ -290,6 +290,30 @@ body.host-shell #logs.view.active{display:flex; flex-direction:column; overflow:
 #permAllow { background: #2e9e5b; color: #08130c; font-weight: 700; }
 #permDeny { background: #b3423a; color: #fff; font-weight: 700; }
 
+/* 권한 대기 카드(만료/폴백 → 세션 상세에서 콘솔 주입으로 허용/거부) */
+.perm-pending { margin: 0 0 8px; padding: 11px 12px; border-radius: 10px;
+  background: #2a1f14; border: 1px solid #7a4a1e; }
+.perm-pending[hidden] { display: none; }
+.perm-pending-title { font-size: 13px; font-weight: 700; color: #fdba74; margin-bottom: 7px; }
+.perm-pending-tool { font-size: 12px; font-weight: 700; color: #e7ecf8; margin-bottom: 4px; }
+.perm-pending-detail:not(:empty) { font-family: Consolas,'D2Coding',monospace; font-size: 12px; color: #e6e9f2;
+  background: #0d0f17; border: 1px solid #2a3145; border-radius: 8px; padding: 8px 10px;
+  word-break: break-all; overflow-wrap: anywhere; max-height: 8em; overflow-y: auto; overflow-x: hidden; margin-bottom: 7px; }
+.perm-pending-hint { font-size: 12px; line-height: 1.45; color: #cbb79a; margin-bottom: 9px; }
+.perm-pending-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.perm-pending-actions[hidden] { display: none; }
+.perm-pending-btn { flex: 1 1 auto; min-width: 84px; padding: 9px 12px; border: 0; border-radius: 9px;
+  font-size: 13px; font-weight: 700; cursor: pointer; background: #2a3145; color: #c9d1e4; }
+.perm-pending-btn.primary { background: #2e9e5b; color: #08130c; }
+.perm-pending-btn.danger { background: #b3423a; color: #fff; }
+.perm-pending-btn:disabled { opacity: .5; cursor: default; }
+[data-theme="light"] .perm-pending { background: #fdf3e7; border-color: #e6c79a; }
+[data-theme="light"] .perm-pending-title { color: #9a5a12; }
+[data-theme="light"] .perm-pending-tool { color: #1a2030; }
+[data-theme="light"] .perm-pending-detail:not(:empty) { background: #f2f5fb; color: #1a2030; border-color: #d6dced; }
+[data-theme="light"] .perm-pending-hint { color: #7a6a52; }
+[data-theme="light"] .perm-pending-btn { background: #e3e8f2; color: #2a3145; }
+
 /* 사용 가이드 링크 */
 .guide-link { display: inline-block; margin: 8px 0 0; font-size: 13px; color: #7aa2ff; text-decoration: none; }
 .cert-help-wrap .guide-link { padding: 4px 0; }

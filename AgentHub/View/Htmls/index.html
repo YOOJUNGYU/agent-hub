@@ -101,6 +101,18 @@
       </div>
       <div class="detail-run" id="detailRun" hidden></div>
       <div class="pending-note" id="pendingNote" hidden></div>
+      <!-- 권한 대기(만료/폴백): 세션 상세에서 콘솔 주입으로 허용/거부 -->
+      <div class="perm-pending" id="permPending" hidden>
+        <div class="perm-pending-title" id="permPendingTitle" data-i18n="perm.pendingTitle">권한 대기 중 — 콘솔로 답하기</div>
+        <div class="perm-pending-tool" id="permPendingTool"></div>
+        <div class="perm-pending-detail" id="permPendingDetail"></div>
+        <div class="perm-pending-hint" id="permPendingHint"></div>
+        <div class="perm-pending-actions">
+          <button id="permPendingAllow" class="perm-pending-btn primary" data-i18n="perm.allow">허용</button>
+          <button id="permPendingAlways" class="perm-pending-btn" data-i18n="perm.allowAlways">허용 + 다음부터 안 물음</button>
+          <button id="permPendingDeny" class="perm-pending-btn danger" data-i18n="perm.deny">거부</button>
+        </div>
+      </div>
       <div class="activity-feed" id="activityFeed"></div>
       <div class="inject-bar" id="injectBar" hidden>
         <div class="inject-hint" id="injectHint" hidden></div>

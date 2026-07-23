@@ -26,8 +26,13 @@ namespace AgentHub.Server.Agents
                 .OrderByDescending(s => s.LastActivityAt ?? "", StringComparer.Ordinal)
                 .Take(MaxSessions)
                 .ToList();
+            Hook.PendingPermissionRegistry.PruneExpired(TimeSpan.FromMinutes(15)); // 대기 권한 안전망 정리
             foreach (var s in list)
+            {
                 s.Injectable = IsInjectable(s.Engine, Hook.SessionPidRegistry.TryGet(s.Id, out _));
+                if (Hook.PendingPermissionRegistry.TryGet(s.Id, out var pTool, out var pDetail))
+                    s.PendingPermission = new PendingPermission { Tool = pTool, Detail = pDetail };
+            }
             return list;
         }
 
@@ -135,6 +140,9 @@ namespace AgentHub.Server.Agents
             catch (Exception ex) { LogService.Instance.Error(ex); }
             finally { _sendGate.Release(); }
         }
+
+        /// <summary>세션 스냅샷을 즉시 재브로드캐스트(대기 권한 등록/해제를 폰에 바로 반영).</summary>
+        public static void NotifyChanged() => OnChanged();
 
         private static async void OnChanged()
         {

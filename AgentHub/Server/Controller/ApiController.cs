@@ -292,15 +292,31 @@ namespace AgentHub.Server.Controller
             {
                 var o = JObject.Parse(raw);
                 var mode = ((string)o["permission_mode"] ?? "").ToLowerInvariant();
+                var isDefault = mode == "" || mode == "default";
+                var sessionId = (string)o["session_id"];
+                var tool = (string)o["tool_name"] ?? "";
+                var detail = ToolDetail(tool, o["tool_input"] as JObject);
                 // default 모드 + 응답할 폰이 연결돼 있을 때만 원격 승인. 아니면 정상 흐름(PC 프롬프트)으로 폴백.
-                if ((mode == "" || mode == "default") && AgentMonitorService.HasApprovedClient())
+                if (isDefault && AgentMonitorService.HasApprovedClient())
                 {
                     var id = Guid.NewGuid().ToString("N");
-                    var tool = (string)o["tool_name"] ?? "";
-                    var detail = ToolDetail(tool, o["tool_input"] as JObject);
                     var project = LastSegment((string)o["cwd"] ?? "");
-                    AgentMonitorService.BroadcastPermission(id, project, tool, detail, (string)o["session_id"]);
+                    AgentMonitorService.BroadcastPermission(id, project, tool, detail, sessionId);
                     decision = await AgentHub.Server.Hook.PermissionRegistry.AwaitDecision(id, 110000);
+                }
+                // "ask"로 폴백 = Claude가 터미널 번호 메뉴를 띄우고 대기 → 세션 상세에서 콘솔 주입으로 답할 수 있게 등록.
+                // default 모드에서만: bypassPermissions 등에선 프롬프트가 안 떠 유령 카드가 되므로 제외.
+                // 라이브로 allow/deny가 확정되면 터미널 프롬프트가 안 뜨므로 대기 권한을 정리한다.
+                if (decision == "ask" && isDefault)
+                {
+                    AgentHub.Server.Hook.PendingPermissionRegistry.Set(sessionId, tool, detail);
+                    if (!IsDuplicateNotify("perm", sessionId, detail ?? tool))
+                        AgentHub.Server.Push.PushService.NotifyDisconnected("권한 대기: " + (detail ?? tool), sessionId);
+                    AgentMonitorService.NotifyChanged(); // pendingPermission 즉시 노출
+                }
+                else
+                {
+                    AgentHub.Server.Hook.PendingPermissionRegistry.Clear(sessionId);
                 }
             }
             catch (Exception ex) { LogService.Instance.Error(ex); }
