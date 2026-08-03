@@ -258,6 +258,9 @@ namespace AgentHub.Server
                 // Codex도 동일 훅 설치(미설치면 내부에서 no-op).
                 try { Hook.CodexHookInstaller.Install(); }
                 catch (Exception ex) { LogService.Instance.Error(ex); }
+                // WSL 배포판(실행 중)의 Claude에도 같은 훅 설치. 배포판이 나중에 켜질 수 있어 주기 동기화.
+                try { Hook.WslHookInstaller.StartSync(); }
+                catch (Exception ex) { LogService.Instance.Error(ex); }
 
                 CurrentPort = ResolvePort();
 
@@ -446,6 +449,7 @@ namespace AgentHub.Server
             try
             {
                 AgentMonitorService.Stop();
+                Hook.WslHookInstaller.StopSync();
                 _cts?.Cancel();
                 try { _server?.Dispose(); } catch (Exception ex) { LogService.Instance.Error(ex); }
                 try { _certServer?.Dispose(); } catch (Exception ex) { LogService.Instance.Error(ex); } // 앞 dispose 예외에도 반드시 정리

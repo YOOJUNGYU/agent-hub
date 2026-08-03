@@ -20,5 +20,17 @@ namespace AgentHub.Server.Hook
 
         /// <summary>서버가 훅 HTTP 타임아웃보다 먼저 응답하도록 빼는 여유(ms).</summary>
         public const int ServerMarginMs = 2000;
+
+        /// <summary>
+        /// PC 마지막 입력 이후 이 초 안이면 '자리에 있음'으로 보고 권한 요청을 붙들지 않는다
+        /// (즉시 PC 터미널 프롬프트로 폴백). 이 시간을 넘겨 유휴면 폰 응답을 기다린다.
+        /// </summary>
+        public const int DeskActiveSeconds = 60;
+
+        /// <summary>
+        /// PC를 쓰는 중인데 폰이 연결돼 있을 때 권한 요청을 붙드는 시간(ms).
+        /// 폰이 응답하지 않아도 곧 PC 터미널 프롬프트로 넘어가도록 전체 창보다 짧게 둔다.
+        /// </summary>
+        public const int DeskPresentHoldMs = 110000;
     }
 }

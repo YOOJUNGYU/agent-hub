@@ -201,7 +201,8 @@ function setWaiting(id, on) {
   rerenderSessions();
 }
 
-function isWaiting(s) { return !!(s && (s.pendingAsk || awaitingSet.has(s.id))); }
+// pendingPermission(터미널 프롬프트 대기)도 목록에서 '대기중'으로 보여야 어느 세션을 열어 답할지 알 수 있다.
+function isWaiting(s) { return !!(s && (s.pendingAsk || s.pendingPermission || awaitingSet.has(s.id))); }
 
 // 알림 본문 접두사: 어느 세션인지 (세션 제목)으로 표시. 앱 이름([agent-hub])은 생략(어차피 이 앱 알림).
 function titlePrefix(id) {
@@ -212,10 +213,14 @@ function titlePrefix(id) {
   return '(' + tt + ') ';
 }
 
+// WSL에서 실행된 세션(cwd가 POSIX 경로) — 배지로 구분하고, 콘솔 주입 대상이 아니라는 안내에도 쓴다.
+function isWslSession(s) { return !!(s && s.cwd && s.cwd.charAt(0) === '/'); }
+
 function cardHtml(s) {
   const waiting = isWaiting(s);
   const badge = '<span class="badge-status ' + esc(s.status) + '">' + esc(s.status) + '</span>';
-  const engine = s.engine ? '<span class="badge-engine ' + esc(s.engine) + '">' + esc(s.engine) + '</span>' : '';
+  const engine = (s.engine ? '<span class="badge-engine ' + esc(s.engine) + '">' + esc(s.engine) + '</span>' : '')
+    + (isWslSession(s) ? '<span class="badge-engine wsl">wsl</span>' : '');
   const waitPill = waiting ? '<span class="card-wait">' + esc(t('card.waiting')) + '</span>' : '';
   return '<div class="session-card' + (waiting ? ' waiting' : '') + '" data-id="' + esc(s.id) + '">'
     + '<div class="card-top">' + badge + engine + '<span class="card-title">' + esc(s.title) + '</span>' + waitPill + '</div>'
@@ -405,7 +410,7 @@ function refreshInjectBar(id) {
   }
   // 활성 쉘 아님 → 입력 컨트롤 숨기고 안내만(PC에서 CLI로 실행된 세션만 입력 가능)
   if (row) row.hidden = true;
-  showInjectHint('inject.hintNotShell');
+  showInjectHint(isWslSession(s) ? 'inject.hintWsl' : 'inject.hintNotShell');
 }
 // textarea 높이를 내용에 맞춰 재계산(최대 높이는 CSS max-height가 clamp, 초과 시 스크롤).
 function autoGrowInject() {
@@ -737,14 +742,15 @@ document.getElementById('elicitBack') && document.getElementById('elicitBack').a
   elicit.step--; renderElicitStep();
 });
 
-// ---- 권한 요청(PreToolUse) 원격 승인 ----
+// ---- 권한 요청(PermissionRequest) 원격 승인 ----
 let currentPermId = null;
 let currentPermSession = null;
 function handlePermission(m) {
   currentPermId = m.id;
   currentPermSession = m.sessionId || null;
   setWaiting(m.sessionId, true);
-  if (('Notification' in window) && Notification.permission === 'granted') {
+  // resent=푸시를 보고 앱을 켰을 때 서버가 다시 내려준 것 → 시스템 알림은 생략(중복 방지), 배너만 띄운다.
+  if (!m.resent && ('Notification' in window) && Notification.permission === 'granted') {
     var title = t('perm.title');
     var opts = { body: titlePrefix(m.sessionId) + (m.detail || m.tool || ''), tag: 'perm-' + m.id, requireInteraction: true };
     if (navigator.serviceWorker && navigator.serviceWorker.ready)
@@ -782,7 +788,8 @@ function syncPermPending(id) {
   const injectable = !!s.injectable && s.engine !== 'codex';
   if (actions) actions.hidden = !injectable;          // 주입 불가면 버튼 숨김
   if (hint) hint.textContent = t(injectable ? 'perm.pendingHint'
-    : (s.engine === 'codex' ? 'inject.hintCodex' : 'inject.hintNotShell'));
+    : (s.engine === 'codex' ? 'inject.hintCodex'
+    : isWslSession(s) ? 'inject.hintWsl' : 'inject.hintNotShell'));
   card.hidden = false;
   // 라이브 배너가 이 세션 것이면, 창이 지나 콘솔-대기로 넘어온 상태 → 죽은 배너 정리(카드로 일원화).
   if (currentPermSession === id) {

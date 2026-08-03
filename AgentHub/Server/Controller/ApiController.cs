@@ -194,6 +194,7 @@ namespace AgentHub.Server.Controller
             if (!IsLoopback()) return Forbidden();
             var ok = AgentHub.Server.Hook.HookInstaller.Install();
             AgentHub.Server.Hook.CodexHookInstaller.Install(); // Codex 미설치면 no-op
+            AgentHub.Server.Hook.WslHookInstaller.Install();   // WSL 미사용이면 no-op
             return SendJsonAsync(Json.Serialize(new { ok }));
         }
 
@@ -203,6 +204,7 @@ namespace AgentHub.Server.Controller
             if (!IsLoopback()) return Forbidden();
             var ok = AgentHub.Server.Hook.HookInstaller.Uninstall();
             AgentHub.Server.Hook.CodexHookInstaller.Uninstall();
+            AgentHub.Server.Hook.WslHookInstaller.Uninstall();
             return SendJsonAsync(Json.Serialize(new { ok }));
         }
 
@@ -281,7 +283,9 @@ namespace AgentHub.Server.Controller
             await SendJsonAsync(Json.Serialize(new { ok = true }));
         }
 
-        // PreToolUse 훅(블로킹): 위험 도구 권한을 폰에서 원격 승인. {decision:"allow"|"deny"|"ask"} 반환.
+        // PermissionRequest 훅(블로킹): 승인이 필요한 모든 도구 호출을 폰에서 원격 허용/거부.
+        // {decision:"allow"|"deny"|"ask"} 반환. PermissionRequest는 실제로 프롬프트가 뜰 상황에만 발화하므로
+        // 권한 모드 게이트가 필요 없다(bypassPermissions 등에선 애초에 오지 않음 → 유령 카드 없음).
         [Route(HttpVerbs.Post, "/hook/permission")]
         public async Task HookPermission()
         {
@@ -291,27 +295,41 @@ namespace AgentHub.Server.Controller
             try
             {
                 var o = JObject.Parse(raw);
-                var mode = ((string)o["permission_mode"] ?? "").ToLowerInvariant();
-                var isDefault = mode == "" || mode == "default";
                 var sessionId = (string)o["session_id"];
                 var tool = (string)o["tool_name"] ?? "";
                 var detail = ToolDetail(tool, o["tool_input"] as JObject);
-                // default 모드 + 응답할 폰이 연결돼 있을 때만 원격 승인. 아니면 정상 흐름(PC 프롬프트)으로 폴백.
-                if (isDefault && AgentMonitorService.HasApprovedClient())
+                var project = LastSegment((string)o["cwd"] ?? "");
+                // 훅이 준 잔여시간(waitMs) 내에서 대기. 서버가 훅 HTTP 타임아웃보다 먼저 응답하도록 여유를 뺀다.
+                var windowMs = (int?)o["waitMs"] ?? AgentHub.Server.Hook.RemoteAnswerConfig.ServerWindowMs;
+                windowMs = Math.Min(windowMs, AgentHub.Server.Hook.RemoteAnswerConfig.ServerWindowMs);
+                windowMs = Math.Max(windowMs - AgentHub.Server.Hook.RemoteAnswerConfig.ServerMarginMs, 1000);
+                // 얼마나 붙들지: 자리를 비웠으면(PC 입력 없음) 폰 응답을 창 끝까지 기다린다. 자리에 있으면
+                // 터미널 프롬프트가 바로/곧 떠야 하므로 — 폰이 붙어 있을 때만 짧게 기다리고, 아니면 즉시 폴백한다.
+                var deskActive = DesktopIdle.IdleSeconds() < AgentHub.Server.Hook.RemoteAnswerConfig.DeskActiveSeconds;
+                var holdMs = !deskActive ? windowMs
+                    : (AgentMonitorService.HasApprovedClient()
+                        ? Math.Min(windowMs, AgentHub.Server.Hook.RemoteAnswerConfig.DeskPresentHoldMs)
+                        : 0);
+                if (holdMs > 0)
                 {
                     var id = Guid.NewGuid().ToString("N");
-                    var project = LastSegment((string)o["cwd"] ?? "");
+                    // 앱이 꺼져 있어도 알림이 가야 답할 수 있다. 붙드는 요청은 세션이 이 응답에 막혀 있으므로
+                    // 중복 억제 없이 매번 알린다(같은 명령이 연속으로 와도 각각 응답이 필요).
+                    AgentHub.Server.Push.PushService.NotifyDisconnected("권한 요청: " + (detail ?? tool), sessionId);
                     AgentMonitorService.BroadcastPermission(id, project, tool, detail, sessionId);
-                    decision = await AgentHub.Server.Hook.PermissionRegistry.AwaitDecision(id, 110000);
+                    decision = await AgentHub.Server.Hook.PermissionRegistry.AwaitDecision(
+                        id, sessionId, project, tool, detail, holdMs);
                 }
-                // "ask"로 폴백 = Claude가 터미널 번호 메뉴를 띄우고 대기 → 세션 상세에서 콘솔 주입으로 답할 수 있게 등록.
-                // default 모드에서만: bypassPermissions 등에선 프롬프트가 안 떠 유령 카드가 되므로 제외.
-                // 라이브로 allow/deny가 확정되면 터미널 프롬프트가 안 뜨므로 대기 권한을 정리한다.
-                if (decision == "ask" && isDefault)
+                else if (!IsDuplicateNotify("perm", sessionId, detail ?? tool))
+                {
+                    // PC 사용 중 → 프롬프트는 터미널에 즉시 뜬다. 폰에는 awareness만(자리를 떠도 대기 카드로 답할 수 있게).
+                    AgentHub.Server.Push.PushService.NotifyDisconnected("권한 대기: " + (detail ?? tool), sessionId);
+                }
+                // "ask" = 즉시 폴백/폰 무응답 → Claude가 터미널 번호 메뉴를 띄우고 대기.
+                // 세션 상세에서 콘솔 주입으로 답할 수 있게 등록한다(라이브로 확정되면 프롬프트가 안 뜨므로 정리).
+                if (decision == "ask")
                 {
                     AgentHub.Server.Hook.PendingPermissionRegistry.Set(sessionId, tool, detail);
-                    if (!IsDuplicateNotify("perm", sessionId, detail ?? tool))
-                        AgentHub.Server.Push.PushService.NotifyDisconnected("권한 대기: " + (detail ?? tool), sessionId);
                     AgentMonitorService.NotifyChanged(); // pendingPermission 즉시 노출
                 }
                 else
@@ -431,7 +449,10 @@ namespace AgentHub.Server.Controller
             return SendJsonAsync(Json.Serialize(new { ok = true }));
         }
 
-        /// <summary>권한 카드에 보여줄 도구 요약(Bash→명령, 파일 도구→경로).</summary>
+        /// <summary>
+        /// 권한 카드에 보여줄 도구 요약(Bash→명령, 파일 도구→경로).
+        /// 권한 요청은 모든 도구(WebFetch·MCP 등)에서 오므로, 모르는 도구는 대표 입력 필드를 찾아 보여준다.
+        /// </summary>
         private static string ToolDetail(string tool, JObject input)
         {
             if (input == null) return tool;
@@ -442,8 +463,18 @@ namespace AgentHub.Server.Controller
                 case "Edit":
                 case "MultiEdit":
                 case "NotebookEdit": return (string)input["file_path"] ?? tool;
-                default: return tool;
             }
+            // 알려지지 않은 도구: 사람이 판단할 수 있는 대표 필드 우선순위대로 탐색.
+            foreach (var key in new[] { "command", "file_path", "url", "query", "path", "pattern", "description", "prompt" })
+            {
+                var v = input[key];
+                if (v != null && v.Type == JTokenType.String)
+                {
+                    var s = ((string)v ?? "").Trim();
+                    if (s.Length > 0) return s.Length > 300 ? s.Substring(0, 300) + "…" : s;
+                }
+            }
+            return tool;
         }
 
         [Route(HttpVerbs.Get, "/settings")]

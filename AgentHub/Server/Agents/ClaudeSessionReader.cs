@@ -31,26 +31,39 @@ namespace AgentHub.Server.Agents
         private static string ProjectsRoot =>
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude", "projects");
 
+        /// <summary>
+        /// 스캔할 트랜스크립트 루트: Windows 사용자 홈 + 실행 중인 WSL 배포판의 홈.
+        /// WSL에서 실행된 Claude는 배포판 안에 기록하므로 이 루트를 함께 봐야 세션이 목록에 나온다.
+        /// </summary>
+        private static IEnumerable<string> ProjectsRoots()
+        {
+            yield return ProjectsRoot;
+            foreach (var home in Wsl.ClaudeHomes())
+                yield return Path.Combine(home.ClaudeDir, "projects");
+        }
+
         public static List<SessionSummary> ListSessions()
         {
-            var root = ProjectsRoot;
             var result = new List<SessionSummary>();
-            if (!Directory.Exists(root)) return result;
 
             var now = DateTime.UtcNow;
             var cutoff = now - Window;
 
             var files = new List<FileInfo>();
-            try
+            foreach (var root in ProjectsRoots())
             {
-                foreach (var dir in Directory.EnumerateDirectories(root))
-                    foreach (var f in Directory.EnumerateFiles(dir, "*.jsonl"))
-                    {
-                        var fi = new FileInfo(f);
-                        if (fi.LastWriteTimeUtc >= cutoff) files.Add(fi);
-                    }
+                if (!Directory.Exists(root)) continue;
+                try
+                {
+                    foreach (var dir in Directory.EnumerateDirectories(root))
+                        foreach (var f in Directory.EnumerateFiles(dir, "*.jsonl"))
+                        {
+                            var fi = new FileInfo(f);
+                            if (fi.LastWriteTimeUtc >= cutoff) files.Add(fi);
+                        }
+                }
+                catch (Exception ex) { LogService.Instance.Error(ex); }
             }
-            catch (Exception ex) { LogService.Instance.Error(ex); }
 
             foreach (var fi in files.OrderByDescending(f => f.LastWriteTimeUtc).Take(MaxSessions))
             {
@@ -139,17 +152,19 @@ namespace AgentHub.Server.Agents
 
         private static string FindSessionFile(string sessionId)
         {
-            var root = ProjectsRoot;
-            if (!Directory.Exists(root)) return null;
-            try
+            foreach (var root in ProjectsRoots())
             {
-                foreach (var dir in Directory.EnumerateDirectories(root))
+                if (!Directory.Exists(root)) continue;
+                try
                 {
-                    var candidate = Path.Combine(dir, sessionId + ".jsonl");
-                    if (File.Exists(candidate)) return candidate;
+                    foreach (var dir in Directory.EnumerateDirectories(root))
+                    {
+                        var candidate = Path.Combine(dir, sessionId + ".jsonl");
+                        if (File.Exists(candidate)) return candidate;
+                    }
                 }
+                catch (Exception ex) { LogService.Instance.Error(ex); }
             }
-            catch (Exception ex) { LogService.Instance.Error(ex); }
             return null;
         }
 
@@ -185,6 +200,8 @@ namespace AgentHub.Server.Agents
                 _watcher.Renamed += OnFsEvent;
                 _watcher.Error += OnWatcherError;
 
+                // watcher는 Windows 홈만 감시한다(WSL의 \\wsl.localhost 경로는 FileSystemWatcher가 못 붙음).
+                // WSL 세션 갱신은 아래 폴링(5초)이 담당한다.
                 // watcher 이벤트 유실 대비 저빈도 폴링 폴백(5초)
                 _poll = new Timer(_ =>
                 {

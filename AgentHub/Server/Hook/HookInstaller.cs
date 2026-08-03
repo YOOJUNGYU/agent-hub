@@ -9,12 +9,12 @@ namespace AgentHub.Server.Hook
     /// <summary>~/.claude/settings.json에 Agent Hub Notification 훅을 백업·멱등 설치/제거(I/O).</summary>
     public static class HookInstaller
     {
-        private const string Marker = "agenthub-hook.js";
+        internal const string Marker = "agenthub-hook.js";
 
         private static string SettingsPath =>
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude", "settings.json");
 
-        private static string ScriptPath =>
+        internal static string ScriptPath =>
             Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "hook", "agenthub-hook.js");
 
         public static bool IsInstalled()
@@ -32,84 +32,95 @@ namespace AgentHub.Server.Hook
                 // 수동 설치 동작이라 best-effort로 감수한다(락 없음).
                 var existing = ReadSettings();
                 if (!IsWritable(existing)) return false;
-                // Notification: 알림용(fire-and-forget, async).
-                var notifyEntry = new JObject
-                {
-                    ["matcher"] = "",
-                    ["hooks"] = new JArray { new JObject
-                    {
-                        ["type"] = "command",
-                        ["command"] = ResolveNode(),
-                        ["args"] = new JArray { ScriptPath },
-                        ["async"] = true,
-                        ["timeout"] = 5
-                    }}
-                };
-                // PreToolUse: 위험 도구(파일/셸)의 권한을 폰에서 원격 승인. 블로킹(동기) — 결정을 반환해야 함.
-                var permEntry = new JObject
-                {
-                    ["matcher"] = "Bash|Write|Edit|MultiEdit|NotebookEdit",
-                    ["hooks"] = new JArray { new JObject
-                    {
-                        ["type"] = "command",
-                        ["command"] = ResolveNode(),
-                        ["args"] = new JArray { ScriptPath },
-                        ["timeout"] = 120
-                    }}
-                };
-                // PermissionRequest: AskUserQuestion(질문+답변 목록)을 폰에서 원격 답변. 블로킹(동기).
-                // 훅 스크립트가 AskUserQuestion 외에는 출력 없이 통과시키므로 matcher는 전체("").
-                var permReqEntry = new JObject
-                {
-                    ["matcher"] = "",
-                    ["hooks"] = new JArray { new JObject
-                    {
-                        ["type"] = "command",
-                        ["command"] = ResolveNode(),
-                        // 두 번째 인자로 대기창(초)을 훅에 전달 → 훅이 서버를 기다리는 폴링 deadline로 사용.
-                        ["args"] = new JArray { ScriptPath, RemoteAnswerConfig.WindowSeconds.ToString() },
-                        ["timeout"] = RemoteAnswerConfig.WindowSeconds
-                    }}
-                };
-                // SessionStart: 세션 시작 시 PID 보고(원본 종료용 지도). fire-and-forget.
-                var startEntry = new JObject
-                {
-                    ["matcher"] = "",
-                    ["hooks"] = new JArray { new JObject
-                    {
-                        ["type"] = "command",
-                        ["command"] = ResolveNode(),
-                        ["args"] = new JArray { ScriptPath },
-                        ["async"] = true,
-                        ["timeout"] = 5
-                    }}
-                };
-                // Stop: 세션이 턴을 끝냄 → '완료/마지막 멘트' 알림. fire-and-forget.
-                var stopEntry = new JObject
-                {
-                    ["matcher"] = "",
-                    ["hooks"] = new JArray { new JObject
-                    {
-                        ["type"] = "command",
-                        ["command"] = ResolveNode(),
-                        ["args"] = new JArray { ScriptPath },
-                        ["async"] = true,
-                        ["timeout"] = 5
-                    }}
-                };
-                var merged = HookConfigMerger.AddHook(existing, "Notification", notifyEntry, Marker);
-                merged = HookConfigMerger.AddHook(merged, "PreToolUse", permEntry, Marker);
-                // 기존 설치본(옛 timeout/args)이 멱등 스킵으로 안 바뀌므로, 우리 항목만 제거 후 재추가해 강제 갱신.
-                merged = HookConfigMerger.RemoveHook(merged, "PermissionRequest", Marker);
-                merged = HookConfigMerger.AddHook(merged, "PermissionRequest", permReqEntry, Marker);
-                merged = HookConfigMerger.AddHook(merged, "SessionStart", startEntry, Marker);
-                // 기존 설치본(옛 async/timeout)이 멱등 스킵으로 안 바뀌므로 제거 후 재추가해 강제 갱신.
-                merged = HookConfigMerger.RemoveHook(merged, "Stop", Marker);
-                merged = HookConfigMerger.AddHook(merged, "Stop", stopEntry, Marker);
+                var merged = Merge(existing, ResolveNode(), ScriptPath);
                 WriteSettingsWithBackup(merged);
                 return true;
             }
             catch (Exception ex) { LogService.Instance.Error(ex); return false; }
+        }
+
+        /// <summary>
+        /// 훅 4종(Notification·PermissionRequest·SessionStart·Stop)을 settings.json에 멱등 병합해 반환.
+        /// node 명령과 스크립트 경로만 다르면 그대로 재사용되므로 WSL 배포판 설치(WslHookInstaller)도 이 함수를 쓴다.
+        /// </summary>
+        internal static string Merge(string existing, string nodeCommand, string scriptPath)
+        {
+            // Notification: 알림용(fire-and-forget, async).
+            var notifyEntry = new JObject
+            {
+                ["matcher"] = "",
+                ["hooks"] = new JArray { new JObject
+                {
+                    ["type"] = "command",
+                    ["command"] = nodeCommand,
+                    ["args"] = new JArray { scriptPath },
+                    ["async"] = true,
+                    ["timeout"] = 5
+                }}
+            };
+            // PermissionRequest: 승인이 필요한 모든 도구 호출 + AskUserQuestion(질문)을 폰에서 원격 응답. 블로킹(동기).
+            // 도구 종류를 가리지 않아야(WebFetch·MCP 등) 사각지대가 없으므로 matcher는 전체("").
+            // PreToolUse는 쓰지 않는다: 권한이 필요 없는 호출에도 발화해 유령 카드를 만들고 매 호출을 지연시킨다.
+            var permReqEntry = new JObject
+            {
+                ["matcher"] = "",
+                ["hooks"] = new JArray { new JObject
+                {
+                    ["type"] = "command",
+                    ["command"] = nodeCommand,
+                    // 두 번째 인자로 대기창(초)을 훅에 전달 → 훅이 서버를 기다리는 폴링 deadline로 사용.
+                    ["args"] = new JArray { scriptPath, RemoteAnswerConfig.WindowSeconds.ToString() },
+                    ["timeout"] = RemoteAnswerConfig.WindowSeconds
+                }}
+            };
+            // SessionStart: 세션 시작 시 PID 보고(콘솔 주입 대상 지도). fire-and-forget.
+            var startEntry = new JObject
+            {
+                ["matcher"] = "",
+                ["hooks"] = new JArray { new JObject
+                {
+                    ["type"] = "command",
+                    ["command"] = nodeCommand,
+                    ["args"] = new JArray { scriptPath },
+                    ["async"] = true,
+                    ["timeout"] = 5
+                }}
+            };
+            // Stop: 세션이 턴을 끝냄 → '완료/마지막 멘트' 알림. fire-and-forget.
+            var stopEntry = new JObject
+            {
+                ["matcher"] = "",
+                ["hooks"] = new JArray { new JObject
+                {
+                    ["type"] = "command",
+                    ["command"] = nodeCommand,
+                    ["args"] = new JArray { scriptPath },
+                    ["async"] = true,
+                    ["timeout"] = 5
+                }}
+            };
+            var merged = HookConfigMerger.AddHook(existing, "Notification", notifyEntry, Marker);
+            // 옛 버전이 설치한 PreToolUse 항목 정리(권한은 PermissionRequest로 이관).
+            merged = HookConfigMerger.RemoveHook(merged, "PreToolUse", Marker);
+            // 기존 설치본(옛 timeout/args)이 멱등 스킵으로 안 바뀌므로, 우리 항목만 제거 후 재추가해 강제 갱신.
+            merged = HookConfigMerger.RemoveHook(merged, "PermissionRequest", Marker);
+            merged = HookConfigMerger.AddHook(merged, "PermissionRequest", permReqEntry, Marker);
+            merged = HookConfigMerger.AddHook(merged, "SessionStart", startEntry, Marker);
+            // 기존 설치본(옛 async/timeout)이 멱등 스킵으로 안 바뀌므로 제거 후 재추가해 강제 갱신.
+            merged = HookConfigMerger.RemoveHook(merged, "Stop", Marker);
+            merged = HookConfigMerger.AddHook(merged, "Stop", stopEntry, Marker);
+            return merged;
+        }
+
+        /// <summary>settings.json에서 우리 훅 항목만 모두 제거해 반환(WSL 제거에도 재사용).</summary>
+        internal static string Strip(string existing)
+        {
+            var removed = HookConfigMerger.RemoveHook(existing, "Notification", Marker);
+            removed = HookConfigMerger.RemoveHook(removed, "PreToolUse", Marker);
+            removed = HookConfigMerger.RemoveHook(removed, "PermissionRequest", Marker);
+            removed = HookConfigMerger.RemoveHook(removed, "SessionStart", Marker);
+            removed = HookConfigMerger.RemoveHook(removed, "Stop", Marker);
+            return removed;
         }
 
         public static bool Uninstall()
@@ -119,12 +130,7 @@ namespace AgentHub.Server.Hook
                 // Install()과 동일한 lost-update 가능성에 대한 주의 사항 참고.
                 var existing = ReadSettings();
                 if (!IsWritable(existing)) return false;
-                var removed = HookConfigMerger.RemoveHook(existing, "Notification", Marker);
-                removed = HookConfigMerger.RemoveHook(removed, "PreToolUse", Marker);
-                removed = HookConfigMerger.RemoveHook(removed, "PermissionRequest", Marker);
-                removed = HookConfigMerger.RemoveHook(removed, "SessionStart", Marker);
-                removed = HookConfigMerger.RemoveHook(removed, "Stop", Marker);
-                WriteSettingsWithBackup(removed);
+                WriteSettingsWithBackup(Strip(existing));
                 return true;
             }
             catch (Exception ex) { LogService.Instance.Error(ex); return false; }

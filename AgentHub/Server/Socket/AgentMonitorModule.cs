@@ -237,6 +237,14 @@ namespace AgentHub.Server.Socket
             var ua = context.Headers?["User-Agent"] ?? "unknown";
             MonitorClientRegistry.Add(context.Id, ip, ua);
             await SendSafe(context, AgentMonitorService.CurrentSessionsMessage());
+            // 푸시를 보고 앱을 켠 경우: 아직 응답 대기 중인 권한 요청을 다시 내려 배너를 띄운다
+            // (권한 배너는 세션 상세와 무관한 전역 배너라 접속 시점에 전달하면 된다).
+            foreach (var p in AgentHub.Server.Hook.PermissionRegistry.PendingSnapshot())
+                await SendSafe(context, Json.Serialize(new
+                {
+                    type = "permission", id = p.Id, project = p.Project,
+                    tool = p.Tool, detail = p.Detail, sessionId = p.SessionId, resent = true
+                }));
         }
 
         // SslStream 동시 write 금지 대응: contextId별 세마포어로 write를 직렬화한다.

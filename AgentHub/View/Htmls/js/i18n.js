@@ -140,6 +140,7 @@
       'inject.hintFailed': '전송에 실패했습니다. 잠시 후 다시 시도해 주세요.',
       'inject.hintSyncing': '세션에 반영 중…',
       'inject.hintNotShell': 'PC에서 CLI(cmd·PowerShell 등)로 실행한 claude 세션에서만 모바일 답변을 입력할 수 있어요. 이 세션은 직접 입력을 받지 못합니다.',
+      'inject.hintWsl': 'WSL에서 실행된 세션이라 콘솔에 직접 입력할 수 없어요. 질문·권한 요청은 알림이 오면 이 앱에서 바로 답할 수 있고, 그 밖의 입력은 PC 터미널에서 해 주세요.',
       'qna.multiOnPc': '여러 문항으로 된 질문입니다. 답변 창이 지나 폰에서는 보낼 수 없으니 PC에서 답해 주세요.',
       'qna.sendFailed': '전송에 실패했습니다. PC에서 답해 주세요.'
     },
@@ -269,6 +270,7 @@
       'inject.hintFailed': 'Send failed. Please try again in a moment.',
       'inject.hintSyncing': 'Applying to your session…',
       'inject.hintNotShell': 'Mobile replies work only for claude sessions started from a CLI (cmd, PowerShell, etc.) on the PC. This session does not accept direct input.',
+      'inject.hintWsl': 'This session runs in WSL, so its console cannot receive direct input. You can still answer questions and permission requests here when a notification arrives; use the PC terminal for anything else.',
       'qna.multiOnPc': 'This question has multiple parts. The answer window has passed, so it can not be sent from the phone — please answer on the PC.',
       'qna.sendFailed': 'Send failed — please answer on the PC.'
     }

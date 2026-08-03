@@ -212,6 +212,7 @@ body.host-shell #logs.view.active{display:flex; flex-direction:column; overflow:
 .badge-engine { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; text-transform: uppercase; letter-spacing: .02em; }
 .badge-engine.claude { background: #3a2a18; color: #f0a860; }
 .badge-engine.codex { background: #12303a; color: #4fd0e0; }
+.badge-engine.wsl { background: #1d2a3a; color: #8ab4f8; }
 .detail-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .back-btn { background: none; border: none; color: #7aa2ff; font-size: 15px; cursor: pointer; white-space: nowrap; }
 .detail-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; word-break: break-word; }
@@ -464,6 +465,8 @@ body:not(.host-shell) #authPending:not([hidden]){ flex:1 1 auto; min-height:0; o
 [data-theme="light"] .badge-engine.claude{ background:#f6e6d3; color:#a6641a; }
 
 [data-theme="light"] .badge-engine.codex{ background:#d3edf2; color:#136273; }
+
+[data-theme="light"] .badge-engine.wsl{ background:#dbe6f7; color:#1b4a8a; }
 
 /* 세션 상세 하단 자유 텍스트 주입 입력 바 */
 #detail .inject-bar { flex: 0 0 auto; }

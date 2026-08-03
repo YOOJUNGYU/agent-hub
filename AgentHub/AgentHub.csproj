@@ -133,6 +133,7 @@
     <Compile Include="Common\Util\AutoStartService.cs" />
     <Compile Include="Common\Util\ApiLogger.cs" />
     <Compile Include="Common\Util\ClawdGuard.cs" />
+    <Compile Include="Common\Util\DesktopIdle.cs" />
     <Compile Include="Common\Util\EtcUtil.cs" />
     <Compile Include="Common\Util\Json.cs" />
     <Compile Include="Common\Util\NetUtil.cs" />
@@ -140,6 +141,7 @@
     <Compile Include="Common\Util\UpdateService.cs" />
     <Compile Include="Common\Util\ViewUtil.cs" />
     <Compile Include="Common\Util\Win32.cs" />
+    <Compile Include="Common\Util\Wsl.cs" />
     <Compile Include="Server\Agents\AgentMonitorService.cs" />
     <Compile Include="Server\Agents\AgentMonitorService.Injectable.cs" />
     <Compile Include="Server\Agents\ClaudeSessionReader.cs" />
@@ -164,6 +166,7 @@
     <Compile Include="Server\Hook\SessionPidRegistry.cs" />
     <Compile Include="Server\Hook\RemoteAnswerConfig.cs" />
     <Compile Include="Server\Hook\HookInstaller.cs" />
+    <Compile Include="Server\Hook\WslHookInstaller.cs" />
     <Compile Include="View\Forms\FormToast.cs">
       <SubType>Form</SubType>
     </Compile>
