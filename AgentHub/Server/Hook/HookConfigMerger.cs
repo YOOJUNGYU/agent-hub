@@ -34,10 +34,8 @@ namespace AgentHub.Server.Hook
             return root.ToString(Formatting.Indented);
         }
 
-        // 하위호환 Notification 래퍼 -----------------------------------------
+        /// <summary>설치 여부 판정 대표 이벤트는 Notification(HookInstaller가 항상 함께 설치).</summary>
         public static bool IsInstalled(string json, string marker) => IsInstalled(json, "Notification", marker);
-        public static string AddNotificationHook(string json, JObject hookEntry, string marker) => AddHook(json, "Notification", hookEntry, marker);
-        public static string RemoveNotificationHook(string json, string marker) => RemoveHook(json, "Notification", marker);
 
         private static JArray EventArray(JObject root, string eventName, bool create)
         {

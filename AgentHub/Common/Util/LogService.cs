@@ -48,29 +48,11 @@ namespace AgentHub.Common.Util
 
         public static LogService Instance => _instance ??= new LogService();
 
-        public static LogService CreateInstance() => Instance;
-
-        public void Fatal(string msg) => Log(LogLevel.Fatal, msg, null);
-
-        public void Fatal(string msg, Exception ex) => Log(LogLevel.Fatal, msg, ex);
-
         public void Error(string msg) => Log(LogLevel.Error, msg, null);
 
         public void Error(string msg, Exception ex) => Log(LogLevel.Error, msg, ex);
 
         public void Error(Exception ex) => Log(LogLevel.Error, "Error", ex);
-
-        public void Warn(string msg) => Log(LogLevel.Warn, msg, null);
-
-        public void Info(string msg) => Log(LogLevel.Info, msg, null);
-
-        public void Debug(string msg) => Log(LogLevel.Debug, msg, null);
-
-        public void Debug(string msg, Exception ex) => Log(LogLevel.Debug, msg, ex);
-
-        public void Debug(Exception ex) => Log(LogLevel.Debug, "Debug", ex);
-
-        public void Trace(string msg) => Log(LogLevel.Trace, msg, null);
 
         private void Log(LogLevel logLevel, string message, Exception exception)
         {
@@ -88,7 +70,5 @@ namespace AgentHub.Common.Util
                 Exception = exception,
                 TimeStamp = DateTime.Now
             };
-
-        public void WriteDebug(string msg) => System.Diagnostics.Debug.WriteLine(msg);
     }
 }

@@ -40,7 +40,7 @@ namespace AgentHub.Server.Hook
         }
 
         /// <summary>
-        /// 훅 4종(Notification·PermissionRequest·SessionStart·Stop)을 settings.json에 멱등 병합해 반환.
+        /// 훅 5종(Notification·PermissionRequest·SessionStart·SessionEnd·Stop)을 settings.json에 멱등 병합해 반환.
         /// node 명령과 스크립트 경로만 다르면 그대로 재사용되므로 WSL 배포판 설치(WslHookInstaller)도 이 함수를 쓴다.
         /// </summary>
         internal static string Merge(string existing, string nodeCommand, string scriptPath)
@@ -86,6 +86,21 @@ namespace AgentHub.Server.Hook
                     ["timeout"] = 5
                 }}
             };
+            // SessionEnd: 세션 종료 시 PID 지도에서 제거. fire-and-forget.
+            // WSL 세션은 보고되는 PID가 claude 자신이 아니라 터미널의 wsl.exe라서 claude가 끝나도 살아있다
+            // → 지우지 않으면 끝난 세션에 보낸 답변이 그 터미널의 셸 프롬프트로 들어간다.
+            var endEntry = new JObject
+            {
+                ["matcher"] = "",
+                ["hooks"] = new JArray { new JObject
+                {
+                    ["type"] = "command",
+                    ["command"] = nodeCommand,
+                    ["args"] = new JArray { scriptPath },
+                    ["async"] = true,
+                    ["timeout"] = 5
+                }}
+            };
             // Stop: 세션이 턴을 끝냄 → '완료/마지막 멘트' 알림. fire-and-forget.
             var stopEntry = new JObject
             {
@@ -106,6 +121,7 @@ namespace AgentHub.Server.Hook
             merged = HookConfigMerger.RemoveHook(merged, "PermissionRequest", Marker);
             merged = HookConfigMerger.AddHook(merged, "PermissionRequest", permReqEntry, Marker);
             merged = HookConfigMerger.AddHook(merged, "SessionStart", startEntry, Marker);
+            merged = HookConfigMerger.AddHook(merged, "SessionEnd", endEntry, Marker);
             // 기존 설치본(옛 async/timeout)이 멱등 스킵으로 안 바뀌므로 제거 후 재추가해 강제 갱신.
             merged = HookConfigMerger.RemoveHook(merged, "Stop", Marker);
             merged = HookConfigMerger.AddHook(merged, "Stop", stopEntry, Marker);
@@ -119,6 +135,7 @@ namespace AgentHub.Server.Hook
             removed = HookConfigMerger.RemoveHook(removed, "PreToolUse", Marker);
             removed = HookConfigMerger.RemoveHook(removed, "PermissionRequest", Marker);
             removed = HookConfigMerger.RemoveHook(removed, "SessionStart", Marker);
+            removed = HookConfigMerger.RemoveHook(removed, "SessionEnd", Marker);
             removed = HookConfigMerger.RemoveHook(removed, "Stop", Marker);
             return removed;
         }

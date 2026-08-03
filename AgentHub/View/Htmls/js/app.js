@@ -213,7 +213,7 @@ function titlePrefix(id) {
   return '(' + tt + ') ';
 }
 
-// WSL에서 실행된 세션(cwd가 POSIX 경로) — 배지로 구분하고, 콘솔 주입 대상이 아니라는 안내에도 쓴다.
+// WSL에서 실행된 세션(cwd가 POSIX 경로) — 목록·상세에서 wsl 배지로 구분한다(주입 가능 여부와는 무관).
 function isWslSession(s) { return !!(s && s.cwd && s.cwd.charAt(0) === '/'); }
 
 function cardHtml(s) {
@@ -410,7 +410,7 @@ function refreshInjectBar(id) {
   }
   // 활성 쉘 아님 → 입력 컨트롤 숨기고 안내만(PC에서 CLI로 실행된 세션만 입력 가능)
   if (row) row.hidden = true;
-  showInjectHint(isWslSession(s) ? 'inject.hintWsl' : 'inject.hintNotShell');
+  showInjectHint('inject.hintNotShell');
 }
 // textarea 높이를 내용에 맞춰 재계산(최대 높이는 CSS max-height가 clamp, 초과 시 스크롤).
 function autoGrowInject() {
@@ -788,8 +788,7 @@ function syncPermPending(id) {
   const injectable = !!s.injectable && s.engine !== 'codex';
   if (actions) actions.hidden = !injectable;          // 주입 불가면 버튼 숨김
   if (hint) hint.textContent = t(injectable ? 'perm.pendingHint'
-    : (s.engine === 'codex' ? 'inject.hintCodex'
-    : isWslSession(s) ? 'inject.hintWsl' : 'inject.hintNotShell'));
+    : (s.engine === 'codex' ? 'inject.hintCodex' : 'inject.hintNotShell'));
   card.hidden = false;
   // 라이브 배너가 이 세션 것이면, 창이 지나 콘솔-대기로 넘어온 상태 → 죽은 배너 정리(카드로 일원화).
   if (currentPermSession === id) {

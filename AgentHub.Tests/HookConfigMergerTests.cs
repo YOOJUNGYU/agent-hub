@@ -25,10 +25,10 @@ namespace AgentHub.Tests
         [Fact]
         public void Add_is_idempotent_and_preserves_existing()
         {
-            var once = HookConfigMerger.AddNotificationHook(Existing, Entry(), "agenthub-hook.js");
+            var once = HookConfigMerger.AddHook(Existing, "Notification", Entry(), "agenthub-hook.js");
             Assert.Contains("clawd-hook.js", once);            // 기존 보존
             Assert.Contains("agenthub-hook.js", once);          // 우리 것 추가
-            var twice = HookConfigMerger.AddNotificationHook(once, Entry(), "agenthub-hook.js");
+            var twice = HookConfigMerger.AddHook(once, "Notification", Entry(), "agenthub-hook.js");
             var arr = (JArray)JObject.Parse(twice)["hooks"]["Notification"];
             Assert.Equal(2, arr.Count);                         // 중복 추가 안 됨(clawd 1 + 우리 1)
         }
@@ -36,15 +36,15 @@ namespace AgentHub.Tests
         [Fact]
         public void Add_creates_structure_from_empty()
         {
-            var res = HookConfigMerger.AddNotificationHook("{}", Entry(), "agenthub-hook.js");
+            var res = HookConfigMerger.AddHook("{}", "Notification", Entry(), "agenthub-hook.js");
             Assert.True(HookConfigMerger.IsInstalled(res, "agenthub-hook.js"));
         }
 
         [Fact]
         public void Remove_removes_only_ours()
         {
-            var added = HookConfigMerger.AddNotificationHook(Existing, Entry(), "agenthub-hook.js");
-            var removed = HookConfigMerger.RemoveNotificationHook(added, "agenthub-hook.js");
+            var added = HookConfigMerger.AddHook(Existing, "Notification", Entry(), "agenthub-hook.js");
+            var removed = HookConfigMerger.RemoveHook(added, "Notification", "agenthub-hook.js");
             Assert.DoesNotContain("agenthub-hook.js", removed);
             Assert.Contains("clawd-hook.js", removed);          // clawd 보존
         }

@@ -402,6 +402,22 @@ namespace AgentHub.Server.Controller
             await SendJsonAsync(Json.Serialize(new { ok = true }));
         }
 
+        // 세션 종료 → PID 지도에서 제거. 끝난 세션이 '주입 가능'으로 남아 엉뚱한 곳(WSL이면 셸 프롬프트)에
+        // 입력이 들어가는 것을 막는다.
+        [Route(HttpVerbs.Post, "/hook/session-end")]
+        public async Task HookSessionEnd()
+        {
+            if (!IsLoopback()) { await Forbidden(); return; }
+            var raw = await HttpContext.GetRequestBodyAsStringAsync();
+            try
+            {
+                var o = JObject.Parse(raw);
+                AgentHub.Server.Hook.SessionPidRegistry.Remove((string)o["session_id"]);
+            }
+            catch (Exception ex) { LogService.Instance.Error(ex); }
+            await SendJsonAsync(Json.Serialize(new { ok = true }));
+        }
+
         // ---- Web Push(앱 종료/백그라운드 상태 알림) ----
 
         [Route(HttpVerbs.Get, "/push/vapid-key")]

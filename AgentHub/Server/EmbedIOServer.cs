@@ -112,10 +112,6 @@ namespace AgentHub.Server
             return lan;
         }
 
-        /// <summary>접속 IPv4 목록(표시 호스트·인증서 SAN용). LAN 우선, VPN(NetBird 등) 뒤.</summary>
-        private static List<string> GetPrivateIPv4List()
-            => GetLocalEndpoints().Select(e => e.ip).ToList();
-
         private static bool CertCoversHost(X509Certificate2 cert, string host)
         {
             try

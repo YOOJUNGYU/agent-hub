@@ -1,5 +1,6 @@
 // Agent Hub 훅: Claude Code 이벤트를 로컬 Agent Hub 서버(127.0.0.1 loopback)로 전달한다. 외부로 나가지 않는다.
 //  - Notification      : 알림(fire-and-forget).
+//  - SessionEnd        : 세션 종료 → 세션↔PID 지도에서 제거(fire-and-forget).
 //  - PermissionRequest : 승인이 필요한 도구 호출을 폰에서 원격 허용/거부(블로킹). AskUserQuestion은 질문 답변 흐름.
 //  - PreToolUse        : Codex 전용(Codex hooks.json이 이 이벤트로 권한을 넘긴다). Claude는 등록하지 않는다.
 // WSL에서 실행되는 Claude도 이 스크립트를 Windows node.exe로(인터롭) 실행한다 → HTTP는 항상 Windows
@@ -37,18 +38,23 @@ process.stdin.on('end', () => {
   const port = readPort();
   if (!port) process.exit(0);
 
+  if (p.hook_event_name === 'SessionEnd') {
+    // 세션 종료 → PID 지도에서 제거(아래 PID 보고보다 먼저 처리해야 지운 직후 다시 등록되지 않는다).
+    post(port, '/api/hook/session-end', { session_id: p.session_id }, 2500, () => process.exit(0));
+    setTimeout(() => process.exit(0), 3000);
+    return;
+  }
+
   // 세션↔PID 지도용 보고(콘솔 주입 대상 판별). process.ppid = 이 훅을 띄운 claude 프로세스 PID.
-  // WSL 세션(cwd가 POSIX 경로)은 제외한다: 인터롭으로 실행돼 ppid가 Windows 스텁 프로세스이고,
-  // 애초에 WSL 콘솔에는 주입할 수 없으므로 엉뚱한 프로세스에 입력이 들어가는 것을 막는다.
-  const winCwd = /^[A-Za-z]:[\\/]/.test(p.cwd || '');
+  // WSL 세션도 보고한다: 훅이 인터롭으로 실행되므로 ppid는 그 터미널의 wsl.exe(= 콘솔에 붙은 Windows
+  // 프로세스)가 되고, 그 콘솔 입력 버퍼에 쓰면 wsl.exe가 WSL 안 claude의 stdin으로 그대로 전달한다.
+  // 인터롭 부모는 터미널(WSL 세션)마다 다르므로 여러 세션이 떠 있어도 서로 섞이지 않는다.
   if (p.hook_event_name === 'SessionStart') {
-    if (!winCwd) process.exit(0);
     post(port, '/api/hook/session-pid', { session_id: p.session_id, pid: process.ppid }, 2500, () => process.exit(0));
     setTimeout(() => process.exit(0), 3000);
     return;
   }
-  if (winCwd)
-    post(port, '/api/hook/session-pid', { session_id: p.session_id, pid: process.ppid }, 2000, () => {}); // fire-and-forget
+  post(port, '/api/hook/session-pid', { session_id: p.session_id, pid: process.ppid }, 2000, () => {}); // fire-and-forget
 
   if (p.hook_event_name === 'PermissionRequest') {
     // agent-hub.exe(서버)는 상시 실행 전제. 폰의 PWA가 닫혀 있어도 서버가 요청을 붙들고 대기하므로,

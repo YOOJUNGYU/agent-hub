@@ -48,6 +48,7 @@ After installation, the program stays in the **taskbar tray** (bottom-right).
 - **Real-time monitoring** — session status (working / idle / ended), current task, elapsed time, and cumulative tokens.
 - **Control from your phone** — answer questions, allow/deny risky actions, send commands. (Optional: a session terminal for prompts and /slash commands.)
 - **Alerts even when the app is closed** — a push arrives when a session needs you, carrying Claude's **last message** as the body.
+- **WSL sessions too** — claude sessions started inside WSL (Ubuntu, etc.) are detected automatically, and alerts, question answers, permission approvals, and command sending all work just like Windows sessions.
 - **Device authorization** — only approved devices can connect; approve, revoke, or delete them from the console.
 - **Tray resident · auto-update** — stays quietly in the tray; new versions apply automatically.
 

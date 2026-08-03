@@ -13,8 +13,6 @@ namespace AgentHub.Common
         public static class Messages
         {
             public static readonly string AlreadyExecuted = "프로그램이 이미 실행 중입니다.";
-            public static readonly string ConfirmClose = "프로그램을 종료하시겠습니까?";
-            public static readonly string ConfirmRemoveLog = "로그를 모두 지우시겠습니까?";
             public static readonly string UnhandledException = "Unhandled exception";
             public static readonly string ExpireToken = "The token is expired.";
             public static readonly string TrayProgram = "트레이로 실행됩니다.";
