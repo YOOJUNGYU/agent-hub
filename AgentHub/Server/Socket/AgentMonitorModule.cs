@@ -101,10 +101,10 @@ namespace AgentHub.Server.Socket
                 }
                 else if (msg.Type == "inject" && !string.IsNullOrEmpty(msg.SessionId) && !string.IsNullOrEmpty(msg.Text))
                 {
-                    // 원본 kill 없이 세션 콘솔에 직접 주입(Claude 전용).
+                    // 원본 kill 없이 세션 콘솔에 직접 주입(Claude/Codex CLI).
                     bool ok = false; string reason;
-                    if (AgentMonitorService.EngineOf(msg.SessionId) != "claude")
-                        reason = "engine"; // Codex 등: 콘솔 없음 → 미지원
+                    if (!AgentMonitorService.SupportsConsoleInjection(AgentMonitorService.EngineOf(msg.SessionId)))
+                        reason = "engine"; // 콘솔 주입 대상 엔진 아님
                     else if (!AgentHub.Server.Hook.SessionPidRegistry.TryGet(msg.SessionId, out var pid))
                         reason = "nopid";  // PID 미보고(세션 종료/훅 미실행)
                     else
@@ -124,7 +124,7 @@ namespace AgentHub.Server.Socket
                 else if (msg.Type == "pickerAnswer" && !string.IsNullOrEmpty(msg.SessionId))
                 {
                     bool ok = false; string reason;
-                    if (AgentMonitorService.EngineOf(msg.SessionId) != "claude")
+                    if (!AgentMonitorService.SupportsConsoleInjection(AgentMonitorService.EngineOf(msg.SessionId)))
                         reason = "engine";
                     else if (!AgentHub.Server.Hook.SessionPidRegistry.TryGet(msg.SessionId, out var pid))
                         reason = "nopid";
@@ -146,7 +146,7 @@ namespace AgentHub.Server.Socket
                 {
                     // "ask"로 폴백된 권한 프롬프트(터미널 번호 메뉴)에 허용/거부를 콘솔 주입.
                     bool ok = false; string reason;
-                    if (AgentMonitorService.EngineOf(msg.SessionId) != "claude")
+                    if (!AgentMonitorService.SupportsConsoleInjection(AgentMonitorService.EngineOf(msg.SessionId)))
                         reason = "engine";
                     else if (!AgentHub.Server.Hook.SessionPidRegistry.TryGet(msg.SessionId, out var pid))
                         reason = "nopid";

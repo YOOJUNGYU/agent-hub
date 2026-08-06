@@ -5,10 +5,10 @@
 
 [한국어](README.md) | **English**
 
-**A program that lets you watch and control the AI agents (e.g. Claude) running on your PC — from your phone, even while you're away.**
+**A program that lets you watch and control the AI agents (Claude and Codex) running on your PC — from your phone, even while you're away.**
 
 > ### 🔐 Device‑to‑device with no cloud relay, only devices you approve
-> Step away and still use your phone to **answer Claude's questions, approve risky actions, and send commands**.
+> Step away and still use your phone to **answer Claude/Codex questions, approve risky actions, and send commands**.
 > A P2P VPN like **NetBird** links your PC and phone directly, so you can reach it **from anywhere** — home, office, cafe, or mobile data (no VPN needed if both are on the same network) — and monitoring/control traffic goes **device‑to‑device with no cloud relay** (only closed‑app push alerts pass through an external, end‑to‑end‑encrypted push service). **You decide which devices can connect and control — right from the PC.**
 
 ---
@@ -49,8 +49,8 @@ After installation, the program stays in the **taskbar tray** (bottom-right).
 - **Reachable from anywhere** — a P2P VPN like NetBird links your PC and phone directly. The certificate is issued **covering the VPN IP range (`100.64.0.0/10`)**, and the console lists the LAN and VPN addresses separately.
 - **Control from your phone** — answer questions, allow/deny risky actions, send commands. (Optional: a session terminal for prompts and /slash commands.)
 - **Permission approvals that know you're away** — while you're away (no keyboard/mouse input for a minute) permission requests are **held for up to ~10 minutes** so you can allow/deny from the phone; when you're at the PC the prompt appears **in the PC terminal right away**. Requests whose window expired stay as a **pending‑permission card** you can still answer from the phone.
-- **Alerts even when the app is closed** — a push arrives when a session needs you, carrying Claude's **last message** as the body.
-- **WSL sessions too** — claude sessions started inside WSL (Ubuntu, etc.) are detected automatically, and alerts, question answers, permission approvals, and command sending all work just like Windows sessions.
+- **Alerts even when the app is closed** — a push arrives when a session needs you, carrying the AI session's **last message** as the body.
+- **WSL sessions too** — Claude/Codex CLI sessions started inside WSL (Ubuntu, etc.) are detected automatically, and alerts, question answers, permission approvals, and command sending all work just like Windows sessions.
 - **Device authorization** — only approved devices can connect; approve, revoke, or delete them from the console.
 - **Tray resident · auto-update** — stays quietly in the tray; new versions apply automatically.
 

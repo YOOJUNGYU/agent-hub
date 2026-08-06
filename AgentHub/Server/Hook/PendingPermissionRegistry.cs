@@ -4,7 +4,7 @@ using System.Collections.Concurrent;
 namespace AgentHub.Server.Hook
 {
     /// <summary>
-    /// PreToolUse 권한 요청이 "ask"로 폴백돼 Claude가 터미널에 번호 메뉴를 띄우고 대기 중인 상태를 보관.
+    /// 권한 요청이 "ask"로 폴백돼 Claude/Codex가 터미널에 번호 메뉴를 띄우고 대기 중인 상태를 보관.
     /// (라이브 배너로 allow/deny가 확정되면 터미널 프롬프트가 뜨지 않으므로 기록하지 않는다.)
     /// 세션당 하나. 폰이 세션 상세에서 콘솔 주입으로 허용/거부할 수 있도록 SessionSummary에 노출된다.
     /// 메모리 보관(디스크 영속 없음) — AskRegistry/PermissionRegistry와 동일. 재시작 시 소실(트랜스크립트로 복구 불가).

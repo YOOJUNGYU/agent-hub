@@ -30,46 +30,64 @@ namespace AgentHub.Server.Agents
         private static readonly ConcurrentDictionary<string, string> _paths =
             new ConcurrentDictionary<string, string>();
 
-        private static string CodexHome =>
+        private static string WindowsCodexHome =>
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".codex");
 
-        private static string SessionsRoot => Path.Combine(CodexHome, "sessions");
+        private static string WindowsSessionsRoot => Path.Combine(WindowsCodexHome, "sessions");
 
-        /// <summary>Codex가 설치돼 세션 폴더가 존재하는지(없으면 조용히 비활성).</summary>
-        public static bool Available => Directory.Exists(SessionsRoot);
+        private class CodexHomeSource
+        {
+            public string CodexDir;
+            public string SessionsRoot => Path.Combine(CodexDir, "sessions");
+        }
+
+        private static IEnumerable<CodexHomeSource> CodexHomes()
+        {
+            yield return new CodexHomeSource { CodexDir = WindowsCodexHome };
+            foreach (var home in Wsl.CodexHomes())
+                yield return new CodexHomeSource { CodexDir = home.CodexDir };
+        }
+
+        /// <summary>Codex가 설치돼 세션 폴더가 존재하는지(Windows/WSL 모두 포함, 없으면 조용히 비활성).</summary>
+        public static bool Available => CodexHomes().Any(h => Directory.Exists(h.SessionsRoot));
 
         /// <summary>이 sessionId가 Codex 세션인지(엔진 라우팅용).</summary>
         public static bool Has(string sessionId) => FindSessionFile(sessionId) != null;
 
         public static List<SessionSummary> ListSessions()
         {
-            var root = SessionsRoot;
             var result = new List<SessionSummary>();
-            if (!Directory.Exists(root)) return result;
 
             var now = DateTime.UtcNow;
             var cutoff = now - Window;
-            var titles = LoadTitleIndex();
 
-            var files = new List<FileInfo>();
-            try
+            var files = new List<Tuple<FileInfo, string>>();
+            foreach (var home in CodexHomes())
             {
-                foreach (var f in Directory.EnumerateFiles(root, "*.jsonl", SearchOption.AllDirectories))
+                var root = home.SessionsRoot;
+                if (!Directory.Exists(root)) continue;
+                try
                 {
-                    var fi = new FileInfo(f);
-                    if (fi.LastWriteTimeUtc >= cutoff) files.Add(fi);
+                    foreach (var f in Directory.EnumerateFiles(root, "*.jsonl", SearchOption.AllDirectories))
+                    {
+                        var fi = new FileInfo(f);
+                        if (fi.LastWriteTimeUtc >= cutoff) files.Add(Tuple.Create(fi, home.CodexDir));
+                    }
                 }
+                catch (Exception ex) { LogService.Instance.Error(ex); }
             }
-            catch (Exception ex) { LogService.Instance.Error(ex); }
 
-            foreach (var fi in files.OrderByDescending(f => f.LastWriteTimeUtc).Take(MaxSessions))
+            foreach (var item in files.OrderByDescending(f => f.Item1.LastWriteTimeUtc).Take(MaxSessions))
             {
                 try
                 {
+                    var fi = item.Item1;
+                    var titles = LoadTitleIndex(item.Item2);
                     var lines = ReadAllLinesShared(fi.FullName);
                     var id = SessionIdOf(lines) ?? Path.GetFileNameWithoutExtension(fi.Name);
                     _paths[id] = fi.FullName;
                     var s = CodexTranscriptParser.Summarize(id, lines, now);
+                    s.PendingAsk = CodexTranscriptParser.ExtractPendingAsk(lines);
                     if (titles.TryGetValue(id, out var t) && !string.IsNullOrWhiteSpace(t)) s.Title = t;
                     result.Add(s);
                 }
@@ -108,8 +126,11 @@ namespace AgentHub.Server.Agents
         {
             try
             {
-                var titles = LoadTitleIndex();
-                if (titles.TryGetValue(sessionId, out var t) && !string.IsNullOrWhiteSpace(t)) return t;
+                foreach (var home in CodexHomes())
+                {
+                    var titles = LoadTitleIndex(home.CodexDir);
+                    if (titles.TryGetValue(sessionId, out var t) && !string.IsNullOrWhiteSpace(t)) return t;
+                }
                 var path = ResolvePath(sessionId);
                 if (path == null) return null;
                 var s = CodexTranscriptParser.Summarize(sessionId, ReadAllLinesShared(path), DateTime.UtcNow);
@@ -139,15 +160,18 @@ namespace AgentHub.Server.Agents
         private static string FindSessionFile(string sessionId)
         {
             if (string.IsNullOrEmpty(sessionId)) return null;
-            var root = SessionsRoot;
-            if (!Directory.Exists(root)) return null;
-            try
+            foreach (var home in CodexHomes())
             {
-                var suffix = sessionId + ".jsonl";
-                foreach (var f in Directory.EnumerateFiles(root, "*.jsonl", SearchOption.AllDirectories))
-                    if (f.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)) return f;
+                var root = home.SessionsRoot;
+                if (!Directory.Exists(root)) continue;
+                try
+                {
+                    var suffix = sessionId + ".jsonl";
+                    foreach (var f in Directory.EnumerateFiles(root, "*.jsonl", SearchOption.AllDirectories))
+                        if (f.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)) return f;
+                }
+                catch (Exception ex) { LogService.Instance.Error(ex); }
             }
-            catch (Exception ex) { LogService.Instance.Error(ex); }
             return null;
         }
 
@@ -169,10 +193,10 @@ namespace AgentHub.Server.Agents
         }
 
         // ~/.codex/session_index.jsonl → { id: thread_name }
-        private static Dictionary<string, string> LoadTitleIndex()
+        private static Dictionary<string, string> LoadTitleIndex(string codexHome)
         {
             var map = new Dictionary<string, string>();
-            var path = Path.Combine(CodexHome, "session_index.jsonl");
+            var path = Path.Combine(codexHome, "session_index.jsonl");
             if (!File.Exists(path)) return map;
             try
             {
@@ -210,20 +234,22 @@ namespace AgentHub.Server.Agents
         {
             Stop(); // 재호출 시 기존 watcher/timer 누수 방지
             _onChanged = onChanged;
-            var root = SessionsRoot;
-            if (!Directory.Exists(root)) return; // Codex 미설치 → 조용히 비활성(폴백 없음)
+            if (!Available) return; // Codex 미설치 → 조용히 비활성(폴백 없음)
             try
             {
-                _watcher = new FileSystemWatcher(root, "*.jsonl")
+                if (Directory.Exists(WindowsSessionsRoot))
                 {
-                    IncludeSubdirectories = true, // 날짜 폴더 중첩
-                    NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size,
-                    EnableRaisingEvents = true
-                };
-                _watcher.Changed += OnFsEvent;
-                _watcher.Created += OnFsEvent;
-                _watcher.Renamed += OnFsEvent;
-                _watcher.Error += OnWatcherError;
+                    _watcher = new FileSystemWatcher(WindowsSessionsRoot, "*.jsonl")
+                    {
+                        IncludeSubdirectories = true, // 날짜 폴더 중첩
+                        NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size,
+                        EnableRaisingEvents = true
+                    };
+                    _watcher.Changed += OnFsEvent;
+                    _watcher.Created += OnFsEvent;
+                    _watcher.Renamed += OnFsEvent;
+                    _watcher.Error += OnWatcherError;
+                }
 
                 _poll = new Timer(_ =>
                 {

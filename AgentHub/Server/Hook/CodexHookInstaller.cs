@@ -33,26 +33,57 @@ namespace AgentHub.Server.Hook
             catch (Exception ex) { LogService.Instance.Error(ex); return false; }
         }
 
-        // Codex hooks.json 명령: `& "<node>" "<script>" ["<windowSec>"]`. node/script 경로는 공백 대비 따옴표.
-        private static string Command(int? windowSec)
+        // Codex hooks.json 명령: Windows는 PowerShell 호출형 `& "<node>" "<script>" ["<windowSec>"]`,
+        // WSL은 셸 호출형 `"<node>" "<script>" ["<windowSec>"]`. node/script 경로는 공백 대비 따옴표.
+        internal static string Command(string nodeCommand, string scriptPath, int? windowSec, bool powershellCommand)
         {
-            var node = HookInstaller.ResolveNode();
-            var cmd = "& \"" + node + "\" \"" + ScriptPath + "\"";
+            var cmd = (powershellCommand ? "& " : "") + "\"" + nodeCommand + "\" \"" + scriptPath + "\"";
             if (windowSec.HasValue) cmd += " \"" + windowSec.Value + "\"";
             return cmd;
         }
 
-        private static JObject Entry(string matcher, int timeout, int? windowSec)
+        private static JObject Entry(string matcher, int timeout, int? windowSec, string nodeCommand, string scriptPath, bool powershellCommand)
             => new JObject
             {
                 ["matcher"] = matcher,
                 ["hooks"] = new JArray { new JObject
                 {
                     ["type"] = "command",
-                    ["command"] = Command(windowSec),
+                    ["command"] = Command(nodeCommand, scriptPath, windowSec, powershellCommand),
                     ["timeout"] = timeout
                 }}
             };
+
+        /// <summary>Codex hooks.json에 Agent Hub 훅 4종을 멱등 병합해 반환. Windows/WSL 설치가 공유한다.</summary>
+        internal static string Merge(string existing, string nodeCommand, string scriptPath, bool powershellCommand)
+        {
+            // Claude와 동일한 이벤트 집합(단, Codex엔 Notification 이벤트가 없음).
+            // SessionStart: PID 보고. PreToolUse: 원격 권한. PermissionRequest: AskUserQuestion 원격 답변. Stop: 완료 알림.
+            var startEntry = Entry("", 10, null, nodeCommand, scriptPath, powershellCommand);
+            var permEntry = Entry("shell_command|shell|local_shell|apply_patch|write_file|edit", 120, null, nodeCommand, scriptPath, powershellCommand);
+            var permReqEntry = Entry("", RemoteAnswerConfig.WindowSeconds, RemoteAnswerConfig.WindowSeconds, nodeCommand, scriptPath, powershellCommand);
+            var stopEntry = Entry("", 10, null, nodeCommand, scriptPath, powershellCommand);
+
+            // 기존 설치본(옛 command/timeout)이 멱등 스킵으로 안 바뀌지 않도록 우리 항목만 제거 후 재추가.
+            var merged = HookConfigMerger.RemoveHook(existing, "SessionStart", Marker);
+            merged = HookConfigMerger.AddHook(merged, "SessionStart", startEntry, Marker);
+            merged = HookConfigMerger.RemoveHook(merged, "PreToolUse", Marker);
+            merged = HookConfigMerger.AddHook(merged, "PreToolUse", permEntry, Marker);
+            merged = HookConfigMerger.RemoveHook(merged, "PermissionRequest", Marker);
+            merged = HookConfigMerger.AddHook(merged, "PermissionRequest", permReqEntry, Marker);
+            merged = HookConfigMerger.RemoveHook(merged, "Stop", Marker);
+            merged = HookConfigMerger.AddHook(merged, "Stop", stopEntry, Marker);
+            return merged;
+        }
+
+        internal static string Strip(string existing)
+        {
+            var removed = HookConfigMerger.RemoveHook(existing, "SessionStart", Marker);
+            removed = HookConfigMerger.RemoveHook(removed, "PreToolUse", Marker);
+            removed = HookConfigMerger.RemoveHook(removed, "PermissionRequest", Marker);
+            removed = HookConfigMerger.RemoveHook(removed, "Stop", Marker);
+            return removed;
+        }
 
         public static bool Install()
         {
@@ -62,21 +93,7 @@ namespace AgentHub.Server.Hook
                 var existing = ReadSettings();
                 if (!IsWritable(existing)) return false;
 
-                // Claude와 동일한 이벤트 집합(단, Codex엔 Notification 이벤트가 없음).
-                // SessionStart: PID 보고(원본 종료용). PreToolUse: 원격 권한(블로킹).
-                // PermissionRequest: 원격 답변(블로킹). Stop: 완료 알림.
-                var startEntry = Entry("", 10, null);
-                var permEntry = Entry("shell_command|shell|local_shell|apply_patch|write_file|edit", 120, null);
-                var permReqEntry = Entry("", RemoteAnswerConfig.WindowSeconds, RemoteAnswerConfig.WindowSeconds);
-                var stopEntry = Entry("", 10, null);
-
-                var merged = HookConfigMerger.AddHook(existing, "SessionStart", startEntry, Marker);
-                merged = HookConfigMerger.AddHook(merged, "PreToolUse", permEntry, Marker);
-                // 기존 설치본(옛 timeout/args)이 멱등 스킵으로 안 바뀌므로, 우리 항목만 제거 후 재추가해 강제 갱신.
-                merged = HookConfigMerger.RemoveHook(merged, "PermissionRequest", Marker);
-                merged = HookConfigMerger.AddHook(merged, "PermissionRequest", permReqEntry, Marker);
-                merged = HookConfigMerger.RemoveHook(merged, "Stop", Marker);
-                merged = HookConfigMerger.AddHook(merged, "Stop", stopEntry, Marker);
+                var merged = Merge(existing, HookInstaller.ResolveNode(), ScriptPath, powershellCommand: true);
                 WriteSettingsWithBackup(merged);
                 return true;
             }
@@ -90,11 +107,7 @@ namespace AgentHub.Server.Hook
             {
                 var existing = ReadSettings();
                 if (!IsWritable(existing)) return false;
-                var removed = HookConfigMerger.RemoveHook(existing, "SessionStart", Marker);
-                removed = HookConfigMerger.RemoveHook(removed, "PreToolUse", Marker);
-                removed = HookConfigMerger.RemoveHook(removed, "PermissionRequest", Marker);
-                removed = HookConfigMerger.RemoveHook(removed, "Stop", Marker);
-                WriteSettingsWithBackup(removed);
+                WriteSettingsWithBackup(Strip(existing));
                 return true;
             }
             catch (Exception ex) { LogService.Instance.Error(ex); return false; }

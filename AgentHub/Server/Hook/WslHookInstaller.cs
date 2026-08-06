@@ -8,7 +8,7 @@ using AgentHub.Common.Util;
 namespace AgentHub.Server.Hook
 {
     /// <summary>
-    /// WSL 배포판의 ~/.claude/settings.json에 Agent Hub 훅을 멱등 설치/제거.
+    /// WSL 배포판의 ~/.claude/settings.json 및 ~/.codex/hooks.json에 Agent Hub 훅을 멱등 설치/제거.
     /// WSL 안에서는 Windows의 127.0.0.1로 접속할 수 없으므로(NAT/방화벽), 훅을 Windows node.exe로
     /// 실행한다(인터롭) → HTTP가 Windows 네트워크에서 나가 loopback으로 서버에 닿는다.
     /// 그래서 command는 node.exe의 마운트 경로(/mnt/c/...), 스크립트 인자는 Windows 경로(C:\...)다.
@@ -46,6 +46,9 @@ namespace AgentHub.Server.Hook
             }
             foreach (var home in Wsl.ClaudeHomes())
                 Apply(home, json => HookInstaller.Merge(json, node, HookInstaller.ScriptPath));
+            foreach (var home in Wsl.CodexHomes())
+                Apply(Path.Combine(home.CodexDir, "hooks.json"),
+                    json => CodexHookInstaller.Merge(json, node, HookInstaller.ScriptPath, powershellCommand: false));
         }
 
         /// <summary>실행 중인 배포판 전체에서 훅 제거.</summary>
@@ -53,11 +56,15 @@ namespace AgentHub.Server.Hook
         {
             foreach (var home in Wsl.ClaudeHomes())
                 Apply(home, HookInstaller.Strip);
+            foreach (var home in Wsl.CodexHomes())
+                Apply(Path.Combine(home.CodexDir, "hooks.json"), CodexHookInstaller.Strip);
         }
 
         private static void Apply(Wsl.ClaudeHome home, Func<string, string> transform)
+            => Apply(Path.Combine(home.ClaudeDir, "settings.json"), transform);
+
+        private static void Apply(string path, Func<string, string> transform)
         {
-            var path = Path.Combine(home.ClaudeDir, "settings.json");
             try
             {
                 var existing = File.Exists(path) ? File.ReadAllText(path) : "{}";

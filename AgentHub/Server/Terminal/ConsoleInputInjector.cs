@@ -5,7 +5,7 @@ using AgentHub.Common.Util;
 namespace AgentHub.Server.Terminal
 {
     /// <summary>
-    /// 실행 중인 콘솔 프로세스(claude 세션)의 입력 버퍼에 텍스트/키를 직접 주입한다.
+    /// 실행 중인 콘솔 프로세스(CLI 세션)의 입력 버퍼에 텍스트/키를 직접 주입한다.
     /// 원본 프로세스를 종료하지 않고 실행 중인 세션에 그대로 답변/프롬프트를 전달한다.
     /// AttachConsole+WriteConsoleInput 기반 → 고전 conhost에서만 동작하고,
     /// ConPTY(Windows Terminal 등)에서는 AttachConsole 실패로 NoConsole을 반환한다.
@@ -41,7 +41,7 @@ namespace AgentHub.Server.Terminal
                     if (r != Result.Ok) return r;
                 }
                 if (!appendEnter) return Result.Ok;
-                // raw-mode TUI(claude)는 텍스트와 Enter가 한 배치로 들어오면 Enter를 '제출'로 인식하지 못할 때가 있다.
+                // raw-mode TUI는 텍스트와 Enter가 한 배치로 들어오면 Enter를 '제출'로 인식하지 못할 때가 있다.
                 // 텍스트가 반영될 시간을 준 뒤 Enter를 '별도' 이벤트로 보낸다(picker 주입과 동일 패턴).
                 if (body.Length > 0) System.Threading.Thread.Sleep(PickerStepDelayMs);
                 return WriteOnce(pid, "\r");

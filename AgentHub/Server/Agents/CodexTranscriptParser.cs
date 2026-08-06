@@ -59,6 +59,55 @@ namespace AgentHub.Server.Agents
             return string.IsNullOrWhiteSpace(text) ? null : Truncate(text, max);
         }
 
+        /// <summary>
+        /// 아직 답이 오지 않은 마지막 질문(Codex의 <c>request_user_input</c> 도구 호출)을 뽑는다.
+        /// Claude의 AskUserQuestion에 대응하며, 응답 창이 지난 뒤 세션 상세에서 picker 주입으로 답할 때 쓴다.
+        /// </summary>
+        public static PendingAsk ExtractPendingAsk(IReadOnlyList<string> lines)
+        {
+            JObject lastAskArgs = null;
+            string askCallId = null;
+            foreach (var line in lines)
+            {
+                var o = TryParse(line);
+                var p = o?["payload"] as JObject;
+                if (p == null || Str(o["type"]) != "response_item") continue;
+
+                var ptype = Str(p["type"]);
+                if (ptype == "function_call" && Str(p["name"]) == "request_user_input")
+                {
+                    lastAskArgs = ParseArgs(Str(p["arguments"]));
+                    askCallId = Str(p["call_id"]);
+                }
+                else if (ptype == "function_call_output" && askCallId != null && Str(p["call_id"]) == askCallId)
+                {
+                    lastAskArgs = null;
+                    askCallId = null;
+                }
+            }
+            if (lastAskArgs == null) return null;
+
+            var questions = lastAskArgs["questions"] as JArray;
+            var q = questions?.OfType<JObject>().FirstOrDefault();
+            if (q == null) return null;
+
+            var opts = new List<string>();
+            foreach (var op in (q["options"] as JArray ?? new JArray()).OfType<JObject>())
+            {
+                var label = Str(op["label"]);
+                if (label != null) opts.Add(label);
+            }
+
+            return new PendingAsk
+            {
+                Header = Str(q["header"]),
+                Question = Str(q["question"]),
+                MultiSelect = q["multiSelect"]?.Type == JTokenType.Boolean && q["multiSelect"].Value<bool>(),
+                Options = opts,
+                QuestionCount = questions?.Count ?? 1
+            };
+        }
+
         public static SessionSummary Summarize(string sessionId, IReadOnlyList<string> lines, DateTime nowUtc)
         {
             var s = new SessionSummary { Id = sessionId, Engine = "codex", Status = "ended" };
@@ -245,6 +294,12 @@ namespace AgentHub.Server.Agents
             }
             detail = Truncate(detail, 80);
             return string.IsNullOrWhiteSpace(detail) ? (name ?? "tool") : $"{name}  {detail}";
+        }
+
+        private static JObject ParseArgs(string argumentsJson)
+        {
+            try { return string.IsNullOrWhiteSpace(argumentsJson) ? null : JObject.Parse(argumentsJson); }
+            catch { return null; }
         }
 
         // content 배열에서 지정 타입(output_text/input_text)의 text를 개행 결합. 문자열 content도 지원.

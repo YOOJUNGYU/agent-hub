@@ -86,5 +86,36 @@ namespace AgentHub.Tests
             Assert.Contains(ev, e => e.Kind == "tool_result");
             Assert.Contains(ev, e => e.Kind == "message" && e.Text.Contains("찾았습니다"));
         }
+
+        [Fact]
+        public void ExtractPendingAsk_returns_unanswered_request_user_input()
+        {
+            var lines = new List<string>
+            {
+                "{\"timestamp\":\"2026-07-14T07:16:00Z\",\"type\":\"session_meta\",\"payload\":{\"id\":\"x\",\"cwd\":\"C:\\\\tmp\"}}",
+                "{\"timestamp\":\"2026-07-14T07:16:02Z\",\"type\":\"response_item\",\"payload\":{\"type\":\"function_call\",\"name\":\"request_user_input\",\"call_id\":\"ask_1\",\"arguments\":\"{\\\"questions\\\":[{\\\"header\\\":\\\"방향\\\",\\\"question\\\":\\\"어디로?\\\",\\\"multiSelect\\\":false,\\\"options\\\":[{\\\"label\\\":\\\"A\\\"},{\\\"label\\\":\\\"B\\\"}]}]}\"}}"
+            };
+
+            var pending = CodexTranscriptParser.ExtractPendingAsk(lines);
+
+            Assert.NotNull(pending);
+            Assert.Equal("방향", pending.Header);
+            Assert.Equal("어디로?", pending.Question);
+            Assert.Equal(new[] { "A", "B" }, pending.Options);
+            Assert.Equal(1, pending.QuestionCount);
+        }
+
+        [Fact]
+        public void ExtractPendingAsk_returns_null_when_answered()
+        {
+            var lines = new List<string>
+            {
+                "{\"timestamp\":\"2026-07-14T07:16:00Z\",\"type\":\"session_meta\",\"payload\":{\"id\":\"x\",\"cwd\":\"C:\\\\tmp\"}}",
+                "{\"timestamp\":\"2026-07-14T07:16:02Z\",\"type\":\"response_item\",\"payload\":{\"type\":\"function_call\",\"name\":\"request_user_input\",\"call_id\":\"ask_1\",\"arguments\":\"{\\\"questions\\\":[{\\\"question\\\":\\\"q\\\",\\\"options\\\":[{\\\"label\\\":\\\"A\\\"}]}]}\"}}",
+                "{\"timestamp\":\"2026-07-14T07:16:03Z\",\"type\":\"response_item\",\"payload\":{\"type\":\"function_call_output\",\"call_id\":\"ask_1\",\"output\":\"answered\"}}"
+            };
+
+            Assert.Null(CodexTranscriptParser.ExtractPendingAsk(lines));
+        }
     }
 }

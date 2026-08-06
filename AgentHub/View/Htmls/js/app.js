@@ -286,7 +286,7 @@ function openDetail(id) {
     '<div class="loading"><span class="spinner"></span></div>';
   showScreen('detail');
   updateDetailRun(); // 상세 헤더에 실행지표 표시
-  updateInjectBar(id); // 입력 바 상태(codex 숨김/안내) 초기화
+  updateInjectBar(id); // 입력 바 상태(주입 가능 여부/안내) 초기화
   // 히스토리 항목 추가 → 기기 뒤로가기가 앱 종료 대신 popstate로 목록 복귀
   history.pushState({ screen: 'detail', id }, '');
   const wsReady = ws && ws.readyState === 1;
@@ -344,14 +344,15 @@ function rel(iso) {
   if (s < 86400) return Math.floor(s/3600) + 'h'; return Math.floor(s/86400) + 'd';
 }
 
-// 라이브 elicit이 없을 때 pendingAsk로 답변 폼을 띄운다(만료/주입 모드). Codex는 제외.
+// 라이브 elicit이 없을 때 pendingAsk로 답변 폼을 띄운다(만료/주입 모드).
 function maybeShowPendingForm(id) {
   if (document.getElementById('detail').hidden) return; // 상세 화면일 때만 폼 표시(터미널/목록 위 오버레이 방지)
   if (!id || elicit) return;                                   // 이미 폼(라이브/pending) 있음 → 방해 금지
   if (!document.getElementById('elicit').hidden) return;       // 폼 열려 있음
   const s = sessionsById[id];
   const pa = s && s.pendingAsk;
-  if (!pa || s.engine === 'codex') { hidePendingNote(); return; } // 미답 질문 없음 / Codex(주입 불가)
+  if (!pa) { hidePendingNote(); return; }                       // 미답 질문 없음
+  if (!s.injectable) { showPendingNote(t('inject.hintNotShell')); return; }
   if (pa.questionCount > 1) { showPendingNote(t('qna.multiOnPc')); return; } // 다문항 만료 → 폼 없이 안내(루프 방지)
   if (pendingKey(pa) === answeredPendingKey) return;            // 방금 제출한 동일 질문 → 재표시 안 함(루프 방지)
   hidePendingNote();
@@ -396,12 +397,6 @@ function refreshInjectBar(id) {
   if (!bar) return;
   bar.hidden = false;
   const s = sessionsById[id];
-  const engine = s && s.engine;
-  if (engine === 'codex') { // 콘솔 없음 → 입력 숨기고 안내만
-    if (row) row.hidden = true;
-    showInjectHint('inject.hintCodex');
-    return;
-  }
   const injectable = !!(s && s.injectable) && !injectFailedSet.has(id);
   if (injectable) {         // 활성 쉘 → 입력창
     if (row) row.hidden = false;
@@ -489,14 +484,14 @@ function handleInjectResult(m) {
     refreshInjectBar(m.sessionId);
     return;
   }
-  showInjectHint(m.reason === 'engine' ? 'inject.hintCodex' : 'inject.hintFailed');
+  showInjectHint(m.reason === 'engine' ? 'inject.hintNotShell' : 'inject.hintFailed');
 }
 function handlePickerAnswerResult(m) {
   if (m.sessionId !== currentSessionId) return;
   if (m.ok) { hidePendingNote(); return; } // 성공: 폼은 제출 시 이미 정리됨. pendingAsk가 곧 스냅샷에서 사라짐.
   const key = m.reason === 'noconsole' ? 'inject.hintNoConsole'
     : m.reason === 'nopid' ? 'inject.hintNoPid'
-    : m.reason === 'engine' ? 'inject.hintCodex'
+    : m.reason === 'engine' ? 'inject.hintNotShell'
     : 'qna.sendFailed'; // 폼이 억제돼 폰 재시도 불가 → '다시 시도' 대신 PC 안내
   showPendingNote(t(key)); // 만료 제출 실패 안내(지속). answeredPendingKey로 폼 재표시는 억제됨
 }
@@ -785,10 +780,10 @@ function syncPermPending(id) {
   document.getElementById('permPendingDetail').textContent = pp.detail || '';
   const actions = card.querySelector('.perm-pending-actions');
   const hint = document.getElementById('permPendingHint');
-  const injectable = !!s.injectable && s.engine !== 'codex';
+  const injectable = !!s.injectable;
   if (actions) actions.hidden = !injectable;          // 주입 불가면 버튼 숨김
   if (hint) hint.textContent = t(injectable ? 'perm.pendingHint'
-    : (s.engine === 'codex' ? 'inject.hintCodex' : 'inject.hintNotShell'));
+    : 'inject.hintNotShell');
   card.hidden = false;
   // 라이브 배너가 이 세션 것이면, 창이 지나 콘솔-대기로 넘어온 상태 → 죽은 배너 정리(카드로 일원화).
   if (currentPermSession === id) {
@@ -822,7 +817,7 @@ function handlePermInjectResult(m) {
   const hint = document.getElementById('permPendingHint');
   if (hint) hint.textContent = t(m.reason === 'noconsole' ? 'inject.hintNoConsole'
     : m.reason === 'nopid' ? 'inject.hintNoPid'
-    : m.reason === 'engine' ? 'inject.hintCodex'
+    : m.reason === 'engine' ? 'inject.hintNotShell'
     : 'perm.injectFailed');
 }
 document.getElementById('permPendingAllow') && document.getElementById('permPendingAllow').addEventListener('click', () => sendPermInject('allow'));

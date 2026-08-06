@@ -7,7 +7,7 @@ using System.Text;
 namespace AgentHub.Common.Util
 {
     /// <summary>
-    /// WSL 배포판 안의 Claude 홈(~/.claude)을 Windows에서 찾는다. WSL에서 실행된 Claude 세션은
+    /// WSL 배포판 안의 Claude/Codex 홈(~/.claude, ~/.codex)을 Windows에서 찾는다. WSL에서 실행된 CLI 세션은
     /// 트랜스크립트를 배포판 안에 쓰므로 \\wsl.localhost\&lt;배포판&gt;\... 경로로 읽어야 목록에 나온다.
     /// '실행 중'인 배포판만 다룬다 — 멈춘 배포판의 경로에 접근하면 WSL이 자동으로 켜지기 때문(주기 스캔이 VM을 깨우면 안 됨).
     /// 결과는 30초 캐시(배포판 목록 조회에 wsl.exe를 띄우므로).
@@ -21,24 +21,45 @@ namespace AgentHub.Common.Util
             public string ClaudeDir { get; set; } // \\wsl.localhost\<배포판>\home\<사용자>\.claude
         }
 
+        /// <summary>배포판 안의 Codex 홈 1건.</summary>
+        public class CodexHome
+        {
+            public string Distro { get; set; }
+            public string CodexDir { get; set; } // \\wsl.localhost\<배포판>\home\<사용자>\.codex
+        }
+
         private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(30);
         private static readonly object _gate = new object();
-        private static IList<ClaudeHome> _cache;
-        private static DateTime _cachedAt;
+        private static IList<ClaudeHome> _claudeCache;
+        private static DateTime _claudeCachedAt;
+        private static IList<CodexHome> _codexCache;
+        private static DateTime _codexCachedAt;
 
         /// <summary>실행 중인 배포판들의 Claude 홈. WSL이 없으면 빈 목록.</summary>
         public static IList<ClaudeHome> ClaudeHomes()
         {
             lock (_gate)
             {
-                if (_cache != null && DateTime.UtcNow - _cachedAt < CacheTtl) return _cache;
-                _cache = Scan();
-                _cachedAt = DateTime.UtcNow;
-                return _cache;
+                if (_claudeCache != null && DateTime.UtcNow - _claudeCachedAt < CacheTtl) return _claudeCache;
+                _claudeCache = ScanClaude();
+                _claudeCachedAt = DateTime.UtcNow;
+                return _claudeCache;
             }
         }
 
-        private static IList<ClaudeHome> Scan()
+        /// <summary>실행 중인 배포판들의 Codex 홈. WSL/Codex가 없으면 빈 목록.</summary>
+        public static IList<CodexHome> CodexHomes()
+        {
+            lock (_gate)
+            {
+                if (_codexCache != null && DateTime.UtcNow - _codexCachedAt < CacheTtl) return _codexCache;
+                _codexCache = ScanCodex();
+                _codexCachedAt = DateTime.UtcNow;
+                return _codexCache;
+            }
+        }
+
+        private static IList<ClaudeHome> ScanClaude()
         {
             var homes = new List<ClaudeHome>();
             foreach (var distro in RunningDistros())
@@ -58,7 +79,27 @@ namespace AgentHub.Common.Util
             return homes;
         }
 
-        // /home/* 와 /root — Claude를 쓰는 사용자 홈만 골라내는 건 호출자(.claude 존재 확인)가 한다.
+        private static IList<CodexHome> ScanCodex()
+        {
+            var homes = new List<CodexHome>();
+            foreach (var distro in RunningDistros())
+            {
+                var root = @"\\wsl.localhost\" + distro;
+                foreach (var home in HomeDirs(root))
+                {
+                    try
+                    {
+                        var codex = Path.Combine(home, ".codex");
+                        if (Directory.Exists(codex))
+                            homes.Add(new CodexHome { Distro = distro, CodexDir = codex });
+                    }
+                    catch (Exception ex) { LogService.Instance.Error(ex); }
+                }
+            }
+            return homes;
+        }
+
+        // /home/* 와 /root — 실제 사용자 홈만 골라내는 건 호출자(.claude/.codex 존재 확인)가 한다.
         private static IEnumerable<string> HomeDirs(string root)
         {
             var list = new List<string>();
