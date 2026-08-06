@@ -48,6 +48,19 @@ namespace AgentHub.Tests
         }
 
         [Fact]
+        public void Summarize_survives_null_token_info()
+        {
+            // Codex는 사용량 한도 등에서 {"type":"token_count","info":null}을 남긴다.
+            // JSON null은 JValue.Null이라 ?. 가 통과 → 자식 접근에서 예외가 나면 세션이 목록에서 통째로 빠진다.
+            var lines = Sample();
+            lines.Add("{\"timestamp\":\"2026-07-14T07:15:58Z\",\"type\":\"event_msg\",\"payload\":{\"type\":\"token_count\",\"info\":null}}");
+
+            var s = CodexTranscriptParser.Summarize("019f5f7b", lines, Now);
+
+            Assert.Equal(34150, s.TotalTokens); // 직전 유효 값 유지(널 줄은 무시)
+        }
+
+        [Fact]
         public void Summarize_completed_tool_is_not_working()
         {
             // 마지막 function_call에 output이 있고 task_complete로 끝났으므로 진행 중이 아니다.

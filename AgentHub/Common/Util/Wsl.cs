@@ -29,7 +29,10 @@ namespace AgentHub.Common.Util
         }
 
         private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(30);
-        private static readonly object _gate = new object();
+        // 스캔은 wsl.exe 기동 + 9p 경로 탐색이라 수백 ms 걸린다. 락을 공유하면 Claude 스캔이
+        // Codex 스캔을 그대로 막으므로(둘 다 5초 폴링에서 호출) 캐시별로 분리한다.
+        private static readonly object _claudeGate = new object();
+        private static readonly object _codexGate = new object();
         private static IList<ClaudeHome> _claudeCache;
         private static DateTime _claudeCachedAt;
         private static IList<CodexHome> _codexCache;
@@ -38,7 +41,7 @@ namespace AgentHub.Common.Util
         /// <summary>실행 중인 배포판들의 Claude 홈. WSL이 없으면 빈 목록.</summary>
         public static IList<ClaudeHome> ClaudeHomes()
         {
-            lock (_gate)
+            lock (_claudeGate)
             {
                 if (_claudeCache != null && DateTime.UtcNow - _claudeCachedAt < CacheTtl) return _claudeCache;
                 _claudeCache = ScanClaude();
@@ -50,7 +53,7 @@ namespace AgentHub.Common.Util
         /// <summary>실행 중인 배포판들의 Codex 홈. WSL/Codex가 없으면 빈 목록.</summary>
         public static IList<CodexHome> CodexHomes()
         {
-            lock (_gate)
+            lock (_codexGate)
             {
                 if (_codexCache != null && DateTime.UtcNow - _codexCachedAt < CacheTtl) return _codexCache;
                 _codexCache = ScanCodex();

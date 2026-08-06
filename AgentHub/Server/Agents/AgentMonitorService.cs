@@ -30,8 +30,10 @@ namespace AgentHub.Server.Agents
             foreach (var s in list)
             {
                 s.Injectable = IsInjectable(s.Engine, Hook.SessionPidRegistry.TryGet(s.Id, out _));
-                if (Hook.PendingPermissionRegistry.TryGet(s.Id, out var pTool, out var pDetail))
-                    s.PendingPermission = new PendingPermission { Tool = pTool, Detail = pDetail };
+                // 리더가 요약 인스턴스를 캐시해 재사용할 수 있으므로 해제 시 반드시 null로 덮어쓴다(대기 카드 잔상 방지).
+                s.PendingPermission = Hook.PendingPermissionRegistry.TryGet(s.Id, out var pTool, out var pDetail)
+                    ? new PendingPermission { Tool = pTool, Detail = pDetail }
+                    : null;
             }
             return list;
         }

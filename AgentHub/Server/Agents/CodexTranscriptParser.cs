@@ -158,7 +158,10 @@ namespace AgentHub.Server.Agents
                             break;
                         case "token_count":
                             // 실제 구조: payload.info.total_token_usage.total_tokens (구버전 대비 payload 직속도 폴백).
-                            var usage = p["info"]?["total_token_usage"] ?? p["total_token_usage"];
+                            // info는 JSON null로 오는 줄이 있다(사용량 한도 등). JValue.Null은 C# null이 아니라
+                            // ?. 가 통과해 자식 접근에서 터지므로 JObject로 캐스팅해 걸러낸다.
+                            var usage = (p["info"] as JObject)?["total_token_usage"] as JObject
+                                        ?? p["total_token_usage"] as JObject;
                             var total = usage?["total_tokens"];
                             if (total != null) totalTokens = LongVal(total);
                             break;
