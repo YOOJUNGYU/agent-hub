@@ -138,7 +138,13 @@ namespace AgentHub.Server
                     {
                         var cached = new X509Certificate2(pfxFilePathName, certPw);
                         // 접속 IP(LAN + NetBird 등)를 모두 커버할 때만 재사용. NetBird IP가 새로 생기면 재발급된다.
-                        if (privateIps.All(ip => CertCoversHost(cached, ip))) return cached;
+                        if (privateIps.All(ip => CertCoversHost(cached, ip)))
+                        {
+                            // 저장소에서 수동 삭제된 경우 재등록한다. pfx가 남아 있으면 재발급 경로를 타지 않아
+                            // 등록 창이 뜨지 않고, PC/폰의 신뢰만 깨진 채로 계속 서빙되기 때문.
+                            EnsureTrusted(cached);
+                            return cached;
+                        }
                     }
                     catch { /* 손상/불일치 → 재발급 */ }
                 }
@@ -168,15 +174,21 @@ namespace AgentHub.Server
                 var x509Certificate2 = new X509Certificate2(certRawData, certPw);
                 File.WriteAllBytes(Path.Combine(SelfSigned.CertFilePath, SelfSigned.CrtFileName), x509Certificate2.Export(X509ContentType.Cert));
 
-                using (var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser))
+                // 루트 저장소 조작은 Windows가 예/아니오를 묻는다. '아니오'를 눌러도 서버는 떠야 하므로
+                // (HTTPS 자체는 동작하고 신뢰만 안 될 뿐) 실패를 기동 실패로 올리지 않는다.
+                try
                 {
-                    store.Open(OpenFlags.ReadWrite);
-                    // 기존 AgentHub 인증서를 제거해 누적을 막고 최신 것 1개만 유지.
-                    var existing = store.Certificates.Find(X509FindType.FindBySubjectDistinguishedName, x509Certificate2.Subject, false);
-                    if (existing.Count > 0) store.RemoveRange(existing);
-                    store.Add(x509Certificate2);
-                    store.Close();
+                    using (var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser))
+                    {
+                        store.Open(OpenFlags.ReadWrite);
+                        // 기존 AgentHub 인증서를 제거해 누적을 막고 최신 것 1개만 유지.
+                        var existing = store.Certificates.Find(X509FindType.FindBySubjectDistinguishedName, x509Certificate2.Subject, false);
+                        if (existing.Count > 0) store.RemoveRange(existing);
+                        store.Add(x509Certificate2);
+                        store.Close();
+                    }
                 }
+                catch (Exception ex) { LogService.Instance.Error(ex); }
 
                 return x509Certificate2;
             }
@@ -185,6 +197,26 @@ namespace AgentHub.Server
                 LogService.Instance.Error(ex);
                 throw;
             }
+        }
+
+        /// <summary>
+        /// 신뢰할 수 있는 루트 저장소(CurrentUser\Root)에 이 인증서가 없으면 등록한다.
+        /// Windows가 예/아니오를 묻는 창을 띄우며, '아니오'를 눌러도 기동은 계속한다(신뢰만 안 될 뿐).
+        /// 공개키만 넣는다 — 개인키는 pfx에만 둔다.
+        /// </summary>
+        private static void EnsureTrusted(X509Certificate2 cert)
+        {
+            try
+            {
+                using (var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser))
+                {
+                    store.Open(OpenFlags.ReadWrite);
+                    if (store.Certificates.Find(X509FindType.FindByThumbprint, cert.Thumbprint, false).Count == 0)
+                        store.Add(new X509Certificate2(cert.Export(X509ContentType.Cert)));
+                    store.Close();
+                }
+            }
+            catch (Exception ex) { LogService.Instance.Error(ex); }
         }
 
         /// <summary>
