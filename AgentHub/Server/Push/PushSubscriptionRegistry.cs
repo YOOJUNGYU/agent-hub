@@ -57,6 +57,10 @@ namespace AgentHub.Server.Push
         public static void Save(string tokenHash, PushSubscription sub)
         {
             if (string.IsNullOrEmpty(tokenHash) || string.IsNullOrEmpty(sub?.Endpoint)) return;
+            // 같은 브라우저가 토큰을 새로 받으면(재페어링·저장소 삭제) endpoint는 그대로인데 해시만 새로 생긴다.
+            // 옛 항목을 남겨두면 '연결됨' 판정을 피해 같은 폰에 푸시가 한 번 더 가서 인앱 알림과 중복된다.
+            foreach (var kv in _map)
+                if (kv.Key != tokenHash && kv.Value?.Endpoint == sub.Endpoint) _map.TryRemove(kv.Key, out _);
             _map[tokenHash] = sub;
             Persist();
         }

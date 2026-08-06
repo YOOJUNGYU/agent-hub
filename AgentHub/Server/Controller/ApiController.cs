@@ -208,7 +208,7 @@ namespace AgentHub.Server.Controller
             return SendJsonAsync(Json.Serialize(new { ok }));
         }
 
-        // Stop/Notification 훅은 매 턴 발화한다. 마지막 멘트가 그대로면(새 text 없음·연속 턴 등)
+        // Stop 훅은 매 턴 발화한다. 마지막 멘트가 그대로면(새 text 없음·연속 턴 등)
         // 같은 본문이 반복 전송돼 "동일 알림 반복" 문제가 생긴다. 세션·종류별 직전 전송 본문을 기억해
         // 연속으로 동일하면 skip한다(내용이 바뀌면 다시 알림).
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> _lastNotified
@@ -217,9 +217,13 @@ namespace AgentHub.Server.Controller
         private static bool IsDuplicateNotify(string kind, string sessionId, string body)
         {
             var key = kind + "|" + (sessionId ?? "");
-            if (_lastNotified.TryGetValue(key, out var prev) && prev == body) return true;
-            _lastNotified[key] = body;
-            return false;
+            // 같은 이벤트로 훅이 동시에 두 번 들어올 수 있어(설정 중복 등) 검사·기록을 원자적으로 묶는다.
+            lock (_lastNotified)
+            {
+                if (_lastNotified.TryGetValue(key, out var prev) && prev == body) return true;
+                _lastNotified[key] = body;
+                return false;
+            }
         }
 
         [Route(HttpVerbs.Post, "/hook/notification")]
@@ -238,6 +242,8 @@ namespace AgentHub.Server.Controller
                 // permission_prompt·elicitation_dialog는 제외한다: AskUserQuestion(질문)은 /hook/elicit이 '질문 상세'와,
                 // 도구 권한은 /hook/permission이 '도구 상세'와 함께 이미 알린다. 이를 또 통과시키면 질문/권한마다
                 // "Claude needs your permission" 중복 알림이 생긴다. 여기서는 그 흐름 밖의 '입력 대기(idle)'류만 통과.
+                // 통과하더라도 '응답 대기중' 카드 표시까지만 한다(알림 없음): idle 알림은 턴 종료(Stop) 뒤
+                // 일정 시간 지나 발화하므로, 이미 보낸 완료 알림과 같은 내용이 한 번 더 울리는 중복이었다.
                 var actionable =
                     ntype == "idle_prompt" || ntype == "agent_needs_input"
                     // notification_type 미제공(스톡 Claude Code)일 땐 '입력 대기' 메시지만 통과(서브에이전트/진행/권한 메시지 제외).
@@ -249,11 +255,7 @@ namespace AgentHub.Server.Controller
                     var last = AgentMonitorService.LastAssistantTextOf(sessionId);
                     var msg = !string.IsNullOrWhiteSpace(last) ? last
                         : (string.IsNullOrEmpty(message) ? "입력이 필요합니다" : message);
-                    if (!IsDuplicateNotify("ask", sessionId, msg))
-                    {
-                        AgentMonitorService.BroadcastAsk(project, msg, sessionId);
-                        AgentHub.Server.Push.PushService.NotifyDisconnected(msg, sessionId);
-                    }
+                    AgentMonitorService.BroadcastAsk(project, msg, sessionId); // 카드 표시만(푸시·시스템 알림 없음)
                 }
             }
             catch (Exception ex) { LogService.Instance.Error(ex); }

@@ -547,19 +547,9 @@ function ensurePushSubscribed() {
   })();
 }
 
-// ---- 입력 필요 알림 → 세션 카드 '응답 대기중' 표시(상단 배너 폐지) + 시스템 푸시 ----
+// ---- 입력 필요(idle) → 세션 카드 '응답 대기중' 표시만. 시스템 알림 없음 ----
+// idle 알림은 턴 종료(done) 뒤에 뒤늦게 오는 같은 내용이라 알리면 중복이다.
 function handleAsk(m) {
-  if (('Notification' in window) && Notification.permission === 'granted') {
-    var title = t('ask.title');
-    var opts = { body: titlePrefix(m.sessionId) + (m.message || ''), tag: m.sessionId || 'ask' };
-    if (navigator.serviceWorker && navigator.serviceWorker.ready) {
-      navigator.serviceWorker.ready
-        .then(function (reg) { return reg.showNotification(title, opts); })
-        .catch(function () { try { new Notification(title, opts); } catch (e) {} });
-    } else {
-      try { new Notification(title, opts); } catch (e) {}
-    }
-  }
   setWaiting(m.sessionId, true); // 카드 색상으로 '응답 대기중' 표시
 }
 
@@ -567,8 +557,9 @@ function handleAsk(m) {
 function handleDone(m) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   var title = t('done.title');
-  // 마지막 멘트를 본문으로(없으면 기본 문구). 세션당 tag로 알림 누적 방지.
-  var opts = { body: titlePrefix(m.sessionId) + (m.message || t('done.body')), tag: 'done-' + (m.sessionId || '') };
+  // 마지막 멘트를 본문으로(없으면 기본 문구). tag는 sw.js의 푸시와 동일하게 맞춘다
+  // — 인앱/푸시가 어쩌다 겹쳐도 같은 tag면 하나로 합쳐져 두 번 보이지 않는다.
+  var opts = { body: titlePrefix(m.sessionId) + (m.message || t('done.body')), tag: 'agenthub-' + (m.sessionId || 'ask') };
   if (navigator.serviceWorker && navigator.serviceWorker.ready) {
     navigator.serviceWorker.ready
       .then(function (reg) { return reg.showNotification(title, opts); })
