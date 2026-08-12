@@ -118,79 +118,120 @@ namespace AgentHub.Server
             {
                 foreach (var ext in cert.Extensions)
                     if (ext.Oid?.Value == "2.5.29.17") // Subject Alternative Name
-                        return ext.Format(false).IndexOf(host, StringComparison.OrdinalIgnoreCase) >= 0;
+                        // 한 줄에 항목 하나씩("IP Address=192.168.0.1") 나오므로 "=IP"로 끝나는 줄을 찾는다.
+                        // 부분 문자열로 비교하면 192.168.0.1이 192.168.0.10에도 걸려 커버하지 않는 IP를 커버한다고 오판한다.
+                        return ext.Format(true).Split('\n')
+                            .Any(line => line.Trim().EndsWith("=" + host, StringComparison.OrdinalIgnoreCase));
             }
             catch { /* ignore */ }
             return false;
         }
 
-        private static X509Certificate2 GetSelfSignedCertificate(List<string> privateIps)
+        /// <summary>pfx 등 비밀 파일을 숨김 속성으로 저장한다. Hidden 파일은 덮어쓰기가 거부되므로 먼저 속성을 푼다.</summary>
+        private static void WriteSecretFile(string path, byte[] data)
+        {
+            if (!Directory.Exists(SelfSigned.CertFilePath)) Directory.CreateDirectory(SelfSigned.CertFilePath);
+            if (File.Exists(path)) File.SetAttributes(path, FileAttributes.Normal);
+            File.WriteAllBytes(path, data);
+            File.SetAttributes(path, File.GetAttributes(path) | FileAttributes.Hidden);
+        }
+
+        /// <summary>
+        /// AgentHub 루트 CA. 접속 IP가 아니라 "AgentHub"라는 신원 자체를 담는 인증서라 IP·네트워크가 바뀌어도
+        /// 절대 바뀌지 않는다. PC 저장소와 폰에는 이 CA만 설치하므로 한 번 설치하면 재설치가 필요 없다.
+        /// </summary>
+        private static X509Certificate2 GetOrCreateRootCa(string certPw)
+        {
+            var caFilePathName = Path.Combine(SelfSigned.CertFilePath, SelfSigned.RootCaPfxFileName);
+            if (File.Exists(caFilePathName))
+            {
+                try
+                {
+                    var cached = new X509Certificate2(caFilePathName, certPw);
+                    if (cached.HasPrivateKey && cached.NotAfter > DateTime.Now.AddDays(30)) return cached;
+                }
+                catch { /* 손상/불일치 → 재발급 */ }
+            }
+
+            using var rsa = RSA.Create(2048);
+            var request = new CertificateRequest("CN=AgentHub Root CA, O=AgentHub, C=KR", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+            request.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, true, 0, true));
+            // 서버 인증서를 서명하려면 KeyCertSign이 필요하다. 없으면 폰·PC가 체인을 거부한다.
+            request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign | X509KeyUsageFlags.CrlSign | X509KeyUsageFlags.DigitalSignature, true));
+            request.CertificateExtensions.Add(new X509SubjectKeyIdentifierExtension(request.PublicKey, false));
+
+            var certRawData = request
+                .CreateSelfSigned(DateTimeOffset.Now.AddDays(-1), DateTimeOffset.Now.AddYears(20))
+                .Export(X509ContentType.Pfx, certPw);
+            WriteSecretFile(caFilePathName, certRawData);
+            return new X509Certificate2(certRawData, certPw);
+        }
+
+        /// <summary>
+        /// 접속 IP를 SAN에 담은 서버 인증서(leaf)를 루트 CA로 서명해 발급한다. 저장소에는 넣지 않으므로
+        /// IP가 바뀌어 재발급되어도 Windows 등록 창은 뜨지 않고 폰의 신뢰도 깨지지 않는다.
+        /// </summary>
+        private static X509Certificate2 IssueServerCertificate(X509Certificate2 ca, List<string> privateIps, string certPw, string pfxFilePathName)
+        {
+            using var rsa = RSA.Create(2048);
+            var request = new CertificateRequest("CN=AgentHub, O=AgentHub, C=KR", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+            request.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, false));
+            request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyEncipherment, false));
+            request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(new OidCollection { new Oid("1.3.6.1.5.5.7.3.1") }, false));
+            request.CertificateExtensions.Add(new X509SubjectKeyIdentifierExtension(request.PublicKey, false));
+
+            var sanBuilder = new SubjectAlternativeNameBuilder();
+            sanBuilder.AddIpAddress(IPAddress.Loopback);   // 127.0.0.1
+            sanBuilder.AddDnsName("localhost");
+            foreach (var ip in privateIps)
+                if (IPAddress.TryParse(ip, out var addr)) sanBuilder.AddIpAddress(addr);
+            request.CertificateExtensions.Add(sanBuilder.Build());
+
+            var serialNumber = Guid.NewGuid().ToByteArray();
+            serialNumber[0] &= 0x7F; // 일련번호는 양수여야 한다.
+
+            // 유효기간은 1년 남짓. 기동할 때마다 필요하면 재발급되므로 짧게 잡아도 문제가 없고,
+            // 서버 인증서를 398일 넘게 잡는 것을 거부하는 클라이언트(iOS/Safari 계열)를 피할 수 있다.
+            var issued = request.Create(ca, DateTimeOffset.Now.AddHours(-1), DateTimeOffset.Now.AddDays(397), serialNumber);
+            var certRawData = issued.CopyWithPrivateKey(rsa).Export(X509ContentType.Pfx, certPw);
+            WriteSecretFile(pfxFilePathName, certRawData);
+            return new X509Certificate2(certRawData, certPw);
+        }
+
+        private static X509Certificate2 GetServerCertificate(List<string> privateIps)
         {
             try
             {
-                var pfxFilePathName = Path.Combine(SelfSigned.CertFilePath, SelfSigned.PfxFileName);
                 var certPw = GetCertPassword();
+                var ca = GetOrCreateRootCa(certPw);
 
-                // 캐시된 인증서가 현재 호스트(LAN IP)를 SAN에 포함하면 재사용, 아니면 재발급.
+                // 폰이 내려받는 .crt는 루트 CA다(IP가 없으므로 네트워크가 바뀌어도 그대로 유효).
+                var crtFilePathName = Path.Combine(SelfSigned.CertFilePath, SelfSigned.CrtFileName);
+                var caRawData = ca.Export(X509ContentType.Cert);
+                if (!File.Exists(crtFilePathName) || !File.ReadAllBytes(crtFilePathName).SequenceEqual(caRawData))
+                {
+                    if (!Directory.Exists(SelfSigned.CertFilePath)) Directory.CreateDirectory(SelfSigned.CertFilePath);
+                    File.WriteAllBytes(crtFilePathName, caRawData);
+                }
+
+                EnsureTrusted(ca);
+
+                // 서버 인증서는 현재 접속 IP를 모두 커버하고 이 CA가 서명한 것일 때만 재사용한다.
+                var pfxFilePathName = Path.Combine(SelfSigned.CertFilePath, SelfSigned.PfxFileName);
                 if (File.Exists(pfxFilePathName))
                 {
                     try
                     {
                         var cached = new X509Certificate2(pfxFilePathName, certPw);
-                        // 접속 IP(LAN + NetBird 등)를 모두 커버할 때만 재사용. NetBird IP가 새로 생기면 재발급된다.
-                        if (privateIps.All(ip => CertCoversHost(cached, ip)))
-                        {
-                            // 저장소에서 수동 삭제된 경우 재등록한다. pfx가 남아 있으면 재발급 경로를 타지 않아
-                            // 등록 창이 뜨지 않고, PC/폰의 신뢰만 깨진 채로 계속 서빙되기 때문.
-                            EnsureTrusted(cached);
+                        if (cached.NotAfter > DateTime.Now.AddDays(1)
+                            && cached.IssuerName.RawData.SequenceEqual(ca.SubjectName.RawData)
+                            && privateIps.All(ip => CertCoversHost(cached, ip)))
                             return cached;
-                        }
                     }
                     catch { /* 손상/불일치 → 재발급 */ }
                 }
 
-                using var rsa = RSA.Create(2048);
-                var request = new CertificateRequest("CN=AgentHub, O=AgentHub, C=KR", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-                request.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, true, 0, false));
-                request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyEncipherment, false));
-                request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(new OidCollection { new Oid("1.3.6.1.5.5.7.3.1") }, false));
-
-                var sanBuilder = new SubjectAlternativeNameBuilder();
-                sanBuilder.AddIpAddress(IPAddress.Loopback);   // 127.0.0.1
-                sanBuilder.AddDnsName("localhost");
-                foreach (var ip in privateIps)
-                    if (IPAddress.TryParse(ip, out var addr)) sanBuilder.AddIpAddress(addr);
-                request.CertificateExtensions.Add(sanBuilder.Build());
-
-                var certificate = request.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddYears(10));
-                var certRawData = certificate.Export(X509ContentType.Pfx, certPw);
-
-                if (!Directory.Exists(SelfSigned.CertFilePath)) Directory.CreateDirectory(SelfSigned.CertFilePath);
-                // 기존 pfx가 Hidden 속성이면 덮어쓰기(WriteAllBytes)가 거부되므로 먼저 속성 해제.
-                if (File.Exists(pfxFilePathName)) File.SetAttributes(pfxFilePathName, FileAttributes.Normal);
-                File.WriteAllBytes(pfxFilePathName, certRawData);
-                File.SetAttributes(pfxFilePathName, File.GetAttributes(pfxFilePathName) | FileAttributes.Hidden);
-
-                var x509Certificate2 = new X509Certificate2(certRawData, certPw);
-                File.WriteAllBytes(Path.Combine(SelfSigned.CertFilePath, SelfSigned.CrtFileName), x509Certificate2.Export(X509ContentType.Cert));
-
-                // 루트 저장소 조작은 Windows가 예/아니오를 묻는다. '아니오'를 눌러도 서버는 떠야 하므로
-                // (HTTPS 자체는 동작하고 신뢰만 안 될 뿐) 실패를 기동 실패로 올리지 않는다.
-                try
-                {
-                    using (var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser))
-                    {
-                        store.Open(OpenFlags.ReadWrite);
-                        // 기존 AgentHub 인증서를 제거해 누적을 막고 최신 것 1개만 유지.
-                        var existing = store.Certificates.Find(X509FindType.FindBySubjectDistinguishedName, x509Certificate2.Subject, false);
-                        if (existing.Count > 0) store.RemoveRange(existing);
-                        store.Add(x509Certificate2);
-                        store.Close();
-                    }
-                }
-                catch (Exception ex) { LogService.Instance.Error(ex); }
-
-                return x509Certificate2;
+                return IssueServerCertificate(ca, privateIps, certPw, pfxFilePathName);
             }
             catch (Exception ex)
             {
@@ -200,19 +241,26 @@ namespace AgentHub.Server
         }
 
         /// <summary>
-        /// 신뢰할 수 있는 루트 저장소(CurrentUser\Root)에 이 인증서가 없으면 등록한다.
-        /// Windows가 예/아니오를 묻는 창을 띄우며, '아니오'를 눌러도 기동은 계속한다(신뢰만 안 될 뿐).
+        /// 신뢰할 수 있는 루트 저장소(CurrentUser\Root)에 루트 CA가 없을 때만 등록한다. 이미 있으면 아무것도
+        /// 하지 않으므로 Windows 확인 창도 뜨지 않는다. 루트 저장소 조작은 Windows가 예/아니오를 묻는데,
+        /// '아니오'를 눌러도 서버는 떠야 하므로(HTTPS 자체는 동작하고 신뢰만 안 될 뿐) 기동 실패로 올리지 않는다.
         /// 공개키만 넣는다 — 개인키는 pfx에만 둔다.
         /// </summary>
-        private static void EnsureTrusted(X509Certificate2 cert)
+        private static void EnsureTrusted(X509Certificate2 ca)
         {
             try
             {
                 using (var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser))
                 {
                     store.Open(OpenFlags.ReadWrite);
-                    if (store.Certificates.Find(X509FindType.FindByThumbprint, cert.Thumbprint, false).Count == 0)
-                        store.Add(new X509Certificate2(cert.Export(X509ContentType.Cert)));
+                    if (store.Certificates.Find(X509FindType.FindByThumbprint, ca.Thumbprint, false).Count == 0)
+                    {
+                        store.Add(new X509Certificate2(ca.Export(X509ContentType.Cert)));
+                        // 등록에 성공한 뒤에만, 루트 CA 도입 전 버전이 남긴 서버 인증서를 한 번 정리한다.
+                        // (사용자가 등록을 거부하면 정리하지 않아 기존 신뢰가 그대로 남는다.)
+                        var legacy = store.Certificates.Find(X509FindType.FindBySubjectDistinguishedName, "CN=AgentHub, O=AgentHub, C=KR", false);
+                        if (legacy.Count > 0) store.RemoveRange(legacy);
+                    }
                     store.Close();
                 }
             }
@@ -307,7 +355,7 @@ namespace AgentHub.Server
                     .Select(e => new EndpointInfo { Url = $"https://{e.ip}:{CurrentPort}", Kind = e.kind })
                     .ToList();
 
-                var certificate = GetSelfSignedCertificate(privateIps);
+                var certificate = GetServerCertificate(privateIps);
                 var htmlPath = Path.Combine(Application.StartupPath, "View", "Htmls");
 
                 // 전체 인터페이스에 바인딩(localhost + LAN). 표시 URL은 CurrentUrl(사설 IP).

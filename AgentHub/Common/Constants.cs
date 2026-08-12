@@ -25,8 +25,10 @@ namespace AgentHub.Common
         {
             // 인증서는 설치 폴더가 아니라 LocalAppData에 보관한다(재설치해도 유지 → 폰의 인증서 신뢰가 살아있어 자동 재연결).
             public static string CertFilePath => $@"{Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)}\{ProgramInfo.Name}\Certificate";
+            // 루트 CA(신뢰 기준점, IP와 무관 → 한 번 등록하면 끝)와 서버 인증서(leaf, IP별 SAN → 자유롭게 재발급).
+            public static string RootCaPfxFileName => "AgentHubRootCA.pfx";
             public static string PfxFileName => "AgentHub.pfx";
-            public static string CrtFileName => "AgentHub.crt";
+            public static string CrtFileName => "AgentHub.crt"; // 폰에 설치하는 루트 CA 공개 인증서
         }
     }
 }
