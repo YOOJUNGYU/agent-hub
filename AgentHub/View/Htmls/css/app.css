@@ -340,6 +340,43 @@ body.host-shell #logs.view.active{display:flex; flex-direction:column; overflow:
 
 a.hdr-btn { text-decoration: none; }
 
+/* ===== 휴대폰 연결 QR (호스트 콘솔) ===== */
+.qr-btn { flex:0 0 auto; background:var(--panel2); color:var(--fore);
+  border:1px solid var(--border); border-radius:999px; padding:.28rem .8rem;
+  font-size:.85rem; cursor:pointer; white-space:nowrap; }
+.qr-btn:hover:not(:disabled) { border-color:var(--accent); }
+.qr-btn:disabled { opacity:.45; cursor:default; }
+
+.qr-modal { position:fixed; inset:0; z-index:70; display:flex; align-items:center; justify-content:center;
+  background:rgba(8,10,18,.72); padding:20px; overflow-y:auto; }
+.qr-modal[hidden] { display:none; }
+.qr-dialog { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+  padding:18px 20px 22px; max-width:640px; width:100%; }
+.qr-head { display:flex; align-items:center; gap:8px; margin:0 0 14px; }
+.qr-title { flex:1 1 auto; margin:0; font-size:16px; font-weight:700; color:var(--fore); }
+.qr-close { flex:0 0 auto; background:none; border:none; color:var(--muted);
+  font-size:20px; line-height:1; cursor:pointer; padding:6px 8px; border-radius:8px; }
+.qr-close:hover { color:var(--fore); }
+
+.qr-eps { display:flex; gap:.35rem; margin:0 0 14px; flex-wrap:wrap; }
+.qr-eps[hidden] { display:none; }
+.qr-ep { background:var(--panel2); color:var(--muted); border:1px solid var(--border);
+  border-radius:999px; padding:.25rem .8rem; font-size:.8rem; cursor:pointer; }
+.qr-ep.active { color:var(--fore); border-color:var(--accent); }
+
+.qr-cards { display:flex; gap:16px; flex-wrap:wrap; }
+.qr-card { flex:1 1 240px; text-align:center; }
+.qr-card h3 { margin:0 0 10px; font-size:14px; font-weight:700; color:var(--fore); }
+/* QR은 테마와 무관하게 흰 바탕·검은 모듈이어야 스캐너가 읽는다. */
+.qr-img { background:#fff; border-radius:10px; padding:8px; width:200px; height:200px;
+  margin:0 auto 10px; display:flex; align-items:center; justify-content:center; }
+.qr-img svg { width:100%; height:100%; display:block; }
+.qr-img.qr-fallback { height:auto; min-height:0; color:#1a2030; font-size:12px;
+  word-break:break-all; padding:12px; }
+.qr-url { margin:0 0 6px; font-size:12px; color:var(--muted); word-break:break-all; }
+.qr-note { margin:0; font-size:12px; color:var(--muted); line-height:1.5; }
+.qr-note.warn { color:var(--warn); }
+
 /* ===== 모바일(PWA) 뷰포트 채움 레이아웃 (host 콘솔 제외) ===== */
 /* 뷰포트 단위(dvh/svh) 대신 html→body height:100% 체인 + flex로 채운다.
    dvh는 동적 UI(테마 리페인트·시스템바)에 따라 값이 흔들려 레이아웃이 바뀌었음. 100%는 안정적이고,

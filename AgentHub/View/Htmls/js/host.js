@@ -8,6 +8,8 @@ const fmtTime = iso => { try { return new Date(iso).toLocaleString(); } catch (e
 
 // 마지막 데이터(언어 변경 시 재렌더용)
 let lastClients = null, lastClientCount = null, lastDevices = null;
+let lastEndpoints = [];   // QR 모달이 쓰는 접속 주소(LAN·VPN)
+let qrEndpointIndex = 0;
 
 const LOG_MAX_ENTRIES = 10000;
 const LOG_OVERSCAN = 16;
@@ -40,13 +42,80 @@ async function refreshStatus() {
         `<span class="ep"><a class="server-url" href="${esc(e.url)}" target="_blank" rel="noopener">${esc(e.url)}</a>`
         + `<span class="ep-label ${esc(e.kind)}">${esc(t('endpoint.' + e.kind))}</span></span>`
       ).join('');
+      setQrEndpoints(eps);
     } else {
       badge.textContent = t('server.stopped');
       badge.className = 'badge off';
       box.innerHTML = '';
+      setQrEndpoints([]);
     }
   } catch (e) { /* ignore */ }
 }
+
+// ---- 휴대폰 연결 QR ----
+// 콘솔 자신은 https://127.0.0.1:포트로 열려 있어 location.origin으로 QR을 만들면 폰에서 절대 열리지 않는다.
+// 반드시 서버가 알려준 LAN·VPN 주소를 쓴다.
+function certUrlOf(endpointUrl) {
+  return endpointUrl.replace(/\/+$/, '') + '/api/cert';
+}
+
+function setQrEndpoints(eps) {
+  lastEndpoints = eps || [];
+  if (qrEndpointIndex >= lastEndpoints.length) qrEndpointIndex = 0;
+  const btn = $('#qrBtn');
+  if (btn) btn.disabled = lastEndpoints.length === 0;
+  if (!$('#qrModal').hidden) renderQr();
+}
+
+// QR은 항상 흰 바탕·검은 모듈로 그린다(다크 테마에서 반전되면 스캐너가 못 읽는다).
+function drawQr(box, text) {
+  box.innerHTML = '';
+  try {
+    const q = qrcode(0, 'M');
+    q.addData(text);
+    q.make();
+    box.innerHTML = q.createSvgTag({ cellSize: 4, margin: 4, scalable: true });
+  } catch (e) {
+    // 라이브러리 로드 실패 등 → 모달이 빈 화면이 되지 않도록 주소만이라도 남긴다.
+    box.textContent = text;
+    box.classList.add('qr-fallback');
+  }
+}
+
+function renderQr() {
+  const ep = lastEndpoints[qrEndpointIndex];
+  if (!ep) return;
+
+  // 엔드포인트가 하나뿐이면 고를 것이 없으므로 탭을 숨긴다.
+  const tabs = $('#qrEndpoints');
+  tabs.hidden = lastEndpoints.length < 2;
+  tabs.innerHTML = lastEndpoints.map((e, i) =>
+    `<button type="button" class="qr-ep${i === qrEndpointIndex ? ' active' : ''}" data-i="${i}">${esc(t('endpoint.' + e.kind))}</button>`
+  ).join('');
+  $$('.qr-ep', tabs).forEach(b => b.addEventListener('click', () => {
+    qrEndpointIndex = Number(b.dataset.i);
+    renderQr();
+  }));
+
+  const certUrl = certUrlOf(ep.url);
+  drawQr($('#qrConnect'), ep.url);
+  drawQr($('#qrCert'), certUrl);
+  $('#qrConnectUrl').textContent = ep.url;
+  $('#qrCertUrl').textContent = certUrl;
+}
+
+$('#qrBtn').addEventListener('click', () => {
+  if (!lastEndpoints.length) return;
+  $('#qrModal').hidden = false;
+  renderQr();
+});
+$('#qrCloseBtn').addEventListener('click', () => { $('#qrModal').hidden = true; });
+$('#qrModal').addEventListener('click', e => {   // 바깥 여백 클릭으로 닫기
+  if (e.target === $('#qrModal')) $('#qrModal').hidden = true;
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !$('#qrModal').hidden) $('#qrModal').hidden = true;
+});
 
 // ---- 접속한 모바일 기기 (WebSocket /ws/host) ----
 function renderClients(list, count) {
