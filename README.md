@@ -5,7 +5,7 @@
 
 **한국어** | [English](README.en.md)
 
-**내 PC의 AI 에이전트(Claude·Codex)를, 자리를 비워도 휴대폰에서 지켜보고 제어하는 프로그램입니다.**
+**Claude Code·Codex CLI 세션을 휴대폰에서 실시간 모니터링하고 질문 답변, 권한 승인, 명령 전송까지 하는 Windows용 P2P 원격 제어 도구입니다.**
 
 > ### 🔐 클라우드를 거치지 않고 내 기기끼리 직접, 내가 승인한 기기만
 > 자리를 비워도 휴대폰으로 Claude·Codex의 **질문에 답하고, 위험한 작업을 승인하고, 명령까지** 보냅니다.
@@ -17,7 +17,7 @@
 
 NetBird 연결 → 인증서 등록 → 앱 설치(홈 화면 추가) → 기기 인증 → 원격 제어까지, **그림으로 한눈에 따라 하는 가이드**를 준비했습니다.
 
-### 👉 **[사용 가이드 열기](https://yoojungyu.github.io/agent-hub/)**
+### 👉 **[Agent Hub 사용 가이드 - Claude Code·Codex 모바일 원격 제어](https://yoojungyu.github.io/agent-hub/)**
 
 ---
 

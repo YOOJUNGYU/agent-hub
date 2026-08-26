@@ -5,7 +5,7 @@
 
 [한국어](README.md) | **English**
 
-**A program that lets you watch and control the AI agents (Claude and Codex) running on your PC — from your phone, even while you're away.**
+**A Windows P2P remote-control tool for monitoring Claude Code and Codex CLI sessions from your phone, answering questions, approving permissions, and sending commands.**
 
 > ### 🔐 Device‑to‑device with no cloud relay, only devices you approve
 > Step away and still use your phone to **answer Claude/Codex questions, approve risky actions, and send commands**.
@@ -17,7 +17,7 @@
 
 We built a **visual, follow-along guide** covering everything: connect with NetBird → certificate → app install (Add to Home Screen) → device approval → remote control.
 
-### 👉 **[Open the User Guide](https://yoojungyu.github.io/agent-hub/)**
+### 👉 **[Agent Hub User Guide - Claude Code and Codex mobile remote control](https://yoojungyu.github.io/agent-hub/)**
 
 ---
 

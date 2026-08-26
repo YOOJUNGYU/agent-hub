@@ -3,8 +3,87 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Agent Hub — 사용 가이드</title>
-<meta name="description" content="내 PC의 AI 에이전트(Claude·Codex)를 휴대폰에서 보고 제어하는 Agent Hub 사용 가이드." />
+<title>Agent Hub - Claude Code·Codex 모바일 원격 제어</title>
+<meta name="description" content="Agent Hub는 Claude Code·Codex CLI 세션을 휴대폰에서 모니터링하고 질문 답변, 권한 승인, 명령 전송까지 하는 Windows용 P2P 원격 제어 도구입니다." />
+<meta name="robots" content="index, follow, max-image-preview:large" />
+<meta name="author" content="YOOJUNGYU" />
+<meta name="application-name" content="Agent Hub" />
+<meta name="theme-color" content="#0e1017" />
+<meta name="color-scheme" content="dark" />
+<link rel="canonical" href="https://yoojungyu.github.io/agent-hub/" />
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Agent Hub" />
+<meta property="og:title" content="Agent Hub - Claude Code·Codex 모바일 원격 제어" />
+<meta property="og:description" content="Claude Code와 Codex CLI를 휴대폰에서 보고 제어하세요. 질문 답변, 권한 승인, 명령 전송, NetBird 기반 P2P 연결을 지원합니다." />
+<meta property="og:url" content="https://yoojungyu.github.io/agent-hub/" />
+<meta property="og:image" content="https://yoojungyu.github.io/agent-hub/agent-hub-social.png" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="Agent Hub - Claude Code and Codex CLI mobile remote control" />
+<meta property="og:locale" content="ko_KR" />
+<meta property="og:locale:alternate" content="en_US" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Agent Hub - Claude Code·Codex 모바일 원격 제어" />
+<meta name="twitter:description" content="Claude Code와 Codex CLI를 휴대폰에서 모니터링하고 질문 답변, 권한 승인, 명령 전송까지 처리하는 Windows용 P2P 원격 제어 도구입니다." />
+<meta name="twitter:image" content="https://yoojungyu.github.io/agent-hub/agent-hub-social.png" />
+<meta name="twitter:image:alt" content="Agent Hub - Claude Code and Codex CLI mobile remote control" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://yoojungyu.github.io/agent-hub/#website",
+      "name": "Agent Hub",
+      "url": "https://yoojungyu.github.io/agent-hub/",
+      "description": "Claude Code and Codex CLI mobile remote control guide.",
+      "inLanguage": ["ko", "en"],
+      "publisher": {
+        "@id": "https://github.com/YOOJUNGYU#person"
+      }
+    },
+    {
+      "@type": "Person",
+      "@id": "https://github.com/YOOJUNGYU#person",
+      "name": "YOOJUNGYU",
+      "url": "https://github.com/YOOJUNGYU"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://yoojungyu.github.io/agent-hub/#software",
+      "name": "Agent Hub",
+      "alternateName": "AgentHub",
+      "url": "https://yoojungyu.github.io/agent-hub/",
+      "description": "Agent Hub lets you monitor and control Claude Code and Codex CLI sessions from a phone, including questions, permission approvals, and commands.",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Windows",
+      "isAccessibleForFree": true,
+      "license": "https://github.com/YOOJUNGYU/agent-hub/blob/main/LICENSE",
+      "codeRepository": "https://github.com/YOOJUNGYU/agent-hub",
+      "downloadUrl": "https://github.com/YOOJUNGYU/agent-hub/releases/latest",
+      "image": "https://yoojungyu.github.io/agent-hub/agent-hub-social.png",
+      "inLanguage": ["ko", "en"],
+      "author": {
+        "@id": "https://github.com/YOOJUNGYU#person"
+      },
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "Mobile monitoring for Claude Code and Codex CLI sessions",
+        "Remote question answers and permission approvals",
+        "Command sending from a phone",
+        "Peer-to-peer access via NetBird or local network",
+        "Device approval from the PC"
+      ]
+    }
+  ]
+}
+</script>
 <style>
   :root{
     --bg:#0e1017; --surface:#171b28; --surface2:#1f2433; --border:#2a3145;
@@ -55,7 +134,7 @@
   .eyebrow{font-family:var(--mono); font-size:12px; letter-spacing:2.5px; text-transform:uppercase;
     color:var(--accent); margin:0 0 14px}
   h1{font-size:clamp(30px,4.4vw,50px); line-height:1.08; margin:0 0 16px; letter-spacing:-.02em; font-weight:800}
-  h1 .grad{background:linear-gradient(100deg,var(--accent),var(--accent2)); -webkit-background-clip:text; background-clip:text; color:transparent}
+  h1 .grad{color:var(--accent)}
   .lead{color:var(--muted); font-size:17px; max-width:44ch; margin:0 0 24px}
   .herobtns{display:flex; gap:12px; flex-wrap:wrap}
   .btn2{border:1px solid var(--border); color:var(--text); padding:9px 15px; border-radius:10px; font-size:14px}
@@ -95,7 +174,7 @@
   .primary{width:100%; background:var(--accent); color:#0b0f1a; border:0; border-radius:9px; padding:10px; font-weight:700; font-size:13px}
   .spin{width:26px;height:26px;border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; margin:0 auto; animation:spin 1s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
-  .feed .ev{background:#141824; border-left:3px solid var(--border); border-radius:8px; padding:7px 9px; margin-bottom:6px; font-size:11px}
+  .feed .ev{background:#141824; border-left:1px solid var(--border); border-radius:8px; padding:7px 9px; margin-bottom:6px; font-size:11px}
   .feed .ev.tool{border-left-color:var(--accent)}
   .feed .ev.res{border-left-color:var(--ok)}
   .feed .ev .h{display:flex; gap:6px; align-items:center}
@@ -214,13 +293,14 @@
   </div>
 </header>
 
+<main>
 <!-- 히어로 -->
 <section class="hero">
   <div class="wrap">
     <div>
       <p class="eyebrow">PC → <span class="ko">휴대폰</span><span class="en">Phone</span> · <span class="ko">NetBird로 어디서나</span><span class="en">anywhere via NetBird</span></p>
-      <h1><span class="ko">내 PC의 AI 에이전트를<br><span class="grad">휴대폰에서</span> 지켜보세요</span>
-          <span class="en">Watch your PC's AI agent<br><span class="grad">from your phone</span></span></h1>
+      <h1><span class="ko">Agent Hub로 Claude Code·Codex를<br><span class="grad">휴대폰에서</span> 제어하세요</span>
+          <span class="en">Control Claude Code and Codex<br><span class="grad">from your phone</span></span></h1>
       <p class="lead">
         <span class="ko">자리를 비워도, 휴대폰으로 Claude·Codex가 지금 뭘 하는지 보고 <b>질문에 답하고, 위험한 작업을 승인하고, 명령까지</b> 보냅니다. <b>NetBird로 PC·폰을 직접(peer-to-peer) 연결</b>해 <b>유선·무선·어느 네트워크에 있든 어디서나</b>. 모두 <b>내가 PC에서 승인한 기기</b>만, 클라우드를 거치지 않고 내 기기끼리 직접.</span>
         <span class="en">Step away and still use your phone to see what Claude is doing and <b>answer its questions, approve risky actions, and send commands</b>. <b>NetBird links your PC and phone directly (peer‑to‑peer)</b>, so you reach it <b>from anywhere — wired or Wi‑Fi, on any network</b>, only from <b>devices you approved on your PC</b>, device‑to‑device with no cloud relay.</span>
@@ -704,6 +784,7 @@
     </div>
   </div>
 </section>
+</main>
 
 <footer>
   <div class="wrap">

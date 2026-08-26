@@ -296,6 +296,14 @@
       <Link>View\Htmls\guide.html</Link>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="..\docs\favicon.svg">
+      <Link>View\Htmls\favicon.svg</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\docs\agent-hub-social.png">
+      <Link>View\Htmls\agent-hub-social.png</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="View\Htmls\icons\icon-192.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
