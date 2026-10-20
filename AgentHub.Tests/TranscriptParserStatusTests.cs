@@ -30,5 +30,19 @@ namespace AgentHub.Tests
             var s = TranscriptParser.Summarize("x", lines, now);
             Assert.Equal("active", s.Status);
         }
+
+        [Fact]
+        public void Fold_fed_incrementally_sees_the_later_tool_result()
+        {
+            var now = DateTime.Parse("2026-07-07T10:10:00Z").ToUniversalTime();
+            var fold = new TranscriptParser.SummaryFold();
+            fold.Feed("{\"type\":\"assistant\",\"timestamp\":\"2026-07-07T10:05:00Z\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"tool_use\",\"id\":\"tu_1\",\"name\":\"Bash\",\"input\":{\"command\":\"msbuild\"}}]}}");
+            Assert.Equal("active", fold.Build("x", now).Status);
+            // 나중에 덧붙은 줄만 먹여도 결과가 반영된다(파일을 처음부터 다시 읽지 않는 증분 캐시)
+            fold.Feed("{\"type\":\"user\",\"timestamp\":\"2026-07-07T10:05:30Z\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"tu_1\",\"content\":\"ok\"}]}}");
+            var s = fold.Build("x", now);
+            Assert.Equal("idle", s.Status);
+            Assert.Equal("Bash", s.ToolName);
+        }
     }
 }

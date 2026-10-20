@@ -78,9 +78,12 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 - **네임스페이스**: 자체 코드의 루트 네임스페이스는 `AgentHub`. 새 코드도 `AgentHub.*`를 따른다.
 - **서드파티 코드**: `EmbedIO/`는 서드파티 라이브러리다. 내부 `EmbedIO` 네임스페이스와 소스는 **수정하지 않는다**(원칙 3: Surgical Changes).
 - **인코딩 주의**: C# 소스와 리소스에 **한글(UTF-8)** 문자열이 포함되어 있다. 문자열 일괄 치환 시 인코딩을 훼손하지 않는 방식(Edit 도구 또는 바이트 단위 처리)을 사용한다. 텍스트를 다른 코드페이지로 재인코딩해 저장하지 말 것.
-- **빌드/검증** (원칙 4): 변경 후 아래로 빌드가 통과하는지 확인한다.
+- **빌드/검증** (원칙 4): 변경 후 아래로 빌드가 통과하는지 확인한다. 오피스(`office/`)를 먼저 빌드해야 `View/Htmls/office`가 채워진다.
   ```powershell
+  cd office; npm ci; npm run build:hub; npm test; cd ..
   msbuild AgentHub.sln /t:Restore
   msbuild AgentHub.sln /t:Build /p:Configuration=Debug /p:Platform="Any CPU"
+  dotnet test AgentHub.Tests/AgentHub.Tests.csproj
   ```
-  산출물: `install/Debug/AgentHub.exe`.
+  산출물: `install/Debug/AgentHub.exe`(창 없는 트레이 앱 — 화면은 브라우저/PWA `https://127.0.0.1:<포트>/host`).
+- **오피스(`office/`)**: pixel-agents(MIT) 기반 SPA. 에셋은 손으로 고치지 말고 `office/art/*.py`를 고쳐 `python3 office/art/generate.py` · `python3 office/art/layout.py`로 다시 만든다. 자세한 구조는 [office/README.md](./office/README.md).

@@ -107,3 +107,10 @@ $RECYCLE.BIN/
 .DS_Store
 .AppleDouble
 .LSOverride
+
+# ===== Pixel office (office/) =====
+office/node_modules/
+office/webview-ui/node_modules/
+# build output of `npm run build:hub` (CI builds it before msbuild)
+AgentHub/View/Htmls/office/
+office/**/allure-results/

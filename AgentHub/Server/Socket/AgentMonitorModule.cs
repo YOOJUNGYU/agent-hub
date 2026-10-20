@@ -25,6 +25,14 @@ namespace AgentHub.Server.Socket
         private readonly ConcurrentDictionary<string, string> _watching =
             new ConcurrentDictionary<string, string>();
 
+        // 이 PC(loopback)에서 붙은 소켓 — PC 콘솔/오피스. /host와 같은 신뢰 수준이라 기기 승인 없이 승인 취급.
+        private readonly ConcurrentDictionary<string, bool> _loopback =
+            new ConcurrentDictionary<string, bool>();
+
+        // 오피스 뷰 구독 소켓 — 작업 중인 모든 세션의 최근 활동을 한 번에 받는다(watchOffice).
+        private readonly ConcurrentDictionary<string, bool> _office =
+            new ConcurrentDictionary<string, bool>();
+
         // contextId -> 전송 직렬화 락. SslStream은 동시 write를 허용하지 않으므로(BeginWrite 예외),
         // 브로드캐스트·activity push·연결/승인 응답이 겹쳐도 소켓별로 write를 직렬화한다.
         private readonly ConcurrentDictionary<string, SemaphoreSlim> _sendLocks =
@@ -41,17 +49,30 @@ namespace AgentHub.Server.Socket
             var status = DeviceRegistry.StatusOf(token);
             if (!string.IsNullOrEmpty(token))
                 _tokens[context.Id] = DeviceRegistry.HashToken(token);
+            if (NetUtil.IsLoopback(context.RemoteEndPoint?.Address))
+            {
+                _loopback[context.Id] = true;
+                status = DeviceStatus.Approved;
+            }
 
             await SendSafe(context, AuthMessage(status));
 
+            // 첫 스냅샷(트랜스크립트 전체 스캔)은 수 초 걸린다. EmbedIO는 이 메서드가 끝나야 수신 루프를 붙이므로
+            // 여기서 기다리면 그 사이 클라이언트가 보낸 watch/watchOffice가 버려진다 → 백그라운드로 보낸다.
             if (status == DeviceStatus.Approved)
-                await ActivateAsync(context, token);
+                _ = Task.Run(async () =>
+                {
+                    try { await ActivateAsync(context, token); }
+                    catch (Exception ex) { LogService.Instance.Error(ex); }
+                });
         }
 
         protected override Task OnClientDisconnectedAsync(IWebSocketContext context)
         {
             _tokens.TryRemove(context.Id, out _);
             _watching.TryRemove(context.Id, out _);
+            _loopback.TryRemove(context.Id, out _);
+            _office.TryRemove(context.Id, out _);
             _sendLocks.TryRemove(context.Id, out _);
             MonitorClientRegistry.Remove(context.Id);
             return Task.CompletedTask;
@@ -61,8 +82,7 @@ namespace AgentHub.Server.Socket
         {
             try
             {
-                if (!_tokens.TryGetValue(context.Id, out var h)
-                    || DeviceRegistry.StatusByHash(h) != DeviceStatus.Approved) return;
+                if (!IsApproved(context.Id)) return;
 
                 var text = System.Text.Encoding.UTF8.GetString(buffer, 0, result.Count);
                 var msg = Json.Deserialize<WatchMessage>(text);
@@ -77,6 +97,11 @@ namespace AgentHub.Server.Socket
                     if (AgentHub.Server.Hook.AskRegistry.TryGetPendingForSession(msg.SessionId, out var eid, out var qsJson))
                         await SendSafe(context, Json.Serialize(new { type = "elicit", id = eid,
                             questions = Newtonsoft.Json.Linq.JToken.Parse(qsJson), sessionId = msg.SessionId, resent = true }));
+                }
+                else if (msg.Type == "watchOffice")
+                {
+                    _office[context.Id] = true;
+                    await SendSafe(context, AgentMonitorService.OfficeMessage());
                 }
                 else if (msg.Type == "unwatch")
                 {
@@ -195,11 +220,29 @@ namespace AgentHub.Server.Socket
             foreach (var ctx in ActiveContexts)
             {
                 if (!_watching.TryGetValue(ctx.Id, out var sid) || string.IsNullOrEmpty(sid)) continue;
-                if (!_tokens.TryGetValue(ctx.Id, out var h) || DeviceRegistry.StatusByHash(h) != DeviceStatus.Approved) continue;
+                if (!IsApproved(ctx.Id)) continue;
                 tasks.Add(SendSafe(ctx, AgentMonitorService.ActivityMessage(sid)));
             }
             return Task.WhenAll(tasks);
         }
+
+        /// <summary>오피스 구독 소켓에 작업 중 세션들의 최근 활동을 push. 구독자가 없으면 트랜스크립트를 읽지 않는다.</summary>
+        public Task PushOfficeToSubscribers(System.Collections.Generic.List<SessionSummary> sessions)
+        {
+            string message = null;
+            var tasks = new System.Collections.Generic.List<Task>();
+            foreach (var ctx in ActiveContexts)
+            {
+                if (!_office.ContainsKey(ctx.Id) || !IsApproved(ctx.Id)) continue;
+                if (message == null) message = AgentMonitorService.OfficeMessage(sessions);
+                tasks.Add(SendSafe(ctx, message));
+            }
+            return Task.WhenAll(tasks);
+        }
+
+        private bool IsApproved(string contextId) =>
+            _loopback.ContainsKey(contextId)
+            || (_tokens.TryGetValue(contextId, out var h) && DeviceRegistry.StatusByHash(h) == DeviceStatus.Approved);
 
         /// <summary>서비스에서 호출 — 승인된 소켓에만 broadcast(소켓별 write는 직렬화, 소켓 간에는 병렬).</summary>
         public Task BroadcastMessageAsync(string message)
@@ -207,7 +250,7 @@ namespace AgentHub.Server.Socket
             var tasks = new System.Collections.Generic.List<Task>();
             foreach (var ctx in ActiveContexts)
             {
-                if (!_tokens.TryGetValue(ctx.Id, out var h) || DeviceRegistry.StatusByHash(h) != DeviceStatus.Approved) continue;
+                if (!IsApproved(ctx.Id)) continue;
                 tasks.Add(SendSafe(ctx, message));
             }
             return Task.WhenAll(tasks);
@@ -218,6 +261,7 @@ namespace AgentHub.Server.Socket
             foreach (var ctx in ActiveContexts)
             {
                 if (!_tokens.TryGetValue(ctx.Id, out var h) || h != hash) continue;
+                if (_loopback.ContainsKey(ctx.Id)) continue; // PC 소켓은 기기 승인 상태와 무관하게 항상 승인
                 try
                 {
                     await SendSafe(ctx, AuthMessage(status));

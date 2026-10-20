@@ -12,6 +12,8 @@ namespace AgentHub.Common.Util
     {
         private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
         private const string ValueName = "AgentHub";
+        /// <summary>로그인 자동 시작 표시 — 이 인자로 뜨면 화면을 열지 않고 트레이에만 상주한다.</summary>
+        public const string Argument = "--autostart";
 
         // 현재 실행 파일 경로. Velopack은 ...\AgentHub\current\ 경로가 업데이트 후에도 유지된다.
         private static string ExePath => Process.GetCurrentProcess().MainModule?.FileName;
@@ -36,7 +38,7 @@ namespace AgentHub.Common.Util
                 using var key = Registry.CurrentUser.OpenSubKey(RunKey, writable: true)
                                 ?? Registry.CurrentUser.CreateSubKey(RunKey);
                 // 경로에 공백이 있어도 안전하도록 따옴표로 감싼다.
-                key?.SetValue(ValueName, "\"" + path + "\"", RegistryValueKind.String);
+                key?.SetValue(ValueName, "\"" + path + "\" " + Argument, RegistryValueKind.String);
                 return true;
             }
             catch (Exception ex) { LogService.Instance.Error(ex); return false; }

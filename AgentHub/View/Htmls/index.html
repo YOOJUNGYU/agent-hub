@@ -4,13 +4,13 @@
   <meta charset="utf-8" />
   <!-- interactive-widget: 가상 키보드가 뜰 때 레이아웃 뷰포트를 줄여, 하단 특수키 바/버튼이 키보드에 가리지 않게 한다. -->
   <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content" />
-  <meta name="theme-color" content="#181c2a" />
+  <meta name="theme-color" content="#1b2036" /><!-- PWA 타이틀바: 다크 배경색(다크에선 이어지고, 라이트에선 화면을 감싸 집중감) -->
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="apple-touch-icon" href="/icons/icon-192.png" />
   <link rel="icon" href="/icons/icon-192.png" />
   <link rel="stylesheet" href="/css/app.css" />
   <!-- 저장된 테마를 첫 페인트 전에 적용해 라이트 모드 사용자에게 다크→라이트 깜빡임(FOUC)이 없게 한다. -->
-  <script>try{if(localStorage.getItem('agenthub.theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+  <script>try{if(localStorage.getItem('agenthub.theme')!=='dark')document.documentElement.setAttribute('data-theme','light');}catch(e){document.documentElement.setAttribute('data-theme','light');}</script>
   <title>Agent Hub — 모니터</title>
 </head>
 <body>

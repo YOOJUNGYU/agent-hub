@@ -46,7 +46,7 @@ namespace AgentHub.Server
 
         public static string CurrentUrl => $"https://{CurrentHost}:{CurrentPort}";
 
-        /// <summary>PC(호스트 콘솔) 전용 loopback URL. WebView2가 이 주소로 /host를 로드한다.</summary>
+        /// <summary>PC(호스트 콘솔) 전용 loopback URL. 트레이 앱이 이 주소의 /host를 브라우저/PWA로 연다.</summary>
         public static string LocalUrl => $"https://127.0.0.1:{CurrentPort}";
 
         /// <summary>서버 재시작(포트 변경 등) 완료 후 발생. 구독자는 새 <see cref="CurrentUrl"/>로 재이동할 수 있다.</summary>
@@ -377,9 +377,8 @@ namespace AgentHub.Server
                     .WithWebApi("/api", m => m.WithController<ApiController>())
                     .WithModule(agentModule)
                     .WithModule(new HostMonitorModule("/ws/host"))
-                    // /host, /host.html 는 PC(loopback)에서만 접근 허용. 그 외는 정적 폴더로 통과.
-                    .WithAction("/host", HttpVerbs.Any, GuardHostAsync)
-                    .WithAction("/host.html", HttpVerbs.Any, GuardHostAsync)
+                    .WithModule(new TerminalModule("/ws/term"))
+                    // /host 는 PC·폰 공용 화면(PWA). 기기·로그·설정 데이터는 /api·/ws/host 쪽에서 loopback만 허용한다.
                     // 서비스워커: 캐시 키({{VER}})를 자산 해시로 치환해 서빙 → 빌드마다 자동 무효화.
                     .WithAction("/sw.js", HttpVerbs.Any, ctx => ServeServiceWorkerAsync(ctx, htmlPath))
                     // 정적 SPA (반드시 마지막 — "/"는 catch-all). "/" -> index.html, "/host" -> host.html
@@ -447,15 +446,6 @@ namespace AgentHub.Server
                 LogService.Instance.Error(ex);
                 return "static";
             }
-        }
-
-        /// <summary>loopback이면 정적 폴더로 통과, 아니면 403.</summary>
-        private static Task GuardHostAsync(EmbedIO.IHttpContext ctx)
-        {
-            if (NetUtil.IsLoopback(ctx.Request.RemoteEndPoint?.Address))
-                throw RequestHandler.PassThrough();
-            ctx.Response.StatusCode = 403;
-            return ctx.SendStringAsync("Forbidden", "text/plain", Encoding.UTF8);
         }
 
         /// <summary>

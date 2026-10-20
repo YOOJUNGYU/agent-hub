@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json.Linq;
 using AgentHub.Common.Models;
 
@@ -185,11 +186,13 @@ namespace AgentHub.Server.Agents
                             if (role == "assistant") { msgCount++; lastWasUser = false; }
                             break;
                         case "function_call":
+                        case "custom_tool_call": // 신형 Codex: exec(JS 안의 tools.exec_command)·apply_patch
                             lastFunctionCall = p;
                             lastFunctionCallId = Str(p["call_id"]);
                             lastWasUser = false;
                             break;
                         case "function_call_output":
+                        case "custom_tool_call_output":
                             var cid = Str(p["call_id"]);
                             if (cid != null) completedCallIds.Add(cid);
                             break;
@@ -210,7 +213,7 @@ namespace AgentHub.Server.Agents
             {
                 var name = Str(lastFunctionCall["name"]);
                 s.ToolName = name;
-                s.CurrentTask = SummarizeToolUse(name, Str(lastFunctionCall["arguments"]));
+                s.CurrentTask = SummarizeToolUse(name, CallArgs(lastFunctionCall));
                 unfinishedTool = lastFunctionCallId == null || !completedCallIds.Contains(lastFunctionCallId);
             }
 
@@ -264,13 +267,19 @@ namespace AgentHub.Server.Agents
                         }
                         break;
                     case "reasoning":
-                        all.Add(new ActivityEvent { Kind = "thinking", Ts = ts, Summary = "(사고)" });
+                        // 대부분 암호화(encrypted_content)라 비어 있고, 요약이 있으면 그 텍스트를 싣는다.
+                        var rs = (p["summary"] as JArray)?.OfType<JObject>().Select(x => Str(x["text"])).Where(x => !string.IsNullOrWhiteSpace(x));
+                        var rtext = rs == null ? null : string.Join("\n", rs);
+                        all.Add(new ActivityEvent { Kind = "thinking", Ts = ts, Summary = "(사고)", Text = string.IsNullOrWhiteSpace(rtext) ? null : rtext });
                         break;
                     case "function_call":
+                    case "custom_tool_call":
                         var name = Str(p["name"]);
-                        all.Add(new ActivityEvent { Kind = "tool_use", Ts = ts, ToolName = name, Summary = SummarizeToolUse(name, Str(p["arguments"])) });
+                        var args = CallArgs(p);
+                        all.Add(new ActivityEvent { Kind = "tool_use", Ts = ts, ToolName = name, Summary = SummarizeToolUse(name, args), Target = ExecCommand(args) ?? PatchFile(args) });
                         break;
                     case "function_call_output":
+                    case "custom_tool_call_output":
                         var outp = OutputText(p["output"]);
                         all.Add(new ActivityEvent { Kind = "tool_result", Ts = ts, Summary = Truncate(FirstLine(outp), 80), Text = Truncate(outp, 2000) });
                         break;
@@ -295,8 +304,37 @@ namespace AgentHub.Server.Agents
                     ?? Str(args["path"])
                     ?? Str(args["file_path"]);
             }
+            else
+            {
+                // custom_tool_call의 input은 JSON이 아니라 코드/패치 원문: 셸 명령 또는 패치 대상 파일을 뽑는다.
+                detail = FirstLine(ExecCommand(argumentsJson)) ?? PatchFile(argumentsJson);
+            }
             detail = Truncate(detail, 80);
             return string.IsNullOrWhiteSpace(detail) ? (name ?? "tool") : $"{name}  {detail}";
+        }
+
+        // function_call은 arguments(JSON 문자열), custom_tool_call은 input(원문)에 인자를 싣는다.
+        private static string CallArgs(JObject p) => Str(p["arguments"]) ?? Str(p["input"]);
+
+        private static readonly Regex ExecCmdRx =
+            new Regex(@"tools\.exec_command\(\s*\{\s*""?(?:cmd|command)""?\s*:\s*""((?:[^""\\]|\\.)*)""");
+        private static readonly Regex PatchFileRx =
+            new Regex(@"\*\*\* (?:Update|Add|Delete) File: ([^\r\n""\\]+)");
+
+        /// <summary>exec 원문(JS)의 tools.exec_command({cmd:"..."})에서 셸 명령을 꺼낸다. 없으면 null.</summary>
+        public static string ExecCommand(string raw)
+        {
+            if (string.IsNullOrEmpty(raw)) return null;
+            var m = ExecCmdRx.Match(raw);
+            return m.Success ? Regex.Unescape(m.Groups[1].Value) : null;
+        }
+
+        /// <summary>apply_patch 원문의 "*** Update File: 경로"에서 대상 파일을 꺼낸다. 없으면 null.</summary>
+        public static string PatchFile(string raw)
+        {
+            if (string.IsNullOrEmpty(raw)) return null;
+            var m = PatchFileRx.Match(raw);
+            return m.Success ? m.Groups[1].Value.Trim() : null;
         }
 
         private static JObject ParseArgs(string argumentsJson)

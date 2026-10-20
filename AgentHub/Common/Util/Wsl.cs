@@ -122,7 +122,7 @@ namespace AgentHub.Common.Util
         /// SysWOW64로 리다이렉트해 wsl.exe를 찾지 못한다 → Sysnative(32비트에서만 보이는 실제 System32)를 먼저 본다.
         /// WSL 없는 PC면 null.
         /// </summary>
-        private static string ResolveWslExe()
+        public static string ResolveWslExe()
         {
             var windir = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
             var candidates = Environment.Is64BitProcess
@@ -134,14 +134,19 @@ namespace AgentHub.Common.Util
         }
 
         /// <summary>실행 중인 배포판 이름. WSL 미설치/조회 실패 시 빈 목록(조용히 비활성).</summary>
-        private static IList<string> RunningDistros()
+        private static IList<string> RunningDistros() => ListDistros("--list --running --quiet");
+
+        /// <summary>설치된 배포판 이름(꺼져 있는 것 포함) — 새 에이전트를 WSL에서 띄울 때 고르는 목록. 첫 항목이 기본 배포판.</summary>
+        public static IList<string> InstalledDistros() => ListDistros("--list --quiet");
+
+        private static IList<string> ListDistros(string args)
         {
             var names = new List<string>();
             var wsl = ResolveWslExe();
             if (wsl == null) return names; // WSL 없는 PC — wsl.exe를 띄우지 않는다(예외·로그 폭주 방지)
             try
             {
-                var psi = new ProcessStartInfo(wsl, "--list --running --quiet")
+                var psi = new ProcessStartInfo(wsl, args)
                 {
                     RedirectStandardOutput = true,
                     UseShellExecute = false,

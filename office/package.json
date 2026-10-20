@@ -1,0 +1,12 @@
+{
+  "name": "agent-hub-office",
+  "private": true,
+  "description": "Agent Hub pixel office (based on pixel-agents, MIT). Root of the npm workspace so core/ and webview-ui/ share one node_modules.",
+  "workspaces": [
+    "webview-ui"
+  ],
+  "scripts": {
+    "build:hub": "npm run build:hub -w webview-ui",
+    "test": "npm test -w webview-ui"
+  }
+}

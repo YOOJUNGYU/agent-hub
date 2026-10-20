@@ -94,11 +94,9 @@ namespace AgentHub.Server.Agents
                 {
                     // 제목 인덱스는 홈당 1회만 읽는다(파일당 읽으면 9p 홈에서 최대 30배 비용).
                     titlesByHome[home.CodexDir] = LoadTitleIndex(home.CodexDir);
-                    foreach (var f in Directory.EnumerateFiles(root, "*.jsonl", SearchOption.AllDirectories))
-                    {
-                        var fi = new FileInfo(f);
+                    // DirectoryInfo 열거는 시각·크기를 목록 조회에서 같이 받는다(파일마다 9p stat 생략).
+                    foreach (var fi in new DirectoryInfo(root).EnumerateFiles("*.jsonl", SearchOption.AllDirectories))
                         if (fi.LastWriteTimeUtc >= cutoff) files.Add(Tuple.Create(fi, home.CodexDir));
-                    }
                 }
                 catch (Exception ex) { LogService.Instance.Error(ex); }
             }
@@ -147,13 +145,13 @@ namespace AgentHub.Server.Agents
             return s;
         }
 
-        public static List<ActivityEvent> GetActivity(string sessionId, int max = 200)
+        public static List<ActivityEvent> GetActivity(string sessionId, int max = 200, int tailBytes = 0)
         {
             var path = ResolvePath(sessionId);
             if (path == null) return new List<ActivityEvent>();
             try
             {
-                var lines = ReadAllLinesShared(path);
+                var lines = tailBytes > 0 ? ClaudeSessionReader.ReadTailLines(path, tailBytes) : ReadAllLinesShared(path);
                 return CodexTranscriptParser.ParseEvents(lines, max);
             }
             catch (Exception ex) { LogService.Instance.Error(ex); return new List<ActivityEvent>(); }

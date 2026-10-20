@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using EmbedIO;
@@ -105,6 +106,63 @@ namespace AgentHub.Server.Controller
         }
 
         // ---- 기기 인증 (모바일) ----
+
+        // ---- 오피스: 새 에이전트 실행 (PC 또는 승인된 기기 — 세션에 프롬프트를 보내는 것과 같은 권한) ----
+        private bool CanControlAgents()
+            => IsLoopback() || DeviceRegistry.StatusOf(DeviceToken()) == DeviceStatus.Approved;
+
+        [Route(HttpVerbs.Get, "/agents/launch-options")]
+        public Task LaunchOptions()
+        {
+            if (!CanControlAgents()) return Forbidden();
+            // 최근 세션들의 작업 폴더를 추천 목록으로(WSL 경로는 /로 시작).
+            var seen = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var recent = new System.Collections.Generic.List<object>();
+            foreach (var s in AgentMonitorService.CurrentSessions())
+            {
+                if (string.IsNullOrEmpty(s.Cwd) || !seen.Add(s.Cwd)) continue;
+                recent.Add(new { cwd = s.Cwd, env = s.Cwd.StartsWith("/") ? "wsl" : "windows", project = s.Project });
+            }
+            return SendJsonAsync(Json.Serialize(new { distros = Wsl.InstalledDistros(), recent }));
+        }
+
+        [Route(HttpVerbs.Post, "/agents/launch")]
+        public async Task LaunchAgent()
+        {
+            if (!CanControlAgents()) { await Forbidden(); return; }
+            var body = Json.Deserialize<LaunchBody>(await HttpContext.GetRequestBodyAsStringAsync()) ?? new LaunchBody();
+            var (ok, message, pty) = AgentLauncher.Launch(body.Engine, body.Env, body.Distro, body.Cwd, body.Prompt);
+            if (!ok) HttpContext.Response.StatusCode = 400;
+            await SendJsonAsync(Json.Serialize(new { ok, message, pty }));
+        }
+
+        /// <summary>Agent Hub가 띄운 창 없는 터미널들(오피스 터미널 탭·세션 연결 전 시작 화면).</summary>
+        [Route(HttpVerbs.Get, "/agents/terminals")]
+        public Task Terminals()
+        {
+            if (!CanControlAgents()) return Forbidden();
+            var list = AgentHub.Server.Terminal.PtyHost.Sessions
+                .OrderByDescending(t => t.StartedAt)
+                .Select(t => new { id = t.Id, title = t.Title, engine = t.Engine, env = t.Env, cwd = t.Cwd, startedAt = t.StartedAt.ToString("o"), exited = t.Exited });
+            return SendJsonAsync(Json.Serialize(new { terminals = list }));
+        }
+
+        [Route(HttpVerbs.Post, "/agents/terminals/{id}/kill")]
+        public Task KillTerminal(string id)
+        {
+            if (!CanControlAgents()) return Forbidden();
+            if (AgentHub.Server.Terminal.PtyHost.TryGet(id, out var t)) AgentHub.Server.Terminal.PtyHost.Kill(t);
+            return SendJsonAsync(Json.Serialize(new { ok = true }));
+        }
+
+        public class LaunchBody
+        {
+            public string Engine { get; set; }  // claude | codex
+            public string Env { get; set; }     // windows | wsl
+            public string Distro { get; set; }  // WSL 배포판(비우면 기본)
+            public string Cwd { get; set; }     // 작업 폴더(Windows 경로 또는 WSL 경로)
+            public string Prompt { get; set; }  // 첫 프롬프트(선택)
+        }
 
         [Route(HttpVerbs.Get, "/devices/status")]
         public Task DeviceStatusEndpoint()

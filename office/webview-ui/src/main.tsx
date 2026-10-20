@@ -1,0 +1,28 @@
+import './index.css';
+// Bundled by Vite into the SPA's own CSS — the standalone server must serve
+// every asset itself (no CDN).
+import '@xterm/xterm/css/xterm.css';
+
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+
+import App from './App.tsx';
+import { isBrowserRuntime, isHubRuntime } from './runtime';
+
+async function main() {
+  // browserMock is for Vite dev mode only (UI prototyping without a server).
+  // In standalone server mode, assets are loaded server-side and sent over WebSocket.
+  // Agent Hub mode decodes the same way: there is no pixel-agents server there either.
+  if (isBrowserRuntime && (import.meta.env.DEV || isHubRuntime)) {
+    const { initBrowserMock } = await import('./browserMock.js');
+    await initBrowserMock();
+  }
+  if (isHubRuntime) document.documentElement.classList.add('hub');
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  );
+}
+
+main().catch(console.error);

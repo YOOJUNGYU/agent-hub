@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Served by Agent Hub at /office/: icons and the PWA manifest are Agent Hub's own. -->
+    <link rel="icon" type="image/png" href="/icons/icon-192.png" />
+    <!-- user-scalable=no: pinch belongs to the office canvas zoom, not page zoom. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, interactive-widget=resizes-content"
+    />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="theme-color" content="#1b2036" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Agent Hub" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <!-- Theme before first paint (light by default; shared with the console). -->
+    <script>
+      try {
+        document.documentElement.setAttribute(
+          'data-theme',
+          localStorage.getItem('agenthub.theme') === 'dark' ? 'dark' : 'light',
+        );
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    </script>
+    <title>Agent Hub · 오피스</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

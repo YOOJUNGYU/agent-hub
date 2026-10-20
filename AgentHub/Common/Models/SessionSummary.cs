@@ -21,5 +21,6 @@ namespace AgentHub.Common.Models
         public PendingAsk PendingAsk { get; set; }
         public PendingPermission PendingPermission { get; set; } // "ask" 폴백된 권한 요청(콘솔 주입으로 허용/거부)
         public bool Injectable { get; set; }   // claude + 살아있는 PID → 모바일 직접 주입 가능(세션연결 판별)
+        public string Pty { get; set; }        // Agent Hub가 창 없이 띄운 터미널 id(오피스 터미널 탭) — 없으면 null
     }
 }

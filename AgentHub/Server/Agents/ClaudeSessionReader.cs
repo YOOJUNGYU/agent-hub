@@ -25,6 +25,16 @@ namespace AgentHub.Server.Agents
         private static Timer _poll;
 
         // sessionId -> 파일 경로 (최근 스캔 캐시)
+        // 트랜스크립트별 증분 요약: 읽은 바이트 위치까지 접어 둔 상태. 파일이 자라면 새 줄만 읽는다 —
+        // 수십 MB 트랜스크립트를 9p(\\wsl.localhost)로 변경마다 통째로 읽으면 목록 한 번에 수십 초가 걸린다.
+        private sealed class Parsed
+        {
+            public long Offset;
+            public TranscriptParser.SummaryFold Fold = new TranscriptParser.SummaryFold();
+        }
+
+        private static readonly ConcurrentDictionary<string, Parsed> _parsed = new ConcurrentDictionary<string, Parsed>();
+
         private static readonly ConcurrentDictionary<string, string> _paths =
             new ConcurrentDictionary<string, string>();
 
@@ -56,11 +66,9 @@ namespace AgentHub.Server.Agents
                 try
                 {
                     foreach (var dir in Directory.EnumerateDirectories(root))
-                        foreach (var f in Directory.EnumerateFiles(dir, "*.jsonl"))
-                        {
-                            var fi = new FileInfo(f);
+                        // DirectoryInfo 열거는 목록 조회 결과에 시각·크기가 실려 온다 — 파일마다 9p stat을 따로 하지 않는다.
+                        foreach (var fi in new DirectoryInfo(dir).EnumerateFiles("*.jsonl"))
                             if (fi.LastWriteTimeUtc >= cutoff) files.Add(fi);
-                        }
                 }
                 catch (Exception ex) { LogService.Instance.Error(ex); }
             }
@@ -71,18 +79,15 @@ namespace AgentHub.Server.Agents
                 {
                     var id = Path.GetFileNameWithoutExtension(fi.Name);
                     _paths[id] = fi.FullName;
-                    var lines = ReadAllLinesShared(fi.FullName);
-                    var s = TranscriptParser.Summarize(id, lines, now);
-                    s.Engine = "claude";
-                    s.PendingAsk = TranscriptParser.ExtractPendingAsk(lines);
-                    result.Add(s);
+                    result.Add(SummaryOf(id, fi, now));
                 }
                 catch (Exception ex) { LogService.Instance.Error(ex); }
             }
             return result;
         }
 
-        public static List<ActivityEvent> GetActivity(string sessionId, int max = 200)
+        /// <param name="tailBytes">0이면 파일 전체, 아니면 끝에서 이만큼만 읽는다(오피스 실시간 갱신용 — 큰 트랜스크립트를 매번 통째로 읽지 않게).</param>
+        public static List<ActivityEvent> GetActivity(string sessionId, int max = 200, int tailBytes = 0)
         {
             if (!_paths.TryGetValue(sessionId, out var path) || !File.Exists(path))
             {
@@ -92,7 +97,7 @@ namespace AgentHub.Server.Agents
             }
             try
             {
-                var lines = ReadAllLinesShared(path);
+                var lines = tailBytes > 0 ? ReadTailLines(path, tailBytes) : ReadAllLinesShared(path);
                 return TranscriptParser.ParseEvents(lines, max);
             }
             catch (Exception ex) { LogService.Instance.Error(ex); return new List<ActivityEvent>(); }
@@ -169,6 +174,98 @@ namespace AgentHub.Server.Agents
         }
 
         // 잠긴(쓰기 중) 파일도 읽도록 FileShare.ReadWrite.
+        /// <summary>오피스: 세션이 띄운 서브에이전트 1건(세션폴더/subagents/agent-*.jsonl + .meta.json).</summary>
+        public class SubagentInfo
+        {
+            public string ToolUseId;    // 부모 세션의 Task/Agent tool_use id
+            public string Description;
+            public string AgentType;
+            public List<ActivityEvent> Events;
+        }
+
+        private static readonly TimeSpan SubagentStale = TimeSpan.FromMinutes(10);
+
+        /// <summary>아직 일하는 서브에이전트들과 각자의 최근 활동. 끝났거나(meta.finished) 한동안 조용한 것은 뺀다.</summary>
+        public static List<SubagentInfo> GetSubagents(string sessionId, int max, int tailBytes)
+        {
+            var list = new List<SubagentInfo>();
+            try
+            {
+                if (!_paths.TryGetValue(sessionId, out var path)) path = FindSessionFile(sessionId);
+                if (path == null) return list;
+                var dir = Path.Combine(Path.GetDirectoryName(path) ?? "", Path.GetFileNameWithoutExtension(path), "subagents");
+                if (!Directory.Exists(dir)) return list;
+                foreach (var metaPath in Directory.GetFiles(dir, "*.meta.json"))
+                {
+                    var jsonl = metaPath.Substring(0, metaPath.Length - ".meta.json".Length) + ".jsonl";
+                    if (!File.Exists(jsonl) || DateTime.UtcNow - File.GetLastWriteTimeUtc(jsonl) > SubagentStale) continue;
+                    var meta = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(metaPath));
+                    if (meta.Value<bool?>("finished") == true) continue;
+                    list.Add(new SubagentInfo
+                    {
+                        ToolUseId = meta.Value<string>("toolUseId"),
+                        Description = meta.Value<string>("description"),
+                        AgentType = meta.Value<string>("agentType"),
+                        Events = TranscriptParser.ParseEvents(ReadTailLines(jsonl, tailBytes), max)
+                    });
+                }
+            }
+            catch (Exception ex) { LogService.Instance.Error(ex); }
+            return list;
+        }
+
+        /// <summary>파일 끝 maxBytes 안의 완전한 줄들(첫 줄은 중간부터 잘렸을 수 있어 버린다). 쓰기 중인 파일도 공유 읽기.</summary>
+        public static List<string> ReadTailLines(string path, int maxBytes)
+        {
+            using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            {
+                var start = Math.Max(0, fs.Length - maxBytes);
+                fs.Seek(start, SeekOrigin.Begin);
+                var lines = new List<string>();
+                using (var sr = new StreamReader(fs))
+                {
+                    string line;
+                    while ((line = sr.ReadLine()) != null) lines.Add(line);
+                }
+                if (start > 0 && lines.Count > 0) lines.RemoveAt(0);
+                return lines;
+            }
+        }
+
+        private static SessionSummary SummaryOf(string id, FileInfo fi, DateTime now)
+        {
+            var p = _parsed.GetOrAdd(fi.FullName, _ => new Parsed());
+            lock (p)
+            {
+                if (fi.Length < p.Offset) { p.Offset = 0; p.Fold = new TranscriptParser.SummaryFold(); } // 새로 쓰인 파일
+                if (fi.Length > p.Offset) p.Offset = FeedNewLines(fi.FullName, p.Offset, p.Fold);
+                var s = p.Fold.Build(id, now);
+                s.Engine = "claude";
+                s.PendingAsk = p.Fold.PendingAsk();
+                return s;
+            }
+        }
+
+        /// <summary>offset 이후의 완성된 줄(개행으로 끝난)만 접고, 다음에 읽을 위치를 돌려준다.</summary>
+        private static long FeedNewLines(string path, long offset, TranscriptParser.SummaryFold fold)
+        {
+            byte[] buf;
+            using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+            {
+                if (fs.Length <= offset) return offset;
+                fs.Seek(offset, SeekOrigin.Begin);
+                buf = new byte[fs.Length - offset];
+                int read = 0, n;
+                while (read < buf.Length && (n = fs.Read(buf, read, buf.Length - read)) > 0) read += n;
+                if (read < buf.Length) Array.Resize(ref buf, read);
+            }
+            var end = Array.LastIndexOf(buf, (byte)'\n');
+            if (end < 0) return offset; // 아직 쓰는 중인 줄
+            foreach (var line in System.Text.Encoding.UTF8.GetString(buf, 0, end + 1).Split('\n'))
+                fold.Feed(line.TrimEnd('\r'));
+            return offset + end + 1;
+        }
+
         private static List<string> ReadAllLinesShared(string path)
         {
             var lines = new List<string>();

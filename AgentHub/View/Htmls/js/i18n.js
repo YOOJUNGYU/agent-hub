@@ -24,7 +24,8 @@
       'qr.certTitle': '인증서 받기',
       'qr.certNote': '아직 신뢰되지 않은 주소라 보안 경고가 먼저 뜹니다. 고급 → 계속을 눌러야 다운로드가 시작됩니다.',
       // 콘솔 탭
-      'tab.devices': '기기 관리',
+      'tab.office': '오피스',
+      'tab.devices': '기기',
       'tab.clients': '연결된 기기',
       'tab.logs': '로그',
       'tab.settings': '설정',
@@ -153,6 +154,7 @@
       'qr.connectNote': 'Scan with your phone camera to open the connection screen.',
       'qr.certTitle': 'Get the certificate',
       'qr.certNote': 'This address is not trusted yet, so a security warning appears first. Tap Advanced → Proceed to start the download.',
+      'tab.office': 'Office',
       'tab.devices': 'Devices',
       'tab.clients': 'Connected',
       'tab.logs': 'Logs',

@@ -22,6 +22,20 @@ jobs:
       - name: Setup NuGet
         uses: nuget/setup-nuget@v4
 
+      - name: Setup Node (pixel office)
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: office/package-lock.json
+
+      # 픽셀 오피스(office/, npm 워크스페이스 루트) → AgentHub/View/Htmls/office (csproj가 와일드카드로 포함)
+      - name: Build pixel office
+        working-directory: office
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build:hub
+
       - name: Restore NuGet packages
         run: nuget restore AgentHub.sln
 
@@ -37,7 +51,7 @@ jobs:
         run: echo "version=$($env:GITHUB_REF_NAME -replace '^v','')" >> $env:GITHUB_OUTPUT
 
       - name: Pack (Velopack)
-        run: vpk pack -u AgentHub -v ${{ steps.ver.outputs.version }} -p install\Release -e AgentHub.exe --framework net48,webview2
+        run: vpk pack -u AgentHub -v ${{ steps.ver.outputs.version }} -p install\Release -e AgentHub.exe --framework net48
 
       - name: Upload to GitHub Release
         run: vpk upload github --repoUrl https://github.com/YOOJUNGYU/agent-hub --token ${{ secrets.GITHUB_TOKEN }} --publish --releaseName "Agent Hub ${{ steps.ver.outputs.version }}" --tag ${{ github.ref_name }}

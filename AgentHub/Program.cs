@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using AgentHub.Common;
 using AgentHub.Common.Util;
-using AgentHub.View.Forms;
+using AgentHub.View;
 
 namespace AgentHub
 {
@@ -25,7 +25,7 @@ namespace AgentHub
         /// 해당 애플리케이션의 주 진입점입니다.
         /// </summary>
         [STAThread]
-        private static void Main()
+        private static void Main(string[] args)
         {
             // Velopack 설치/업데이트/제거 훅 — 반드시 다른 어떤 코드보다 먼저.
             Velopack.VelopackApp.Build().Run();
@@ -46,7 +46,8 @@ namespace AgentHub
             var processes = Process.GetProcessesByName(strCurrentProcess);
             if (processes.Length > 1)
             {
-                MessageBox.Show(Constants.Messages.AlreadyExecuted);
+                // 이미 상주 중 → 경고 대신 화면(브라우저/PWA)만 열고 끝낸다(시작 메뉴를 다시 눌러도 바로 열리게).
+                TrayApp.OpenInBrowser(TrayApp.RunningHostUrl());
                 return;
             }
 
@@ -56,7 +57,9 @@ namespace AgentHub
             AppSettingsProvider.ApplyProvider(Properties.Settings.Default);
             // Windows 로그인 시 자동 실행을 설정값에 맞춰 동기화(설치본에서만, 기본 켜짐).
             AutoStartService.SyncOnStartup(Properties.Settings.Default.AutoStart);
-            Application.Run(new FormMain());
+            // 창 없이 상주(서버 + 트레이). 화면은 브라우저/PWA. 로그인 자동 시작이면 조용히, 직접 실행이면 화면을 연다.
+            var autostart = Array.Exists(args, a => a == AutoStartService.Argument);
+            Application.Run(new TrayApp(openOnStart: !autostart));
         }
     }
 }

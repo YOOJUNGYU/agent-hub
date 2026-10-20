@@ -18,14 +18,63 @@ let logRenderQueued = false;
 let logStickToBottom = true;
 let logResizeObserver = null;
 
-// ---- 탭 ----
-$$('.tab').forEach(btn => btn.addEventListener('click', () => {
-  $$('.tab').forEach(b => b.classList.remove('active'));
-  $$('.view').forEach(v => v.classList.remove('active'));
-  btn.classList.add('active');
-  $('#' + btn.dataset.view).classList.add('active');
-  if (btn.dataset.view === 'logs') scheduleLogRender(logStickToBottom);
-}));
+// ---- 좌측 메뉴(LNB) ----
+function showView(view) {
+  $$('.tab').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  $$('.view').forEach(v => v.classList.toggle('active', v.id === view));
+  if (view === 'logs') scheduleLogRender(logStickToBottom);
+}
+$$('.tab').forEach(btn => btn.addEventListener('click', () => showView(btn.dataset.view)));
+
+// ---- 테마(라이트 기본 / 다크) ----
+// localStorage('agenthub.theme')를 오피스·대화창과 공유한다. 같은 출처의 iframe은 storage 이벤트로 즉시 따라 바뀐다.
+(function initTheme() {
+  const btn = $('#themeBtn');
+  const apply = th => {
+    document.documentElement.setAttribute('data-theme', th);
+    btn.textContent = th === 'dark' ? '🌙' : '☀️';
+  };
+  apply(document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light');
+  btn.addEventListener('click', () => {
+    const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    apply(next);
+    try { localStorage.setItem('agenthub.theme', next); } catch (e) { /* 저장 불가 — 이 화면에서만 적용 */ }
+  });
+})();
+
+// ---- PC / 폰 ----
+// 같은 화면(PWA)을 PC와 폰이 함께 쓴다. 기기 승인·로그·설정은 PC(이 컴퓨터, loopback)에서만 —
+// 서버도 해당 API·소켓을 loopback으로 막으므로 폰에서는 메뉴만 숨긴다.
+const isPc = ['127.0.0.1', 'localhost', '[::1]'].includes(location.hostname);
+if (!isPc) {
+  document.body.classList.add('remote');
+  const bell = $('#bellBtn');
+  // 폰 알림(앱이 꺼져 있어도 오는 웹 푸시)은 권한을 받은 뒤 앱(/)이 구독하고 다시 이 화면으로 돌아온다.
+  if ('Notification' in window && Notification.permission === 'default') {
+    bell.hidden = false;
+    bell.addEventListener('click', async () => {
+      if ((await Notification.requestPermission()) === 'granted') location.href = '/';
+      else bell.hidden = true;
+    });
+  }
+}
+
+// ---- 오피스 연결 상태 → 상단 바 칩 (오피스 iframe이 postMessage로 알린다) ----
+window.addEventListener('message', e => {
+  if (e.origin !== location.origin || !e.data || e.data.type !== 'agenthub:officeStatus') return;
+  const b = $('#officeBadge');
+  b.hidden = false;
+  b.textContent = (e.data.ok ? '🐾 ' : '⚠ ') + e.data.text;
+  b.classList.toggle('on', !!e.data.ok);
+  b.classList.toggle('off', !e.data.ok);
+});
+
+// ---- 오피스(픽셀 캐릭터) ----
+// 트레이 알림 클릭은 /host?open=<세션ID>로 들어온다 → 오피스가 그 세션 대화창을 연다.
+(function initOffice() {
+  const open = new URLSearchParams(location.search).get('open');
+  $('#officeFrame').src = '/office/index.html' + (open ? '?open=' + encodeURIComponent(open) : '');
+})();
 
 // ---- 서버 상태 + 접속 URL ----
 async function refreshStatus() {
@@ -146,7 +195,9 @@ function deviceActions(d) {
 function renderDevices(list) {
   lastDevices = list;
   list = list || [];
-  $('#pendingCount').textContent = list.filter(d => d.status === 'pending').length;
+  const pending = list.filter(d => d.status === 'pending').length;
+  $('#pendingCount').textContent = pending;
+  const lb = $('#lnbPending'); lb.textContent = pending; lb.hidden = pending === 0; // 메뉴에 인증 대기 수
   $('#approvedCount').textContent = list.filter(d => d.status === 'approved').length;
   if (!list.length) {
     $('#deviceList').innerHTML = `<p class="hint">${t('devices.empty')}</p>`;
@@ -188,11 +239,13 @@ function connect() {
       const m = JSON.parse(ev.data);
       if (m.type === 'clients') renderClients(m.clients, m.count);
       else if (m.type === 'devices') renderDevices(m.devices);
+      else if (m.type === 'logs') { logStore = (m.lines || []).slice(); scheduleLogRender(true); } // 접속 시 최근 로그(재연결 시 중복 방지로 교체)
+      else if (m.type === 'log') window.addLog(m.line);
     } catch (e) { /* ignore */ }
   };
 }
 
-// ---- 로그 (FormMain이 window.addLog로 push) ----
+// ---- 로그 (서버가 /ws/host로 push: 접속 시 'logs', 이후 'log') ----
 function getLogViewport() {
   const el = $('#logList');
   if (!el) return null;
@@ -268,8 +321,8 @@ window.addLog = function (evt) {
   const viewport = getLogViewport();
   const el = viewport && viewport.el;
   const wasAtBottom = !el || isLogAtBottom(el);
-  const msg = typeof evt === 'string' ? evt : (evt && evt.Message) || JSON.stringify(evt);
-  logStore.push(`[${new Date().toLocaleTimeString()}] ${msg}`);
+  // 서버가 보내는 줄은 이미 순번·시각을 담고 있다.
+  logStore.push(typeof evt === 'string' ? evt : `[${new Date().toLocaleTimeString()}] ${(evt && evt.Message) || JSON.stringify(evt)}`);
 
   if (logStore.length > LOG_MAX_ENTRIES) {
     const removed = logStore.length - LOG_MAX_ENTRIES;
@@ -335,6 +388,8 @@ document.addEventListener('i18n:changed', () => {
 
 refreshStatus();
 setInterval(refreshStatus, 5000);
-loadSettings();
-connect();
-saveConsoleLang(); // 최초 로드 시 현재 콘솔 언어를 서버에 반영
+if (isPc) { // 기기·로그·설정 데이터는 PC에서만(서버가 loopback으로 제한)
+  loadSettings();
+  connect();
+  saveConsoleLang(); // 최초 로드 시 현재 콘솔 언어를 서버에 반영
+}

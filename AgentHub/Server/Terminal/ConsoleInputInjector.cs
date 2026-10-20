@@ -118,6 +118,8 @@ namespace AgentHub.Server.Terminal
         private static Result WriteOnce(int pid, string payload)
         {
             if (string.IsNullOrEmpty(payload)) return Result.Ok;
+            // Agent Hub가 띄운 창 없는 터미널(ConPTY) 소속이면 콘솔 주입 대신 그 터미널 입력으로 쓴다.
+            if (PtyHost.TryWrite(pid, payload)) return Result.Ok;
             bool attached = false;
             try
             {

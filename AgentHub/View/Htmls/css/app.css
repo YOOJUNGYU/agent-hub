@@ -1,7 +1,9 @@
+/* 팔레트 — 다크: 밤하늘 남색 / 라이트(기본, data-theme="light"): 맑은 하늘. 포인트는 꿀색(고양이 방울). */
 :root{
-  --bg:#12141f; --panel:#1b1f2e; --panel2:#232840; --fore:#e6e9f2; --muted:#8b90a6;
-  --accent:#38d0d6; --violet:#9678ff; --ok:#3ad29f; --warn:#f5c451; --err:#ff6b7a;
-  --border:#2c3350; --radius:14px;
+  --bg:#1b2036; --panel:#242a45; --panel2:#2e3556; --fore:#e9edff; --muted:#9aa3c7;
+  --accent:#8aa6ff; --violet:#b39bff; --ok:#43d6ae; --warn:#ffc35c; --err:#ff8aa3;
+  --border:#36406a; --radius:14px;
+  --honey:#ffc35c; --honey-ink:#3a2a00;
 }
 *{box-sizing:border-box}
 html{
@@ -119,6 +121,17 @@ body.host-shell #logs.view.active{display:flex; flex-direction:column; overflow:
 }
 .loading .spinner{width:2rem; height:2rem; border-width:3px; margin:0}
 
+/* ===== PC 콘솔: 좌측 메뉴(LNB) + 본문 ===== */
+.host-body{flex:1 1 auto; min-height:0; display:flex}
+.tabs.lnb{flex:0 0 76px; flex-direction:column; align-items:center; gap:.35rem; padding:.7rem .4rem; border-bottom:none; border-right:1px solid var(--border)}
+.lnb .tab{position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; width:64px; text-align:center}
+.lnb-ico{font-size:1.35rem; line-height:1}
+.lnb-badge{position:absolute; top:4px; right:6px; min-width:1.3em; padding:0 .35em; border-radius:999px; background:var(--err); color:#fff; font-size:.68rem; line-height:1.3; text-align:center}
+.host-body main{flex:1 1 auto; min-width:0}
+body.host-shell #office.view.active{display:flex; overflow:hidden; margin:-1rem -1.2rem} /* 오피스는 본문을 꽉 채운다 */
+.office-frame{flex:1 1 auto; width:100%; height:100%; border:0; background:#1e1e2e}
+.section-gap{margin-top:1.6rem}
+
 /* ===== Responsive ===== */
 @media (max-width:600px){
   /* 모바일에서도 좌(브랜드)/우(사용법·인증서·언어) 양끝 정렬 유지 */
@@ -126,6 +139,10 @@ body.host-shell #logs.view.active{display:flex; flex-direction:column; overflow:
   main{padding:.8rem}
   .agent-grid{grid-template-columns:1fr}
   .tab{flex:1 1 0; text-align:center}
+  /* 좁은 화면: LNB를 위쪽 가로 메뉴로 */
+  .host-body{flex-direction:column}
+  .tabs.lnb{flex:0 0 auto; flex-direction:row; border-right:none; border-bottom:1px solid var(--border); padding:.4rem}
+  .lnb .tab{justify-content:center}
   .tbl td.ua{max-width:none}
 }
 
@@ -431,9 +448,10 @@ body:not(.host-shell) #authPending:not([hidden]){ flex:1 1 auto; min-height:0; o
    먼저 코어 변수를 라이트 팔레트로 뒤집어 변수 기반 요소를 일괄 대응하고,
    하드코딩 색을 쓰는 컴포넌트만 아래에서 명시적으로 오버라이드한다. */
 :root[data-theme="light"]{
-  --bg:#eef1f7; --panel:#ffffff; --panel2:#e7ebf5; --fore:#1a2030; --muted:#5b6478;
-  --accent:#0e9aa1; --violet:#6d54e0; --ok:#12a06a; --warn:#c98a10; --err:#e0455a;
-  --border:#d6dced;
+  --bg:#eef5ff; --panel:#ffffff; --panel2:#e8efff; --fore:#2c3354; --muted:#69739a;
+  --accent:#4a6ee8; --violet:#8a6cf0; --ok:#169e7d; --warn:#c77f00; --err:#e14f74;
+  --border:#d5e0f7;
+  --honey:#ffb547; --honey-ink:#4a3200;
 }
 [data-theme="light"] .app-header{ background:linear-gradient(90deg,#e7ecf8,#dce3f5); }
 
@@ -537,3 +555,62 @@ body:not(.host-shell) #authPending:not([hidden]){ flex:1 1 auto; min-height:0; o
 .inject-bar.sending .inject-send > .btn-spinner { display: block; }
 .inject-input:disabled { opacity: .55; }
 .inject-send:disabled { cursor: default; opacity: .6; }
+
+/* ===== PC 콘솔 리디자인: 한 줄 상단 바 + LNB (라이트/다크 공통, 토큰 기반) ===== */
+body.host-shell{ background:var(--bg); color:var(--fore); }
+body.host-shell .topbar{
+  flex-wrap:nowrap; height:56px; padding:0 14px; gap:14px;
+  background:var(--panel); border-bottom:1px solid var(--border);
+}
+body.host-shell .topbar .brand{ display:flex; align-items:center; gap:6px; font-weight:800; font-size:1.05rem; white-space:nowrap; }
+.brand-paw{ display:inline-grid; place-items:center; width:30px; height:30px; border-radius:10px; background:var(--honey); font-size:16px; }
+body.host-shell .topbar .server-status{ flex:1 1 auto; min-width:0; flex-wrap:nowrap; overflow:hidden; gap:8px; }
+body.host-shell .topbar .server-urls{ flex-direction:row; flex-wrap:nowrap; gap:6px; min-width:0; overflow:hidden; }
+body.host-shell .topbar .ep{ flex-wrap:nowrap; gap:4px; padding:3px 4px 3px 10px; border-radius:999px; background:var(--panel2); white-space:nowrap; }
+body.host-shell .topbar .server-url{ font-size:.85rem; word-break:normal; }
+body.host-shell .topbar .ep-label{ font-size:.7rem; border:none; background:var(--panel); }
+body.host-shell .topbar .hdr-right{ flex:0 0 auto; flex-wrap:nowrap; gap:8px; }
+body.host-shell .topbar .badge{ font-weight:700; }
+body.host-shell .topbar .qr-btn,
+body.host-shell .topbar .hdr-btn,
+body.host-shell .topbar .lang-select{
+  background:var(--panel2); color:var(--fore); border:1px solid var(--border); border-radius:10px; height:32px; padding:0 10px; cursor:pointer;
+}
+body.host-shell .topbar .guide-link{ color:var(--muted); text-decoration:none; font-size:.9rem; white-space:nowrap; }
+body.host-shell .topbar .guide-link:hover{ color:var(--fore); }
+body.host-shell .lang-switch{ display:flex; align-items:center; gap:4px; color:var(--muted); }
+.theme-btn{ width:36px; padding:0 !important; font-size:16px; }
+
+body.host-shell .tabs.lnb{ background:var(--panel); border-right:1px solid var(--border); padding:12px 10px; gap:4px; }
+body.host-shell .lnb .tab{ height:60px; padding:0; border-radius:14px; color:var(--muted); font-size:.74rem; font-weight:700; }
+body.host-shell .lnb .tab:hover{ background:var(--panel2); color:var(--fore); }
+body.host-shell .lnb .tab.active{ background:var(--honey); color:var(--honey-ink); }
+body.host-shell .lnb .tab:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+body.host-shell .lnb-badge{ background:var(--err); }
+body.host-shell main{ background:var(--bg); }
+.office-frame{ background:var(--bg); }
+
+/* 기기·로그·설정 화면의 표면/표를 토큰으로 */
+body.host-shell .stat{ background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); }
+body.host-shell .tbl{ background:var(--panel); border-radius:var(--radius); overflow:hidden; }
+body.host-shell .tbl th{ background:var(--panel2); color:var(--muted); }
+body.host-shell .tbl td{ border-color:var(--border); }
+body.host-shell .settings-form input,
+body.host-shell .settings-form select{ background:var(--panel); color:var(--fore); border:1px solid var(--border); border-radius:10px; }
+body.host-shell .settings-form button[type="submit"]{ background:var(--accent); color:#fff; border:none; border-radius:10px; }
+body.host-shell .log-list{ background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); }
+
+@media (max-width:900px){
+  body.host-shell .topbar .server-urls .ep:nth-child(n+2){ display:none; } /* 좁으면 첫 주소만 */
+  body.host-shell .topbar .guide-link{ display:none; }
+}
+
+/* 폰(원격)에서 연 콘솔: 오피스만 — 기기·로그·설정 메뉴와 PC 접속 주소/QR은 숨긴다 */
+body.host-shell.remote .tabs.lnb,
+body.host-shell.remote .topbar .server-urls,
+body.host-shell.remote .topbar .qr-btn,
+body.host-shell.remote .topbar .guide-link,
+body.host-shell.remote .topbar .lang-switch{ display:none; }
+body.host-shell.remote .topbar{ padding:0 10px; gap:8px; }
+body.host-shell .topbar .office-badge{ font-weight:700; }
+body.host-shell .topbar .office-badge.on{ background:var(--panel2); color:var(--ok); border:1px solid var(--border); }

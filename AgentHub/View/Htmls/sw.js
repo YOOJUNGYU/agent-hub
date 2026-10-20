@@ -23,8 +23,9 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const u = new URL(e.request.url);
-  // API/WebSocket 및 콘솔 페이지는 항상 네트워크
-  if (u.pathname.startsWith('/api/') || u.pathname.startsWith('/ws/') || u.pathname.startsWith('/host')) return;
+  // API/WebSocket, 콘솔 페이지, 픽셀 오피스(자체 SPA)는 항상 네트워크
+  if (u.pathname.startsWith('/api/') || u.pathname.startsWith('/ws/') || u.pathname.startsWith('/host')
+      || u.pathname.startsWith('/office')) return;
   if (e.request.method !== 'GET') return;
   // 앱 실행(네비게이션): 캐시된 셸을 즉시 서빙(캐시 우선). 서버 미접속이어도 아이콘에서 멈추지 않고
   // 바로 실행되며, 최신 데이터는 app.js가 WebSocket으로 붙어 갱신한다. 캐시에 셸이 없으면(최초/캐시 증발)
@@ -63,7 +64,8 @@ self.addEventListener('push', function (e) {
   var sid = '';
   if (e.data) { try { var d = e.data.json(); if (d.title) title = d.title; if (d.body) body = d.body; if (d.sessionId) sid = d.sessionId; } catch (_) { var tx = e.data.text(); if (tx) body = tx; } }
   e.waitUntil(self.registration.showNotification(title, {
-    body: body, tag: 'agenthub-' + (sid || 'ask'), renotify: true, icon: '/icons/icon-192.png', data: { url: '/' }
+    body: body, tag: 'agenthub-' + (sid || 'ask'), renotify: true, icon: '/icons/icon-192.png',
+    data: { url: sid ? '/?open=' + encodeURIComponent(sid) : '/' } // 오피스가 그 세션 대화창을 연다
   }));
 });
 
@@ -72,6 +74,6 @@ self.addEventListener('notificationclick', function (e) {
   e.waitUntil((async function () {
     const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const c of all) { if ('focus' in c) { try { return await c.focus(); } catch (_) {} } }
-    if (self.clients.openWindow) return self.clients.openWindow('/');
+    if (self.clients.openWindow) return self.clients.openWindow((e.notification.data && e.notification.data.url) || '/');
   })());
 });

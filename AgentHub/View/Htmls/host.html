@@ -3,16 +3,23 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#181c2a" />
+  <meta name="theme-color" content="#1b2036" /><!-- PWA 타이틀바: 다크 배경색(다크에선 이어지고, 라이트에선 화면을 감싸 집중감) -->
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/icons/icon-192.png" />
   <link rel="stylesheet" href="/css/app.css" />
-  <title>Agent Hub — 콘솔</title>
+  <!-- 테마: 기본 라이트, 저장값이 dark일 때만 다크(첫 페인트 전 적용). 오피스·대화창과 같은 키를 공유한다. -->
+  <script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('agenthub.theme')==='dark'?'dark':'light');}catch(e){document.documentElement.setAttribute('data-theme','light');}</script>
+  <title>Agent Hub</title>
 </head>
 <body class="host-shell">
-  <header class="app-header">
+  <!-- 상단 바(한 줄): 로고 · 서버 상태 · 접속 주소 · QR | 사용 안내 · 언어 · 테마 -->
+  <header class="app-header topbar">
+    <div class="brand"><span class="brand-paw" aria-hidden="true">🐾</span>Agent Hub</div>
     <div class="server-status">
       <span class="badge" id="statusBadge"><span class="spinner"></span><span data-i18n="server.checking">확인 중…</span></span>
       <div class="server-urls" id="serverUrls"></div>
       <button id="qrBtn" class="qr-btn" type="button" disabled data-i18n="qr.open">▣ QR</button>
+      <span class="badge office-badge" id="officeBadge" hidden></span>
     </div>
     <div class="hdr-right">
       <a class="guide-link" href="/guide.html" target="_blank" rel="noopener" data-i18n="guide.link">📖 사용 안내</a>
@@ -22,16 +29,24 @@
           <option value="en">English</option>
         </select>
       </label>
+      <button id="bellBtn" class="hdr-btn" type="button" hidden>🔔 알림 켜기</button>
+      <button id="themeBtn" class="hdr-btn theme-btn" type="button" aria-label="Light / dark theme" title="라이트 / 다크">☀️</button>
     </div>
   </header>
-  <nav class="tabs">
-    <button class="tab active" data-view="devices" data-i18n="tab.devices">기기 관리</button>
-    <button class="tab" data-view="clients" data-i18n="tab.clients">연결된 기기</button>
-    <button class="tab" data-view="logs" data-i18n="tab.logs">로그</button>
-    <button class="tab" data-view="settings" data-i18n="tab.settings">설정</button>
+  <div class="host-body">
+  <!-- 좌측 메뉴(LNB): 오피스(에이전트 캐릭터) · 기기(인증 관리 + 현재 연결) · 로그 · 설정 -->
+  <nav class="tabs lnb">
+    <button class="tab active" data-view="office"><span class="lnb-ico" aria-hidden="true">🏢</span><span data-i18n="tab.office">오피스</span></button>
+    <button class="tab" data-view="devices"><span class="lnb-ico" aria-hidden="true">📱</span><span data-i18n="tab.devices">기기</span><span class="lnb-badge" id="lnbPending" hidden></span></button>
+    <button class="tab" data-view="logs"><span class="lnb-ico" aria-hidden="true">📜</span><span data-i18n="tab.logs">로그</span></button>
+    <button class="tab" data-view="settings"><span class="lnb-ico" aria-hidden="true">⚙️</span><span data-i18n="tab.settings">설정</span></button>
   </nav>
   <main>
-    <section id="devices" class="view active">
+    <!-- 픽셀 오피스: 세션 = 캐릭터. 클릭하면 그 세션 대화창(프롬프트·질문 답변·권한 승인). -->
+    <section id="office" class="view active">
+      <iframe id="officeFrame" class="office-frame" title="Office"></iframe>
+    </section>
+    <section id="devices" class="view">
       <div class="summary">
         <div class="stat"><div class="n" id="pendingCount">0</div><div class="l" data-i18n="devices.pending">인증 대기</div></div>
         <div class="stat"><div class="n" id="approvedCount">0</div><div class="l" data-i18n="devices.approved">승인된 기기</div></div>
@@ -39,8 +54,7 @@
       <div id="deviceList">
         <div class="loading"><span class="spinner"></span><span data-i18n="devices.loading">기기 정보를 불러오는 중…</span></div>
       </div>
-    </section>
-    <section id="clients" class="view">
+      <h3 class="settings-h section-gap" data-i18n="tab.clients">연결된 기기</h3>
       <div class="summary">
         <div class="stat"><div class="n" id="clientCount">0</div><div class="l" data-i18n="clients.count">접속한 모바일 기기</div></div>
       </div>
@@ -70,6 +84,7 @@
       </form>
     </section>
   </main>
+  </div>
 
   <!-- 휴대폰 연결용 QR. 콘솔은 127.0.0.1로 열려 있으므로 QR에는 반드시 /api/server/status의 LAN·VPN 주소를 쓴다. -->
   <div id="qrModal" class="qr-modal" hidden>

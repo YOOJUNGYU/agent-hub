@@ -73,7 +73,7 @@ function applyAuth(status) {
   authApproved = (status === 'approved');
   // 오프라인 재실행 시 마지막 상태를 바로 보여주기 위해 승인 여부를 기억한다.
   try { if (status === 'approved') localStorage.setItem('agenthub.approved', '1'); else localStorage.removeItem('agenthub.approved'); } catch (_) {}
-  if (status === 'approved') { showScreen('monitor'); ensurePushSubscribed(); }
+  if (status === 'approved') { goOffice(); return; }
   else if (status === 'pending') { setPendingState('pending'); showScreen('authPending'); }
   else showScreen('authRequest'); // none | revoked
 }
@@ -82,18 +82,6 @@ function applyAuth(status) {
 function hasCachedApproved() {
   try { return localStorage.getItem('agenthub.approved') === '1' && !!localStorage.getItem('agenthub.lastSessions'); }
   catch (_) { return false; }
-}
-// 서버 접속 전/오프라인: 마지막 세션 목록을 즉시 모니터에 렌더(연결은 백그라운드에서 계속 시도).
-function showCachedMonitor() {
-  if (!hasCachedApproved()) return false;
-  try {
-    authApproved = true;
-    setBadge(false); // 붙기 전까진 '연결 끊김' 표시 → agent-hub.exe에 붙으면 onopen에서 '연결됨'으로 갱신
-    renderSessions(JSON.parse(localStorage.getItem('agenthub.lastSessions')));
-    showScreen('monitor');
-    refreshNotifyBtn();
-    return true;
-  } catch (_) { return false; }
 }
 
 // ---- 인증 요청 ----
@@ -141,7 +129,7 @@ function connect() {
       if (m.type === 'auth') applyAuth(m.status);
       else if (m.type === 'sessions') {
         renderSessions(m.sessions);
-        if (currentSessionId === null) { showScreen('monitor'); refreshNotifyBtn(); }
+        if (currentSessionId === null && !_goingOffice) { showScreen('monitor'); refreshNotifyBtn(); }
         else if (currentSessionId) {
           // (재)연결 직후면 활동 구독을 다시 건다(스피너 영구정지 복구 + 재연결 후 실시간 갱신 재개).
           if (pendingWatch) { pendingWatch = false; send({ type: 'watch', sessionId: currentSessionId }); }
@@ -524,11 +512,11 @@ function urlBase64ToUint8Array(b64) {
   return arr;
 }
 function ensurePushSubscribed() {
-  if (_pushSynced || !authApproved) return;
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  if (_pushSynced || !authApproved) return Promise.resolve();
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return Promise.resolve();
+  if (!('Notification' in window) || Notification.permission !== 'granted') return Promise.resolve();
   _pushSynced = true;
-  (async () => {
+  return (async () => {
     try {
       const reg = await navigator.serviceWorker.ready;
       let sub = await reg.pushManager.getSubscription();
@@ -545,6 +533,19 @@ function ensurePushSubscribed() {
       if (!res || !res.ok) _pushSynced = false; // 서버 저장 실패(401/500 등)는 fetch가 throw 안 하므로 직접 확인 → 재시도 여지
     } catch (e) { _pushSynced = false; /* 다음 기회에 재시도 */ }
   })();
+}
+
+// ---- 승인된 기기의 첫 화면 = 콘솔(/host, PC·폰 공용 PWA) ----
+// 세션 목록은 오피스의 캐릭터가 대신한다. 웹 푸시 구독(앱이 꺼져 있을 때 알림)만 마치고 이동한다.
+// ?open=<세션ID>(푸시 알림 클릭)는 그대로 넘겨 오피스가 그 세션 대화창을 연다.
+let _goingOffice = false;
+function goOffice() {
+  if (_goingOffice) return;
+  _goingOffice = true;
+  const open = new URLSearchParams(location.search).get('open');
+  const url = '/host' + (open ? '?open=' + encodeURIComponent(open) : '');
+  Promise.race([ensurePushSubscribed(), new Promise(r => setTimeout(r, 4000))])
+    .then(() => location.replace(url), () => location.replace(url));
 }
 
 // ---- 입력 필요(idle) → 세션 카드 '응답 대기중' 표시만. 시스템 알림 없음 ----
@@ -833,7 +834,8 @@ window.addEventListener('popstate', () => {
 
 // 오프라인이어도 실행되도록: 캐시된 마지막 상태가 있으면 즉시 모니터를 보여주고(배지로 연결상태 표시),
 // 없을 때만 '연결 확인 중' 화면을 띄운다. 연결은 백그라운드에서 계속 시도한다.
-if (!showCachedMonitor()) { setPendingState('connecting'); showScreen('authPending'); }
+// 세션 목록 화면은 오피스로 대체됐다 → 캐시된 목록을 먼저 보여주지 않고 연결(→ 승인 시 오피스)부터.
+setPendingState('connecting'); showScreen('authPending');
 connect();
 refreshNotifyBtn();
 
@@ -889,7 +891,9 @@ if ('serviceWorker' in navigator) {
   }
   var saved = null;
   try { saved = localStorage.getItem(THEME_KEY); } catch (e) {}
-  apply(saved === 'light' ? 'light' : 'dark');
+  apply(saved === 'dark' ? 'dark' : 'light'); // 기본 라이트
+  // 콘솔·오피스에서 테마를 바꾸면(같은 출처의 다른 창/iframe) 즉시 따라간다.
+  window.addEventListener('storage', function (e) { if (e.key === THEME_KEY) apply(e.newValue === 'dark' ? 'dark' : 'light'); });
   if (btn) btn.addEventListener('click', function () {
     var next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
     apply(next);
