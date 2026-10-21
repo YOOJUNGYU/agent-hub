@@ -55,16 +55,18 @@ function setBadge(on) {
 // ---- auth 상태 → 화면 ----
 let authReceived = false;        // 서버 auth 상태를 한 번이라도 받았는지(연결 문제와 실제 승인 대기 구분용)
 let authApproved = false;        // 현재 승인 상태(푸시 구독은 승인된 기기만)
-let pendingMode = 'connecting';  // authPending 화면 모드: 'connecting' | 'offline' | 'pending'
+let pendingMode = 'connecting';  // authPending 화면 모드: 'connecting' | 'offline' | 'pending' | 'starting'
 function setPendingState(mode) {
   pendingMode = mode;
   const keys = { connecting: ['pending.connecting', 'pending.connectingDesc'],
                  offline:    ['pending.offline',    'pending.offlineDesc'],
+                 starting:   ['pending.starting',   'pending.startingDesc'],
                  pending:    ['pending.title',      'pending.desc'] };
   const [titleKey, descKey] = keys[mode] || keys.pending;
   $('#pendingTitle').textContent = t(titleKey);
   $('#pendingDesc').textContent = t(descKey);
   $('#pendingConn').hidden = (mode !== 'offline');    // 연결 실패 시에만 인증서 재설치 안내 노출
+  $('#pendingLaunchRow').hidden = (mode !== 'starting');
   $('#pendingSpinner').hidden = (mode === 'offline'); // 실패 상태에선 스피너 숨김
   if (mode === 'offline') applyCertUrls(); // 인증서가 깨진 상태 → HTTPS 대신 HTTP(/cert) 주소로 링크·텍스트 갱신(경고 없이 받힘)
 }
@@ -102,6 +104,22 @@ $('#requestBtn').addEventListener('click', async () => {
   }
 });
 
+// ---- PC에서 서버가 꺼져 있으면 켜기 ----
+// PC(127.0.0.1)에서 PWA를 열었는데 연결이 안 되면 = AgentHub가 꺼져 있다(인증서 문제가 아님).
+// agenthub:// 를 열어 Windows가 AgentHub를 켜게 한다(설치 시 등록, 처음 한 번은 브라우저가 열지 묻는다).
+// 서버가 뜨면 connect() 재시도가 붙어 바로 오피스로 넘어간다.
+const isPcHost = ['127.0.0.1', 'localhost', '[::1]'].includes(location.hostname);
+let launchTried = false;
+function launchServer() { location.href = 'agenthub://start'; }
+function serverDown() {
+  if (!isPcHost || authReceived) return false;
+  setPendingState('starting');
+  showScreen('authPending');
+  if (!launchTried) { launchTried = true; launchServer(); }
+  return true;
+}
+$('#pendingLaunch').addEventListener('click', launchServer);
+
 // ---- WebSocket ----
 let ws, connectTimer = null;
 // (재)연결 후 세션 상세를 보고 있으면 watch(활동 구독)를 다시 보내야 한다. openDetail의 watch는 WS가
@@ -117,11 +135,11 @@ function connect() {
   // 연결을 강제 종료해 오프라인(인증서 재설치 안내) 흐름으로 넘긴다. onclose가 재접속을 예약한다.
   if (connectTimer) clearTimeout(connectTimer);
   connectTimer = setTimeout(() => {
-    if (!authReceived) { setBadge(false); if (!hasCachedApproved()) setPendingState('offline'); } // 캐시 있으면 마지막 상태 유지(배지만 '연결 끊김')
+    if (!authReceived) { setBadge(false); if (!serverDown() && !hasCachedApproved()) setPendingState('offline'); } // 캐시 있으면 마지막 상태 유지(배지만 '연결 끊김')
     try { ws.close(); } catch (e) { /* noop */ }
   }, 7000);
   ws.onopen = () => { if (connectTimer) { clearTimeout(connectTimer); connectTimer = null; } setBadge(true); if (!authReceived) setPendingState('connecting'); if (currentSessionId !== null) pendingWatch = true; };
-  ws.onclose = () => { if (connectTimer) { clearTimeout(connectTimer); connectTimer = null; } setBadge(false); if (!authReceived && !hasCachedApproved()) setPendingState('offline'); setTimeout(connect, 3000); };
+  ws.onclose = () => { if (connectTimer) { clearTimeout(connectTimer); connectTimer = null; } setBadge(false); if (!serverDown() && !authReceived && !hasCachedApproved()) setPendingState('offline'); setTimeout(connect, isPcHost && !authReceived ? 1500 : 3000); };
   ws.onerror = () => { try { ws.close(); } catch (e) { /* noop */ } };
   ws.onmessage = ev => {
     try {

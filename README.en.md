@@ -33,6 +33,7 @@ Agent Hub is a **background tray app with no window of its own**.
 
 - Launch it from the **Start menu or desktop shortcut** and the screen **opens in your default browser.** Launching it again while it's running just opens the screen.
 - When it **starts automatically at Windows login**, it stays **quietly in the tray** without opening the screen.
+- Open the installed app (PWA) on the PC while the server is off and it **starts the server for you** (`agenthub://` — the first time the browser asks to open it).
 - Tray menu: **열기 (Open) · 업데이트 (Update) · 완전 종료 (Quit)**
 - The screen is a **PWA used the same way on PC and phone**. On the PC, open `https://127.0.0.1:<port>/host` in Edge/Chrome (the address the tray **Open** item opens) and click the **install icon in the address bar → Install** to use it like an app. HTTPS opens without warnings because Agent Hub registers its own root certificate in the Windows user trust store at startup.
 

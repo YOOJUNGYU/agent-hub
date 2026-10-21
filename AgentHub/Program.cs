@@ -28,7 +28,9 @@ namespace AgentHub
         private static void Main(string[] args)
         {
             // Velopack 설치/업데이트/제거 훅 — 반드시 다른 어떤 코드보다 먼저.
-            Velopack.VelopackApp.Build().Run();
+            Velopack.VelopackApp.Build()
+                .OnBeforeUninstallFastCallback(_ => AutoStartService.RemoveAll())
+                .Run();
 
             // 전역 예외 그물 — 처리되지 않은 예외로 프로세스가 조용히 죽는 것을 막고 항상 로그를 남긴다.
             // (백그라운드 스레드/async void에서 새어 나온 예외는 로그가 없으면 원인 규명이 불가능하다.)
@@ -44,8 +46,11 @@ namespace AgentHub
             //이미 프로그램이 실행 중 일때...
             var strCurrentProcess = Process.GetCurrentProcess().ProcessName.ToUpper();
             var processes = Process.GetProcessesByName(strCurrentProcess);
+            // agenthub:// 로 불렸으면(서버가 꺼진 채 PWA를 연 경우) 화면은 이미 열려 있다 → 서버만 조용히 켠다.
+            var viaUrl = Array.Exists(args, a => a.StartsWith(AutoStartService.UrlScheme + ":", StringComparison.OrdinalIgnoreCase));
             if (processes.Length > 1)
             {
+                if (viaUrl) return;
                 // 이미 상주 중 → 경고 대신 화면(브라우저/PWA)만 열고 끝낸다(시작 메뉴를 다시 눌러도 바로 열리게).
                 TrayApp.OpenInBrowser(TrayApp.RunningHostUrl());
                 return;
@@ -59,7 +64,7 @@ namespace AgentHub
             AutoStartService.SyncOnStartup(Properties.Settings.Default.AutoStart);
             // 창 없이 상주(서버 + 트레이). 화면은 브라우저/PWA. 로그인 자동 시작이면 조용히, 직접 실행이면 화면을 연다.
             var autostart = Array.Exists(args, a => a == AutoStartService.Argument);
-            Application.Run(new TrayApp(openOnStart: !autostart));
+            Application.Run(new TrayApp(openOnStart: !autostart && !viaUrl));
         }
     }
 }

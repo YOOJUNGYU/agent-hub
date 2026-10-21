@@ -65,6 +65,9 @@
         <!-- 문구는 app.js setPendingState가 전담(연결 상태별로 바뀜). data-i18n을 두면 I18n.apply가 pending.title로 되돌리므로 제외. -->
         <h2 id="pendingTitle">승인 대기 중…</h2>
         <p class="hint" id="pendingDesc">PC(Agent Hub)에서 이 기기를 승인하면 자동으로 모니터 화면이 표시됩니다.</p>
+        <p class="hint" id="pendingLaunchRow" hidden>
+          <button class="launch-btn" id="pendingLaunch" type="button" data-i18n="pending.launchBtn">서버 켜기</button>
+        </p>
         <p class="hint" id="pendingConn" hidden>
           <a class="cert-dl" id="pendingCertLink" href="/api/cert" target="_blank" rel="noopener" data-i18n="pending.certBtn">새 인증서 설치</a>
           <span id="pendingCertUrl" class="term-warn" style="display:block;margin-top:8px;word-break:break-all"></span>
