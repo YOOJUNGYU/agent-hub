@@ -27,33 +27,23 @@ self.addEventListener('fetch', e => {
   if (u.pathname.startsWith('/api/') || u.pathname.startsWith('/ws/') || u.pathname.startsWith('/host')
       || u.pathname.startsWith('/office')) return;
   if (e.request.method !== 'GET') return;
-  // 앱 실행(네비게이션): 캐시된 셸을 즉시 서빙(캐시 우선). 서버 미접속이어도 아이콘에서 멈추지 않고
-  // 바로 실행되며, 최신 데이터는 app.js가 WebSocket으로 붙어 갱신한다. 캐시에 셸이 없으면(최초/캐시 증발)
-  // 네트워크로 받아 즉시 캐시에 저장 → 다음 오프라인 실행을 보장한다. (index.html 갱신은 SW 버전업으로 반영)
-  if (e.request.mode === 'navigate') {
-    e.respondWith(
-      caches.match('/index.html').then(r => r || caches.match('/')).then(cached =>
-        cached || fetch(e.request).then(res => {
-          if (res && res.ok) { const cp = res.clone(); caches.open(CACHE).then(c => c.put('/index.html', cp)); }
-          return res;
-        })
-      )
-    );
-    return;
-  }
-  // 정적 자산: stale-while-revalidate — 캐시 우선으로 즉시 응답하고, 온라인이면 백그라운드로 네트워크 최신본을
-  // 받아 캐시를 갱신한다. 이렇게 매 접속마다 캐시를 다시 채워, OS(안드로이드 등)가 캐시를 evict해도
-  // 다음 온라인 접속에서 자동 복구된다(오프라인 실행이 계속 유지됨).
-  e.respondWith(
-    caches.match(e.request).then(cached => {
-      const net = fetch(e.request).then(res => {
-        if (res && res.ok) { const cp = res.clone(); caches.open(CACHE).then(c => c.put(e.request, cp)); }
-        return res;
-      }).catch(() => cached);
-      return cached || net;
-    })
-  );
+  // 온라인이면 항상 서버의 최신본(업데이트가 바로 보이게), 서버에 못 붙으면 캐시로(오프라인 실행 유지).
+  // 예전엔 캐시 우선이라 휴대폰 PWA가 업데이트 뒤에도 옛 index.html·app.js를 계속 띄웠다.
+  // 네비게이션(/, /?open=…)은 셸 하나(/index.html)로 저장한다.
+  e.respondWith(fresh(e.request.url, e.request.mode === 'navigate' ? '/index.html' : e.request));
 });
+
+const OFFLINE_AFTER_MS = 3000; // 이 시간 안에 서버 응답이 없으면 캐시로(서버가 꺼졌거나 VPN 끊김)
+
+function fresh(url, key) {
+  const net = fetch(url, { cache: 'no-cache' }).then(res => {
+    if (res && res.ok) { const cp = res.clone(); caches.open(CACHE).then(c => c.put(key, cp)); }
+    return res;
+  });
+  const cached = () => caches.match(key);
+  const slow = new Promise(r => setTimeout(r, OFFLINE_AFTER_MS)).then(cached).then(c => c || net);
+  return Promise.race([net.catch(cached), slow]);
+}
 
 // Web Push: 앱이 꺼져 있어도 응답 대기 알림 표시. 암호화 payload로 질문 상세(title/body)가 오면 그대로 표시,
 // 없으면 일반 문구로 폴백. 탭하면 앱이 열린다. 세션별 tag로 다른 세션 알림이 서로 덮어쓰지 않게 한다

@@ -393,3 +393,55 @@ if (isPc) { // 기기·로그·설정 데이터는 PC에서만(서버가 loopbac
   connect();
   saveConsoleLang(); // 최초 로드 시 현재 콘솔 언어를 서버에 반영
 }
+
+// 이 화면에서 바로 설치할 수 있도록 서비스워커도 등록한다(PC는 /host로 바로 열린다 — 첫 화면 /를 거치지 않음).
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(function () {});
+
+// ---- 앱(PWA) 설치 유도 팝업 — 브라우저로 열면 먼저 띄운다 ----
+// 설치 가능(beforeinstallprompt) → [앱으로 설치]가 바로 설치 창을 연다.
+// iOS(설치 API 없음)·그 밖의 브라우저 → 메뉴에서 설치하는 방법을 보여 준다.
+// 설치된 앱으로 열었거나 한 번이라도 설치했으면(agenthub.installed), '나중에' 뒤 하루 동안은 띄우지 않는다.
+(function () {
+  var INSTALLED = 'agenthub.installed', SNOOZE = 'agenthub.installSnoozeUntil', DAY = 24 * 3600 * 1000;
+  function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  if (standalone) { set(INSTALLED, '1'); return; }
+  var modal = document.getElementById('installModal');
+  if (!modal || get(INSTALLED) === '1' || Number(get(SNOOZE) || 0) > Date.now()) return;
+
+  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var steps = document.getElementById('installSteps');
+  var go = document.getElementById('installGo');
+  var deferred = null, mode = null;
+
+  function show(m) {
+    mode = m;
+    steps.hidden = m === 'prompt';
+    if (m === 'ios') steps.textContent = t('install.iosSteps');
+    else if (m === 'manual') steps.textContent = t('install.manualSteps');
+    go.textContent = t(m === 'prompt' ? 'install.go' : 'install.ok');
+    modal.hidden = false;
+    go.focus();
+  }
+  function close() { modal.hidden = true; }
+
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferred = e; show('prompt'); });
+  window.addEventListener('appinstalled', function () { set(INSTALLED, '1'); close(); });
+  // 설치 가능 신호를 잠깐 기다렸다가, 끝내 없으면 방법 안내로 띄운다(늦게 오면 위에서 설치 버튼으로 바뀜).
+  setTimeout(function () { if (!mode) show(isIOS ? 'ios' : 'manual'); }, isIOS ? 300 : 1500);
+
+  go.addEventListener('click', async function () {
+    if (mode === 'prompt' && deferred) {
+      deferred.prompt();
+      try { var r = await deferred.userChoice; if (r && r.outcome === 'accepted') set(INSTALLED, '1'); } catch (_) {}
+      deferred = null;
+    } else {
+      set(SNOOZE, String(Date.now() + DAY)); // 방법을 봤으니 하루는 다시 묻지 않음
+    }
+    close();
+  });
+  document.getElementById('installLater').addEventListener('click', function () { set(SNOOZE, String(Date.now() + DAY)); close(); });
+  modal.addEventListener('keydown', function (e) { if (e.key === 'Escape') { set(SNOOZE, String(Date.now() + DAY)); close(); } });
+  document.addEventListener('i18n:changed', function () { if (mode) show(mode); });
+})();

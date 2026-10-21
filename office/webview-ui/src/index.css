@@ -691,6 +691,7 @@ html[data-theme='dark'] {
 .hub-room-ghost {
   position: absolute;
   z-index: 15;
+  border-radius: 10px;
   pointer-events: none;
   border: 3px dashed var(--color-status-success);
   background: color-mix(in srgb, var(--color-status-success) 18%, transparent);
@@ -698,6 +699,35 @@ html[data-theme='dark'] {
 .hub-room-ghost.bad {
   border-color: var(--color-danger);
   background: color-mix(in srgb, var(--color-danger) 18%, transparent);
+}
+.hub-room-ghost-size {
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  padding: 1px 8px;
+  border-radius: 8px;
+  font-size: 16px;
+  color: #fff;
+  background: color-mix(in srgb, var(--color-text) 70%, transparent);
+}
+/* corner handle: drag to resize the room (inside the bottom-right corner) */
+.hub-room-resize {
+  position: absolute;
+  z-index: 16;
+  width: 22px;
+  height: 22px;
+  transform: translate(-100%, -100%);
+  cursor: nwse-resize;
+  touch-action: none;
+  border-radius: 6px 0 8px 0;
+  opacity: 0.45;
+  background:
+    linear-gradient(135deg, transparent 0 45%, var(--room) 45% 55%, transparent 55% 65%, var(--room) 65% 75%, transparent 75%);
+  transition: opacity 0.15s;
+}
+.hub-room-resize:hover {
+  opacity: 1;
+  background-color: color-mix(in srgb, var(--room) 18%, transparent);
 }
 
 /* ── Agent Hub: a smooth face instead of the pixel font. Sizes stay on the pixel
@@ -740,6 +770,102 @@ html.hub {
   .hub-badge-wait {
     animation: none;
   }
+}
+/* ── 바닥 꾸미기 (hub/FloorPicker.tsx) ── */
+.hub-floor {
+  position: relative;
+}
+.hub-floor-btn {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-btn-bg);
+  box-shadow: var(--shadow-pixel);
+  cursor: pointer;
+}
+.hub-floor-btn:hover,
+.hub-floor-btn.on {
+  background: var(--color-btn-hover);
+}
+.hub-floor-pop {
+  position: absolute;
+  top: 0;
+  left: 50px;
+  z-index: 60;
+  width: 252px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-bg);
+  box-shadow: 0 10px 30px rgba(44, 51, 84, 0.2);
+}
+.hub-floor-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 8px;
+}
+.hub-floor-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  background: var(--color-bg-dark);
+}
+.hub-floor-tabs button {
+  flex: 1;
+  padding: 4px 0;
+  border: 0;
+  border-radius: 8px;
+  font-size: 18px;
+  color: var(--color-text-muted);
+  background: transparent;
+  cursor: pointer;
+}
+.hub-floor-tabs button.on {
+  color: var(--color-text);
+  background: var(--color-bg);
+  box-shadow: 0 1px 4px rgba(44, 51, 84, 0.15);
+}
+.hub-floor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.hub-floor-swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  background: none;
+  font-size: 16px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+.hub-floor-swatch canvas {
+  border-radius: 7px;
+  box-shadow: inset 0 0 0 1px var(--color-border);
+}
+.hub-floor-swatch:hover {
+  background: var(--color-btn-hover);
+}
+.hub-floor-swatch.on {
+  border-color: var(--color-accent);
+  color: var(--color-text);
+}
+.hub-floor-btn:focus-visible,
+.hub-floor-tabs button:focus-visible,
+.hub-floor-swatch:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 :where(html.hub) .hub-chat,
 :where(html.hub) .hub-chat *,

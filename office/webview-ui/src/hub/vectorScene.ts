@@ -31,12 +31,12 @@ const ROOM_PAINT: Record<string, { light: Paint; dark: Paint }> = {
 };
 const THEME = {
   light: {
-    hall: '#f3efe8', hall2: '#ece6dc', wallTop: '#ffffff', wallFace: '#e6e9f4', wallEdge: '#c9cfe2',
+    hall2: '#ece6dc', wallTop: '#ffffff', wallFace: '#e6e9f4', wallEdge: '#c9cfe2',
     shadow: 'rgba(44, 51, 84, 0.13)', outline: 'rgba(44, 51, 84, 0.22)', screen: '#a9c4ff', screenOff: '#5b6584',
     wood: '#e7c08f', woodDark: '#cf9e66', woodLight: '#f5dcb6',
   },
   dark: {
-    hall: '#232842', hall2: '#20253d', wallTop: '#3a4166', wallFace: '#2b3150', wallEdge: '#1b2036',
+    hall2: '#20253d', wallTop: '#3a4166', wallFace: '#2b3150', wallEdge: '#1b2036',
     shadow: 'rgba(0, 0, 0, 0.3)', outline: 'rgba(0, 0, 0, 0.35)', screen: '#8fb2ff', screenOff: '#3a4160',
     wood: '#a7835e', woodDark: '#8a6845', woodLight: '#c09a73',
   },
@@ -62,7 +62,7 @@ function isDark(): boolean {
 
 // ── helpers (all coordinates in world units; `v` maps them to device pixels) ───────
 
-interface View {
+export interface View {
   ox: number;
   oy: number;
   z: number;
@@ -125,6 +125,159 @@ function line(c: Ctx, v: View, x1: number, y1: number, x2: number, y2: number, c
   c.stroke();
 }
 
+// ── backdrop: the floor the rooms stand on (user's pick: solid / wood / tile × colour) ──
+
+export type FloorStyle = 'solid' | 'wood' | 'tile';
+export interface FloorChoice {
+  style: FloorStyle;
+  color: string;
+}
+export const FLOOR_STYLES: Array<{ style: FloorStyle; name: string }> = [
+  { style: 'solid', name: '단색' },
+  { style: 'wood', name: '마루' },
+  { style: 'tile', name: '타일' },
+];
+export const FLOOR_COLORS: Record<FloorStyle, Array<{ key: string; name: string; hex: string }>> = {
+  solid: [
+    { key: 'cream', name: '크림', hex: '#f3efe8' },
+    { key: 'sky', name: '하늘', hex: '#e3edfb' },
+    { key: 'mint', name: '민트', hex: '#e0f3ea' },
+    { key: 'lilac', name: '라벤더', hex: '#ebe5fa' },
+    { key: 'peach', name: '복숭아', hex: '#fbe6dc' },
+    { key: 'gray', name: '그레이', hex: '#e7e9ef' },
+  ],
+  wood: [
+    { key: 'maple', name: '메이플', hex: '#f0d9b3' },
+    { key: 'oak', name: '오크', hex: '#dfb784' },
+    { key: 'cherry', name: '체리', hex: '#d29a74' },
+    { key: 'walnut', name: '월넛', hex: '#a7795a' },
+    { key: 'white', name: '화이트워시', hex: '#ece5da' },
+    { key: 'gray', name: '그레이', hex: '#cfc9c2' },
+  ],
+  tile: [
+    { key: 'white', name: '화이트', hex: '#f7f7f9' },
+    { key: 'gray', name: '그레이', hex: '#dde0e8' },
+    { key: 'sky', name: '하늘', hex: '#d8e6fa' },
+    { key: 'mint', name: '민트', hex: '#d3eee2' },
+    { key: 'pink', name: '핑크', hex: '#f8dbe3' },
+    { key: 'terra', name: '테라코타', hex: '#e9bfa3' },
+  ],
+};
+const FLOOR_KEY = 'agenthub.office.floor';
+const DEFAULT_FLOOR: FloorChoice = { style: 'wood', color: 'maple' };
+
+function loadFloor(): FloorChoice {
+  try {
+    const f = JSON.parse(localStorage.getItem(FLOOR_KEY) ?? 'null') as FloorChoice | null;
+    if (f && FLOOR_COLORS[f.style]?.some((x) => x.key === f.color)) return f;
+  } catch {
+    /* default */
+  }
+  return DEFAULT_FLOOR;
+}
+let floor = loadFloor();
+
+export function getFloor(): FloorChoice {
+  return floor;
+}
+export function setFloor(f: FloorChoice): void {
+  floor = f;
+  try {
+    localStorage.setItem(FLOOR_KEY, JSON.stringify(f));
+  } catch {
+    /* lasts for this page */
+  }
+}
+
+/** Blend two #rrggbb colours (t = share of b). */
+function mix(a: string, b: string, t: number): string {
+  const p = (h: string, i: number) => parseInt(h.slice(1 + i * 2, 3 + i * 2), 16);
+  const ch = (i: number) => Math.round(p(a, i) * (1 - t) + p(b, i) * t).toString(16).padStart(2, '0');
+  return `#${ch(0)}${ch(1)}${ch(2)}`;
+}
+
+const PAT_RES = 4; // pattern pixels per world unit — crisp up to 4× zoom, scaled beyond
+const patterns = new Map<string, CanvasPattern | string>();
+
+/** The backdrop paint for a choice: a flat colour or a repeating wood/tile pattern (world-unit scale PAT_RES). */
+function backdropPaint(c: Ctx, f: FloorChoice, dark: boolean): CanvasPattern | string {
+  const key = `${f.style}:${f.color}:${dark}`;
+  const hit = patterns.get(key);
+  if (hit) return hit;
+  const raw = FLOOR_COLORS[f.style].find((x) => x.key === f.color)?.hex ?? '#eeeeee';
+  const base = dark ? mix(raw, '#1b2036', 0.74) : raw;
+  const ink = dark ? '#000000' : '#3a3046';
+  let paint: CanvasPattern | string = base;
+  if (f.style !== 'solid') {
+    const uw = f.style === 'wood' ? 96 : 32; // world units per repeat
+    const uh = f.style === 'wood' ? 16 : 32;
+    const cv = document.createElement('canvas');
+    cv.width = uw * PAT_RES;
+    cv.height = uh * PAT_RES;
+    const g = cv.getContext('2d');
+    if (g) {
+      g.scale(PAT_RES, PAT_RES);
+      g.fillStyle = base;
+      g.fillRect(0, 0, uw, uh);
+      if (f.style === 'wood') {
+        // two staggered rows of planks, each plank its own tone, a little grain, soft seams
+        const rows: number[][] = [
+          [0, 56, 96],
+          [-16, 24, 80],
+        ];
+        const tones = [0, 0.05, 0.02, 0.07];
+        rows.forEach((seams, ri) => {
+          const y = ri * 8;
+          for (let i = 0; i < seams.length - 1; i++) {
+            const x0 = Math.max(0, seams[i]);
+            const x1 = seams[i + 1];
+            g.fillStyle = mix(base, ink, tones[(i + ri * 2) % tones.length]);
+            g.fillRect(x0, y, x1 - x0, 8);
+            g.fillStyle = mix(base, ink, 0.1);
+            for (const gy of [2.2, 5.1]) g.fillRect(x0 + 3 + ((i * 7 + ri * 5) % 9), y + gy, (x1 - x0) * 0.45, 0.25);
+          }
+          if (ri === 1) {
+            g.fillStyle = mix(base, ink, tones[2]); // same plank as 0–24: it wraps round the repeat
+            g.fillRect(80, y, 16, 8);
+          }
+          g.fillStyle = mix(base, ink, 0.22);
+          g.fillRect(0, y + 7.6, uw, 0.4);
+          for (const sx of seams) if (sx >= 0 && sx < uw) g.fillRect(sx, y, 0.45, 8);
+        });
+      } else {
+        // 2×2 tiles: a faint checker, a highlight on each tile's upper edge, grout lines
+        g.fillStyle = mix(base, '#ffffff', dark ? 0.04 : 0.35);
+        g.fillRect(0, 0, 16, 16);
+        g.fillRect(16, 16, 16, 16);
+        g.fillStyle = mix(base, '#ffffff', dark ? 0.08 : 0.5);
+        for (const [tx, ty] of [
+          [0, 0],
+          [16, 0],
+          [0, 16],
+          [16, 16],
+        ])
+          g.fillRect(tx + 1.2, ty + 1.2, 13.6, 0.6);
+        g.fillStyle = mix(base, ink, dark ? 0.3 : 0.16);
+        for (const p of [0, 16]) {
+          g.fillRect(p, 0, 0.7, uh);
+          g.fillRect(0, p, uw, 0.7);
+        }
+      }
+      paint = c.createPattern(cv, 'repeat') ?? base;
+    }
+  }
+  patterns.set(key, paint);
+  return paint;
+}
+
+/** Fill a canvas area with the chosen floor, aligned to the world grid (v maps world → device px). */
+export function drawBackdrop(c: Ctx, v: View, w: number, h: number, f: FloorChoice = floor, dark = isDark()): void {
+  const paint = backdropPaint(c, f, dark);
+  if (typeof paint !== 'string') paint.setTransform(new DOMMatrix([v.z / PAT_RES, 0, 0, v.z / PAT_RES, v.ox, v.oy]));
+  c.fillStyle = paint;
+  c.fillRect(0, 0, w, h);
+}
+
 // ── floors & walls ───────────────────────────────────────────────────────────
 
 function drawFloor(c: Ctx, v: View, os: OfficeState, th: Theme): void {
@@ -135,10 +288,11 @@ function drawFloor(c: Ctx, v: View, os: OfficeState, th: Theme): void {
       const t = L.tiles[r * L.cols + col];
       if (t === TileType.VOID || t === TileType.WALL) continue;
       const label = L.areaTiles?.[r * L.cols + col];
+      if (!label) continue; // hallway: the backdrop floor (drawBackdrop) shows through
       const p = label ? ROOM_PAINT[label]?.[dark ? 'dark' : 'light'] : undefined;
       const x = col * T;
       const y = r * T;
-      c.fillStyle = p ? p.floor : th.hall;
+      c.fillStyle = p ? p.floor : th.hall2;
       c.fillRect(v.ox + x * v.z, v.oy + y * v.z, T * v.z + 1, T * v.z + 1);
       // gentle per-room pattern
       const alt = p ? p.floor2 : th.hall2;
@@ -155,8 +309,6 @@ function drawFloor(c: Ctx, v: View, os: OfficeState, th: Theme): void {
         if ((col + r) % 2 === 0) c.fillRect(v.ox + x * v.z, v.oy + y * v.z, T * v.z + 1, T * v.z + 1); // checker
       } else if (label === '휴게실') {
         if (r % 2 === 0) c.fillRect(v.ox + x * v.z, v.oy + (y + 7) * v.z, T * v.z + 1, 2 * v.z); // stripes
-      } else if (!label && col % 2 === 0 && r % 2 === 0) {
-        ell(c, v, x + 8, y + 8, 0.9, 0.9, alt); // hallway: quiet dot grid
       }
     }
   }
@@ -592,6 +744,7 @@ export function renderHubFrame(
   const th = theme();
   const t = performance.now() / 1000;
 
+  drawBackdrop(c, v, width, height);
   drawFloor(c, v, os, th);
 
   // Z-sorted drawables: walls, furniture, characters, pets (by their base line)

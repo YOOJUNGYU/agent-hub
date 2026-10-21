@@ -7,6 +7,7 @@ import {
   ZOOM_LEVEL_HIDE_DELAY_MS,
   ZOOM_MAX,
 } from '../constants.js';
+import { FloorPicker } from '../hub/FloorPicker.js';
 import { isHubRuntime, minZoom } from '../runtime.js';
 import { Button } from './ui/Button.js';
 
@@ -70,7 +71,8 @@ export function ZoomControls({ zoom, onZoomChange }: ZoomControlsProps) {
       )}
 
       {/* Vertically stacked round buttons — top-left */}
-      <div className="absolute top-8 left-8 z-10 flex flex-col gap-4">
+      {/* Agent Hub: above the room plates, so the floor picker's popover isn't covered */}
+      <div className={`absolute top-8 left-8 ${isHubRuntime ? 'z-50' : 'z-10'} flex flex-col gap-4`}>
         <Button
           size="icon_lg"
           onClick={() => onZoomChange(isHubRuntime ? zoom * HUB_ZOOM_STEP : zoom + 1)}
@@ -118,6 +120,7 @@ export function ZoomControls({ zoom, onZoomChange }: ZoomControlsProps) {
             />
           </svg>
         </Button>
+        {isHubRuntime && <FloorPicker />}
       </div>
     </>
   );

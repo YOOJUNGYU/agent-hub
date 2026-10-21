@@ -86,6 +86,24 @@
   </main>
   </div>
 
+  <!-- 앱(PWA) 설치 유도: 브라우저로 열었을 때 먼저 뜬다(설치된 앱·'나중에' 직후에는 안 뜸). host.js -->
+  <div id="installModal" class="install-modal" hidden>
+    <div class="install-dialog" role="dialog" aria-modal="true" aria-labelledby="installTitle">
+      <img class="install-icon" src="/icons/icon-192.png" alt="" />
+      <h2 class="install-title" id="installTitle" data-i18n="install.title">Agent Hub를 앱으로 설치하세요</h2>
+      <ul class="install-perks">
+        <li data-i18n="install.perk1">🖥️ 바탕화면·홈 화면에서 바로 열기</li>
+        <li data-i18n="install.perk2">🪟 주소창 없이 창 하나로 깔끔하게</li>
+        <li data-i18n="install.perk3">🔔 앱을 닫아도 질문·승인 알림 받기</li>
+      </ul>
+      <p class="install-steps" id="installSteps" hidden></p>
+      <div class="install-actions">
+        <button id="installLater" class="install-later" type="button" data-i18n="install.later">나중에</button>
+        <button id="installGo" class="install-go" type="button" data-i18n="install.go">앱으로 설치</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 휴대폰 연결용 QR. 콘솔은 127.0.0.1로 열려 있으므로 QR에는 반드시 /api/server/status의 LAN·VPN 주소를 쓴다. -->
   <div id="qrModal" class="qr-modal" hidden>
     <div class="qr-dialog" role="dialog" aria-modal="true" aria-labelledby="qrTitle">

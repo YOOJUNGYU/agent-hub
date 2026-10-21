@@ -29,7 +29,7 @@ import { attachChat, cleanAgentText, onHubMessage as chatOnHubMessage } from '..
 import type { HubEvent } from '../hub/hubTools.js';
 import { detailOf, isShellTool, READING_TOOLS, SUBAGENT_TOOLS, toOfficeTool } from '../hub/hubTools.js';
 import { dismissToasts, initHubTheme, openChat, setHubStatus, showAttention } from '../hub/hubUi.js';
-import { compose, loadKit, moveRoom } from '../hub/rooms.js';
+import { compose, loadKit, moveRoom, resizeRoom } from '../hub/rooms.js';
 import type { MessageTransport, TransportState } from './types.js';
 
 /** Agent Hub SessionSummary (AgentHub/Common/Models/SessionSummary.cs), camelCase JSON. */
@@ -108,6 +108,13 @@ export class HubTransport implements MessageTransport {
       const { label, x, y } = (e as CustomEvent<{ label: string; x: number; y: number }>).detail;
       void this.kitReady.then((kit) => {
         if (kit && moveRoom(label, x, y)) this.emit({ type: 'layoutLoaded', layout: compose(kit) });
+      });
+    });
+    // …or to resize it (corner handle dragged).
+    window.addEventListener('agenthub:resizeRoom', (e) => {
+      const { label, w, h } = (e as CustomEvent<{ label: string; w: number; h: number }>).detail;
+      void this.kitReady.then((kit) => {
+        if (kit && resizeRoom(label, w, h)) this.emit({ type: 'layoutLoaded', layout: compose(kit) });
       });
     });
   }
