@@ -629,41 +629,48 @@ body.host-shell .log-list{ background:var(--panel); border:1px solid var(--borde
   body.host-shell .topbar .guide-link{ display:none; }
 }
 
-/* ---- 좁은 화면(모바일): LNB는 햄버거로 여는 왼쪽 서랍 ---- */
-.menu-btn, .lnb-foot, .nav-scrim{ display:none; }
+/* ---- LNB: 너비와 상관없이 상단 바 ☰로 여는 왼쪽 서랍 ---- */
+body.host-shell .menu-btn{
+  display:inline-flex; flex-direction:column; justify-content:center; gap:4px; flex:0 0 auto;
+  width:38px; height:38px; padding:0 9px; border:1px solid var(--border); border-radius:10px;
+  background:var(--panel2); cursor:pointer; }
+body.host-shell .menu-btn:hover{ border-color:var(--accent); }
+.menu-btn span{ display:block; height:2px; border-radius:2px; background:var(--fore); transition:transform .2s, opacity .2s; }
+body.nav-open .menu-btn span:nth-child(1){ transform:translateY(6px) rotate(45deg); }
+body.nav-open .menu-btn span:nth-child(2){ opacity:0; }
+body.nav-open .menu-btn span:nth-child(3){ transform:translateY(-6px) rotate(-45deg); }
+.menu-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+
+html body.host-shell.remote .tabs.lnb{ display:flex; } /* html: 아래 '폰은 LNB 숨김'보다 우선 — 폰도 서랍으로 연다 */
+body.host-shell .tabs.lnb{
+  display:flex; position:fixed; top:56px; bottom:0; left:0; z-index:65; width:232px;
+  flex-direction:column; align-items:stretch; gap:4px; padding:14px 12px;
+  box-shadow:8px 0 30px rgba(27,32,54,.18);
+  transform:translateX(-102%); visibility:hidden;
+  transition:transform .22s ease, visibility 0s linear .22s; }
+body.nav-open.host-shell .tabs.lnb{ transform:none; visibility:visible; transition:transform .22s ease; }
+body.host-shell .lnb .tab{ flex:0 0 auto; flex-direction:row; justify-content:flex-start; gap:12px;
+  width:auto; height:48px; padding:0 14px; font-size:.95rem; }
+body.host-shell .lnb-badge{ top:50%; right:12px; transform:translateY(-50%); }
+body.host-shell.remote .lnb .tab:not([data-view="office"]){ display:none; } /* 폰: PC 전용 메뉴 제외 */
+.nav-scrim{ position:fixed; inset:56px 0 0 0; z-index:64; background:rgba(27,32,54,.4); }
+.nav-scrim[hidden]{ display:none; }
+/* 아직 안 읽은 기기 요청이 있으면 ☰에도 점을 찍는다 */
+body.has-pending .menu-btn{ position:relative; }
+body.has-pending .menu-btn::after{ content:""; position:absolute; top:5px; right:5px; width:8px; height:8px;
+  border-radius:50%; background:var(--err); }
+
+.lnb-foot{ display:none; }
 @media (max-width:760px){
-  body.host-shell .menu-btn{
-    display:inline-flex; flex-direction:column; justify-content:center; gap:4px; flex:0 0 auto;
-    width:38px; height:38px; padding:0 9px; border:1px solid var(--border); border-radius:10px;
-    background:var(--panel2); cursor:pointer; }
-  .menu-btn span{ display:block; height:2px; border-radius:2px; background:var(--fore); transition:transform .2s, opacity .2s; }
-  body.nav-open .menu-btn span:nth-child(1){ transform:translateY(6px) rotate(45deg); }
-  body.nav-open .menu-btn span:nth-child(2){ opacity:0; }
-  body.nav-open .menu-btn span:nth-child(3){ transform:translateY(-6px) rotate(-45deg); }
-  .menu-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
   body.host-shell .topbar{ gap:10px; }
   body.host-shell .topbar .guide-link,
   body.host-shell .topbar .lang-switch{ display:none; }
-
-  html body.host-shell.remote .tabs.lnb{ display:flex; } /* html: 아래 '폰은 LNB 숨김'보다 우선 — 폰도 서랍으로 연다 */
-  body.host-shell .tabs.lnb{
-    display:flex; position:fixed; top:56px; bottom:0; left:0; z-index:65; width:232px;
-    flex-direction:column; align-items:stretch; gap:4px; padding:14px 12px;
-    box-shadow:8px 0 30px rgba(27,32,54,.18);
-    transform:translateX(-102%); visibility:hidden;
-    transition:transform .22s ease, visibility 0s linear .22s; }
-  body.nav-open.host-shell .tabs.lnb{ transform:none; visibility:visible; transition:transform .22s ease; }
-  body.host-shell .lnb .tab{ flex:0 0 auto; flex-direction:row; justify-content:flex-start; gap:12px;
-    width:auto; height:48px; padding:0 14px; font-size:.95rem; }
-  body.host-shell .lnb-badge{ top:50%; right:12px; transform:translateY(-50%); }
-  body.host-shell.remote .lnb .tab:not([data-view="office"]){ display:none; } /* 폰: PC 전용 메뉴 제외 */
+  /* 좁으면 상단 바에서 빠진 사용 안내·언어를 서랍 아래로 */
   .lnb-foot{ display:flex; flex-direction:column; align-items:flex-start; gap:12px; margin-top:auto;
     padding:14px 6px 4px; border-top:1px solid var(--border); }
   body.host-shell .lnb-foot .guide-link{ color:var(--muted); text-decoration:none; }
   body.host-shell .lnb-foot .lang-select{ background:var(--panel2); color:var(--fore); border:1px solid var(--border);
     border-radius:10px; height:34px; padding:0 10px; }
-  .nav-scrim{ display:block; position:fixed; inset:56px 0 0 0; z-index:64; background:rgba(27,32,54,.4); }
-  .nav-scrim[hidden]{ display:none; }
 }
 @media (prefers-reduced-motion: reduce){
   body.host-shell .tabs.lnb, .menu-btn span{ transition:none !important; }

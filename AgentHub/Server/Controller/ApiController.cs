@@ -115,14 +115,19 @@ namespace AgentHub.Server.Controller
         public Task LaunchOptions()
         {
             if (!CanControlAgents()) return Forbidden();
-            // 최근 세션들의 작업 폴더를 추천 목록으로(WSL 경로는 /로 시작).
+            // 최근 작업 폴더: 여기서 실행했던 폴더(최근 순) → 최근 세션들의 폴더, 환경별 10개(WSL 경로는 /로 시작).
             var seen = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var count = new System.Collections.Generic.Dictionary<string, int> { ["wsl"] = 0, ["windows"] = 0 };
             var recent = new System.Collections.Generic.List<object>();
-            foreach (var s in AgentMonitorService.CurrentSessions())
+            void Add(string cwd, string env)
             {
-                if (string.IsNullOrEmpty(s.Cwd) || !seen.Add(s.Cwd)) continue;
-                recent.Add(new { cwd = s.Cwd, env = s.Cwd.StartsWith("/") ? "wsl" : "windows", project = s.Project });
+                if (string.IsNullOrEmpty(cwd) || count[env] >= RecentFolders.PerEnv || !seen.Add(env + "|" + cwd)) return;
+                count[env]++;
+                var name = cwd.TrimEnd('/', '\\');
+                recent.Add(new { cwd, env, project = name.Substring(Math.Max(name.LastIndexOfAny(new[] { '/', '\\' }) + 1, 0)) });
             }
+            foreach (var f in RecentFolders.Load()) Add(f.Cwd, f.Env == "wsl" ? "wsl" : "windows");
+            foreach (var s in AgentMonitorService.CurrentSessions()) Add(s.Cwd, s.Cwd != null && s.Cwd.StartsWith("/") ? "wsl" : "windows");
             return SendJsonAsync(Json.Serialize(new { distros = Wsl.InstalledDistros(), recent }));
         }
 
@@ -132,6 +137,7 @@ namespace AgentHub.Server.Controller
             if (!CanControlAgents()) { await Forbidden(); return; }
             var body = Json.Deserialize<LaunchBody>(await HttpContext.GetRequestBodyAsStringAsync()) ?? new LaunchBody();
             var (ok, message, pty) = AgentLauncher.Launch(body.Engine, body.Env, body.Distro, body.Cwd, body.Prompt);
+            if (ok) RecentFolders.Record(body.Env == "wsl" ? "wsl" : "windows", body.Cwd);
             if (!ok) HttpContext.Response.StatusCode = 400;
             await SendJsonAsync(Json.Serialize(new { ok, message, pty }));
         }

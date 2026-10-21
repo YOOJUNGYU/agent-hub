@@ -1,4 +1,6 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using EmbedIO.WebSockets;
 using AgentHub.Common.Util;
@@ -17,6 +19,9 @@ namespace AgentHub.Server.Socket
         private static readonly Queue<string> _logs = new Queue<string>();
         private static readonly object _logGate = new object();
         private static HostMonitorModule _instance;
+        // SslStream은 동시 write를 못 한다 → 소켓마다 한 번에 하나씩 보낸다. 없으면 로그가 몰릴 때
+        // 'write 보류 중' 예외가 나고, 그 예외가 다시 로그로 퍼지며 끝없이 반복됐다.
+        private readonly ConcurrentDictionary<string, SemaphoreSlim> _sendLocks = new ConcurrentDictionary<string, SemaphoreSlim>();
 
         public HostMonitorModule(string urlPath) : base(urlPath, true)
         {
@@ -33,8 +38,14 @@ namespace AgentHub.Server.Socket
                 _logs.Enqueue(line);
                 while (_logs.Count > LogBacklog) _logs.Dequeue();
             }
-            try { if (_instance != null) await _instance.BroadcastAsync(Json.Serialize(new { type = "log", line }), IsLoopback); }
-            catch { /* broadcast 실패 무시 */ }
+            if (_instance != null) await _instance.Broadcast(Json.Serialize(new { type = "log", line }));
+        }
+
+        /// <summary>열려 있는 PC 콘솔에 '이 세션 대화창 열기'를 보낸다(트레이 알림 클릭 → 이미 열린 창).</summary>
+        public static void RequestOpen(string sessionId)
+        {
+            if (_instance != null && !string.IsNullOrEmpty(sessionId))
+                _ = _instance.Broadcast(Json.Serialize(new { type = "open", sessionId }));
         }
 
         protected override async Task OnClientConnectedAsync(IWebSocketContext context)
@@ -46,27 +57,46 @@ namespace AgentHub.Server.Socket
                 return;
             }
 
-            await SendAsync(context, ClientsMessage());
-            await SendAsync(context, DevicesMessage());
+            await SendSafe(context, ClientsMessage());
+            await SendSafe(context, DevicesMessage());
             string[] backlog;
             lock (_logGate) backlog = _logs.ToArray();
-            await SendAsync(context, Json.Serialize(new { type = "logs", lines = backlog }));
+            await SendSafe(context, Json.Serialize(new { type = "logs", lines = backlog }));
+        }
+
+        protected override Task OnClientDisconnectedAsync(IWebSocketContext context)
+        {
+            _sendLocks.TryRemove(context.Id, out _);
+            return Task.CompletedTask;
+        }
+
+        /// <summary>열려 있는 PC 콘솔 모두에 보낸다(소켓별 직렬화, 소켓 간에는 병렬).</summary>
+        private Task Broadcast(string message)
+        {
+            var tasks = new List<Task>();
+            foreach (var ctx in ActiveContexts)
+                if (IsLoopback(ctx)) tasks.Add(SendSafe(ctx, message));
+            return Task.WhenAll(tasks);
+        }
+
+        private async Task SendSafe(IWebSocketContext ctx, string message)
+        {
+            var gate = _sendLocks.GetOrAdd(ctx.Id, _ => new SemaphoreSlim(1, 1));
+            await gate.WaitAsync();
+            try
+            {
+                if (ctx.WebSocket.State == System.Net.WebSockets.WebSocketState.Open) await SendAsync(ctx, message);
+            }
+            catch { /* 끊긴 소켓 — 무시 */ }
+            finally { gate.Release(); }
         }
 
         protected override Task OnMessageReceivedAsync(IWebSocketContext context, byte[] buffer, IWebSocketReceiveResult result)
             => Task.CompletedTask;
 
-        private async void OnRegistryChanged()
-        {
-            try { await BroadcastAsync(ClientsMessage(), IsLoopback); }
-            catch { /* broadcast 실패 무시 */ }
-        }
+        private async void OnRegistryChanged() => await Broadcast(ClientsMessage());
 
-        private async void OnDevicesChanged()
-        {
-            try { await BroadcastAsync(DevicesMessage(), IsLoopback); }
-            catch { /* broadcast 실패 무시 */ }
-        }
+        private async void OnDevicesChanged() => await Broadcast(DevicesMessage());
 
         private static bool IsLoopback(IWebSocketContext ctx)
             => NetUtil.IsLoopback(ctx.RemoteEndPoint?.Address);

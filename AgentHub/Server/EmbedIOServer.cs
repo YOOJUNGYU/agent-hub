@@ -369,9 +369,12 @@ namespace AgentHub.Server
 
                 _cts = new CancellationTokenSource();
                 _server = new WebServer(options)
+                    // 이 PC(loopback)는 차단하지 않는다 — 오피스 화면은 자산을 한꺼번에 많이 받아 초당 100건을 넘기 쉽고,
+                    // 한 번 걸리면 30분 동안 PC 콘솔·오피스가 403으로 잠긴다.
                     .WithIPBanning(o => o
                         .WithMaxRequestsPerSecond(100)
-                        .WithRegexRules(100, 60, "HTTP exception 404"))
+                        .WithRegexRules(100, 60, "HTTP exception 404"),
+                        new[] { "127.0.0.1", "::1", "::ffff:127.0.0.1" })
                     .WithLocalSessionManager()
                     .WithCors()
                     .WithWebApi("/api", m => m.WithController<ApiController>())

@@ -364,8 +364,8 @@
             <span class="en">Launch it from the <b>Start menu or desktop shortcut</b> and the screen <b>opens in your default browser</b>. Launching it again while it's running <b>just opens the screen</b>.</span></li>
         <li><span class="ko">Windows 로그인 때 <b>자동 실행</b>되면 화면을 띄우지 않고 <b>트레이에만 조용히</b> 상주합니다.</span>
             <span class="en">When it <b>starts automatically</b> at Windows login, it stays <b>quietly in the tray</b> without opening the screen.</span></li>
-        <li><span class="ko">트레이 아이콘 메뉴: <b>열기</b>(화면 열기) · <b>업데이트</b> · <b>완전 종료</b></span>
-            <span class="en">Tray icon menu: <b>열기 / Open</b> (open the screen) · <b>업데이트 / Update</b> · <b>완전 종료 / Quit</b></span></li>
+        <li><span class="ko">트레이 아이콘 메뉴: <b>열기</b>(화면 열기) · <b>업데이트</b> · <b>완전 종료</b>. 더블클릭·열기는 앱이 설치돼 있으면 <b>앱 창</b>으로 엽니다(이미 열린 창은 앞으로). 앱이 탭으로 열리면 크롬 <code>chrome://apps</code>에서 Agent Hub 우클릭 → <b>창으로 열기</b>를 켜세요.</span>
+            <span class="en">Tray icon menu: <b>열기 / Open</b> (open the screen) · <b>업데이트 / Update</b> · <b>완전 종료 / Quit</b>. Double-click or Open brings up the <b>app window</b> when the app is installed (an open one comes to the front). If it opens as a tab, right-click Agent Hub in Chrome's <code>chrome://apps</code> → <b>Open as window</b>.</span></li>
         <li><span class="ko"><b>PC에서도 앱으로 설치</b>: Edge·Chrome으로 <code>https://127.0.0.1:&lt;포트&gt;/host</code>를 연 상태에서(트레이 <b>열기</b>가 이 주소를 엽니다) 주소창의 <b>설치 아이콘 → 설치</b>. 이후엔 자기 창을 가진 앱처럼 열립니다.</span>
             <span class="en"><b>Install it as an app on the PC too</b>: with <code>https://127.0.0.1:&lt;port&gt;/host</code> open in Edge/Chrome (the tray <b>Open</b> item opens this address), click the <b>install icon in the address bar → Install</b>. From then on it opens in its own app window.</span></li>
       </ol>
@@ -374,8 +374,8 @@
 
       <p style="margin-top:14px"><b><span class="ko">PC 화면 둘러보기</span><span class="en">A tour of the PC screen</span></b></p>
       <ol class="ck">
-        <li><span class="ko"><b>왼쪽 메뉴</b>: <b>🏢 오피스</b> · <b>📱 기기</b> · <b>📜 로그</b> · <b>⚙️ 설정</b>. <b>기기</b> 메뉴 하나에서 <b>기기 인증 요청 승인</b>과 <b>지금 접속 중인 기기</b>를 함께 봅니다. 화면이 좁으면(휴대폰) 메뉴는 숨고, 상단 바 왼쪽 <b>☰</b>를 눌러 엽니다.</span>
-            <span class="en"><b>Left menu</b>: <b>🏢 Office</b> · <b>📱 Devices</b> · <b>📜 Logs</b> · <b>⚙️ Settings</b>. The single <b>Devices</b> menu holds both <b>device approval requests</b> and the <b>devices connected right now</b>. On a narrow screen (phone) the menu hides; open it with <b>☰</b> at the left of the top bar.</span></li>
+        <li><span class="ko"><b>왼쪽 메뉴</b>: <b>🏢 오피스</b> · <b>📱 기기</b> · <b>📜 로그</b> · <b>⚙️ 설정</b>. <b>기기</b> 메뉴 하나에서 <b>기기 인증 요청 승인</b>과 <b>지금 접속 중인 기기</b>를 함께 봅니다. 메뉴는 상단 바 왼쪽 <b>☰</b>를 눌러 여닫습니다(기기 승인 대기가 있으면 ☰에 빨간 점).</span>
+            <span class="en"><b>Left menu</b>: <b>🏢 Office</b> · <b>📱 Devices</b> · <b>📜 Logs</b> · <b>⚙️ Settings</b>. The single <b>Devices</b> menu holds both <b>device approval requests</b> and the <b>devices connected right now</b>. Open and close the menu with <b>☰</b> at the left of the top bar (a red dot means a device is waiting for approval).</span></li>
         <li><span class="ko"><b>한 줄 상단바</b>: 서버 상태 · <b>LAN/VPN 주소</b> · <b>▣ QR</b> · <b>사용법</b>(이 가이드) · 언어 · <b>☀️/🌙 테마</b></span>
             <span class="en"><b>One‑line top bar</b>: server status · <b>LAN/VPN addresses</b> · <b>▣ QR</b> · <b>사용법 / How to</b> (this guide) · language · <b>☀️/🌙 theme</b></span></li>
         <li><span class="ko">테마는 <b>라이트가 기본</b>이고 다크로 바꿀 수 있습니다. 고른 테마는 <b>콘솔·오피스·채팅 패널</b>에 함께 적용됩니다.</span>
@@ -757,7 +757,7 @@
       <ol class="ck">
         <li><span class="ko"><b>엔진</b> 선택: Claude Code / Codex</span><span class="en">Pick the <b>engine</b>: Claude Code / Codex</span></li>
         <li><span class="ko"><b>실행 위치</b>: Windows, 또는 WSL이 있으면 설치된 WSL 배포판</span><span class="en"><b>Where to run</b>: Windows, or an installed WSL distro if WSL is present</span></li>
-        <li><span class="ko"><b>작업 폴더</b>: 최근 프로젝트 폴더가 추천됩니다</span><span class="en"><b>Working folder</b>: recent project folders are suggested</span></li>
+        <li><span class="ko"><b>작업 폴더</b>: 최근 작업 폴더 10개가 목록으로 보여 눌러서 고릅니다</span><span class="en"><b>Working folder</b>: pick from a list of your 10 most recent folders</span></li>
         <li><span class="ko"><b>첫 프롬프트</b>(선택)</span><span class="en"><b>First prompt</b> (optional)</span></li>
         <li><span class="ko">실행하면 셸이 AgentHub의 <b>자식 프로세스(ConPTY)로 숨겨져</b> 돌아가 <b>콘솔 창이 뜨지 않고</b>, 곧 오피스에 캐릭터가 나타납니다. 화면을 보거나 직접 입력하려면 채팅 패널의 <b>터미널</b> 탭을 쓰세요</span><span class="en">The shell runs <b>hidden as a child process of AgentHub (ConPTY)</b> — <b>no console window</b> — and its character shows up in the office shortly. To view it or type into it, use the chat panel's <b>터미널 (Terminal)</b> tab</span></li>
       </ol>

@@ -198,6 +198,7 @@ function renderDevices(list) {
   const pending = list.filter(d => d.status === 'pending').length;
   $('#pendingCount').textContent = pending;
   const lb = $('#lnbPending'); lb.textContent = pending; lb.hidden = pending === 0; // 메뉴에 인증 대기 수
+  document.body.classList.toggle('has-pending', pending > 0); // 메뉴가 닫혀 있어도 ☰에 점으로
   $('#approvedCount').textContent = list.filter(d => d.status === 'approved').length;
   if (!list.length) {
     $('#deviceList').innerHTML = `<p class="hint">${t('devices.empty')}</p>`;
@@ -241,6 +242,10 @@ function connect() {
       else if (m.type === 'devices') renderDevices(m.devices);
       else if (m.type === 'logs') { logStore = (m.lines || []).slice(); scheduleLogRender(true); } // 접속 시 최근 로그(재연결 시 중복 방지로 교체)
       else if (m.type === 'log') window.addLog(m.line);
+      else if (m.type === 'open') { // 트레이 알림 클릭 — 이미 열린 이 창에서 그 세션 대화창을 연다
+        showView('office');
+        $('#officeFrame').contentWindow.postMessage({ type: 'agenthub:open', sessionId: m.sessionId }, location.origin);
+      }
     } catch (e) { /* ignore */ }
   };
 }
@@ -426,10 +431,17 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').cat
   }
   function close() { modal.hidden = true; }
 
-  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferred = e; show('prompt'); });
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferred = e; if (mode !== 'installed') show('prompt'); });
   window.addEventListener('appinstalled', function () { set(INSTALLED, '1'); close(); });
   // 설치 가능 신호를 잠깐 기다렸다가, 끝내 없으면 방법 안내로 띄운다(늦게 오면 위에서 설치 버튼으로 바뀜).
-  setTimeout(function () { if (!mode) show(isIOS ? 'ios' : 'manual'); }, isIOS ? 300 : 1500);
+  // 이미 이 브라우저에 앱으로 설치돼 있으면(브라우저는 설치 신호를 보내지 않는다) 묻지 않는다 — 트레이가 앱 창으로 연다.
+  var installed = navigator.getInstalledRelatedApps
+    ? navigator.getInstalledRelatedApps().then(function (a) { return a.length > 0; }).catch(function () { return false; })
+    : Promise.resolve(false);
+  installed.then(function (yes) {
+    if (yes) { set(INSTALLED, '1'); deferred = null; mode = 'installed'; close(); return; }
+    setTimeout(function () { if (!mode) show(isIOS ? 'ios' : 'manual'); }, isIOS ? 300 : 1500);
+  });
 
   go.addEventListener('click', async function () {
     if (mode === 'prompt' && deferred) {
@@ -446,8 +458,8 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').cat
   document.addEventListener('i18n:changed', function () { if (mode) show(mode); });
 })();
 
-// ---- 좁은 화면(모바일): 햄버거로 LNB 서랍 열고 닫기 ----
-// 메뉴를 고르거나, 바깥(어두운 영역)을 누르거나, Esc, 넓은 화면으로 바뀌면 닫는다.
+// ---- LNB 서랍: 상단 바 ☰로 열고 닫기(화면 너비와 상관없이) ----
+// 메뉴를 고르거나, 바깥(어두운 영역)을 누르거나, Esc를 누르면 닫는다.
 (function initNavDrawer() {
   const btn = $('#menuBtn');
   const scrim = $('#navScrim');
@@ -460,5 +472,4 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').cat
   scrim.addEventListener('click', () => set(false));
   document.addEventListener('keydown', e => { if (e.key === 'Escape') set(false); });
   $$('.lnb .tab').forEach(b => b.addEventListener('click', () => set(false)));
-  matchMedia('(min-width: 761px)').addEventListener('change', e => { if (e.matches) set(false); });
 })();

@@ -52,7 +52,7 @@ namespace AgentHub
             {
                 if (viaUrl) return;
                 // 이미 상주 중 → 경고 대신 화면(브라우저/PWA)만 열고 끝낸다(시작 메뉴를 다시 눌러도 바로 열리게).
-                TrayApp.OpenInBrowser(TrayApp.RunningHostUrl());
+                TrayApp.OpenApp(TrayApp.RunningHostUrl());
                 return;
             }
 

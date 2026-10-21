@@ -239,23 +239,35 @@ export async function openLauncher(): Promise<void> {
   }
   const cwd = el('input', 'hub-input', field('작업 폴더'));
   cwd.placeholder = '비우면 홈 폴더';
-  cwd.setAttribute('list', 'hub-recent-cwds');
-  const list = el('datalist', '', box);
-  list.id = 'hub-recent-cwds';
+  // 최근 작업 폴더(이 환경, 최대 10개) — 눌러서 바로 고른다. 같은 폴더에서 반복해 띄우는 경우가 대부분.
+  const recentBox = el('div', 'hub-recent', box);
   const fillRecent = () => {
-    list.replaceChildren();
+    recentBox.replaceChildren();
     const env = where.value.startsWith('wsl') ? 'wsl' : 'windows';
-    for (const r of opts.recent.filter((x) => x.env === env)) {
-      const o = el('option', '', list);
-      o.value = r.cwd;
-      o.label = r.project;
+    const rows = opts.recent.filter((x) => x.env === env).slice(0, 10);
+    recentBox.hidden = rows.length === 0;
+    if (rows.length === 0) return;
+    el('div', 'hub-recent-title', recentBox).textContent = '최근 작업 폴더';
+    for (const r of rows) {
+      const b = el('button', 'hub-recent-item', recentBox);
+      b.type = 'button';
+      b.title = r.cwd;
+      b.classList.toggle('on', cwd.value === r.cwd);
+      el('span', 'hub-recent-name', b).textContent = `📁 ${r.project || r.cwd}`;
+      el('span', 'hub-recent-path', b).textContent = r.cwd;
+      b.addEventListener('click', () => {
+        cwd.value = r.cwd;
+        fillRecent();
+        prompt.focus();
+      });
     }
   };
   where.addEventListener('change', fillRecent);
-  fillRecent();
+  cwd.addEventListener('input', fillRecent);
   const prompt = el('textarea', 'hub-input', field('첫 프롬프트 (선택)'));
   prompt.rows = 3;
   prompt.placeholder = '예: README를 읽고 이 프로젝트 구조를 요약해줘';
+  fillRecent(); // after `prompt` exists — a picked folder moves focus there
   const msg = el('p', 'hub-modal-msg', box);
   const actions = el('div', 'hub-modal-actions', box);
   const cancel = el('button', 'hub-btn', actions);

@@ -110,6 +110,14 @@ export class HubTransport implements MessageTransport {
         if (kit && moveRoom(label, x, y)) this.emit({ type: 'layoutLoaded', layout: compose(kit) });
       });
     });
+    // The host page (/host) relays the tray's "open this session" to an already-open window.
+    window.addEventListener('message', (e) => {
+      const d = e.data as { type?: string; sessionId?: string } | null;
+      if (e.origin !== location.origin || d?.type !== 'agenthub:open' || !d.sessionId) return;
+      const t = this.bySession.get(d.sessionId);
+      if (t && this.officeReady) this.openSession(t);
+      else this.openOnLoad = d.sessionId; // not here yet — open when it shows up
+    });
     // …or to resize it (corner handle dragged).
     window.addEventListener('agenthub:resizeRoom', (e) => {
       const { label, w, h } = (e as CustomEvent<{ label: string; w: number; h: number }>).detail;
