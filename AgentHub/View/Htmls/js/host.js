@@ -445,3 +445,20 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').cat
   modal.addEventListener('keydown', function (e) { if (e.key === 'Escape') { set(SNOOZE, String(Date.now() + DAY)); close(); } });
   document.addEventListener('i18n:changed', function () { if (mode) show(mode); });
 })();
+
+// ---- 좁은 화면(모바일): 햄버거로 LNB 서랍 열고 닫기 ----
+// 메뉴를 고르거나, 바깥(어두운 영역)을 누르거나, Esc, 넓은 화면으로 바뀌면 닫는다.
+(function initNavDrawer() {
+  const btn = $('#menuBtn');
+  const scrim = $('#navScrim');
+  const set = open => {
+    document.body.classList.toggle('nav-open', open);
+    btn.setAttribute('aria-expanded', String(open));
+    scrim.hidden = !open;
+  };
+  btn.addEventListener('click', () => set(!document.body.classList.contains('nav-open')));
+  scrim.addEventListener('click', () => set(false));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') set(false); });
+  $$('.lnb .tab').forEach(b => b.addEventListener('click', () => set(false)));
+  matchMedia('(min-width: 761px)').addEventListener('change', e => { if (e.matches) set(false); });
+})();

@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { SubagentCharacter } from '../hooks/useExtensionMessages.js';
 import type { OfficeState } from '../office/engine/officeState.js';
-import { mapOffset, overlayProjection } from '../office/projection.js';
+import { overlayProjection } from '../office/projection.js';
 import type { ToolActivity } from '../office/types.js';
 import { TILE_SIZE } from '../office/types.js';
 import { canPlace, getKit, ROOM_EMOJI, type RoomBlock, roomRect, sizeRange } from './rooms.js';
@@ -56,42 +56,6 @@ export function RoomOverlay({ officeState, agents, agentTools, subagentCharacter
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
   }, []);
-
-  // Hover: which room is under the pointer (canvas gets the events; we only listen).
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const onMove = (e: MouseEvent) => {
-      const kit = getKit();
-      if (!kit || dragRef.current) return;
-      const layout = officeState.getLayout();
-      const rect = el.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      const { offsetX, offsetY } = mapOffset(
-        Math.round(rect.width * dpr),
-        Math.round(rect.height * dpr),
-        layout.cols,
-        layout.rows,
-        zoom,
-        panRef.current.x,
-        panRef.current.y,
-      );
-      const col = Math.floor(((e.clientX - rect.left) * dpr - offsetX) / zoom / TILE_SIZE);
-      const row = Math.floor(((e.clientY - rect.top) * dpr - offsetY) / zoom / TILE_SIZE);
-      const room = kit.rooms.find((r) => {
-        const b = roomRect(kit, r);
-        return col >= b.col && col < b.col + b.w && row >= b.row + 1 && row < b.row + b.h;
-      });
-      setHovered(room?.label ?? null);
-    };
-    const onLeave = () => setHovered(null);
-    el.addEventListener('mousemove', onMove);
-    el.addEventListener('mouseleave', onLeave);
-    return () => {
-      el.removeEventListener('mousemove', onMove);
-      el.removeEventListener('mouseleave', onLeave);
-    };
-  }, [containerRef, officeState, zoom, panRef]);
 
   const kit = getKit();
   const el = containerRef.current;
@@ -200,7 +164,9 @@ export function RoomOverlay({ officeState, agents, agentTools, subagentCharacter
               onPointerMove={moveDrag}
               onPointerUp={endDrag}
               onPointerCancel={endDrag}
+              // the tooltip belongs to the name plate, not the whole room
               onMouseEnter={() => !dragRef.current && setHovered(room.label)}
+              onMouseLeave={() => setHovered(null)}
             >
               <span className="hub-plate-emoji">{ROOM_EMOJI[room.label] ?? '🏠'}</span>
               {room.label}

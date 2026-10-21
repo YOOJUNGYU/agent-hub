@@ -14,6 +14,10 @@
 <body class="host-shell">
   <!-- 상단 바(한 줄): 로고 · 서버 상태 · 접속 주소 · QR | 사용 안내 · 언어 · 테마 -->
   <header class="app-header topbar">
+    <!-- 좁은 화면(모바일)에서만 보임: LNB 서랍 열고 닫기 -->
+    <button id="menuBtn" class="menu-btn" type="button" aria-label="메뉴" aria-controls="lnb" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
     <div class="brand"><span class="brand-paw" aria-hidden="true">🐾</span>Agent Hub</div>
     <div class="server-status">
       <span class="badge" id="statusBadge"><span class="spinner"></span><span data-i18n="server.checking">확인 중…</span></span>
@@ -35,12 +39,23 @@
   </header>
   <div class="host-body">
   <!-- 좌측 메뉴(LNB): 오피스(에이전트 캐릭터) · 기기(인증 관리 + 현재 연결) · 로그 · 설정 -->
-  <nav class="tabs lnb">
+  <nav class="tabs lnb" id="lnb">
     <button class="tab active" data-view="office"><span class="lnb-ico" aria-hidden="true">🏢</span><span data-i18n="tab.office">오피스</span></button>
     <button class="tab" data-view="devices"><span class="lnb-ico" aria-hidden="true">📱</span><span data-i18n="tab.devices">기기</span><span class="lnb-badge" id="lnbPending" hidden></span></button>
     <button class="tab" data-view="logs"><span class="lnb-ico" aria-hidden="true">📜</span><span data-i18n="tab.logs">로그</span></button>
     <button class="tab" data-view="settings"><span class="lnb-ico" aria-hidden="true">⚙️</span><span data-i18n="tab.settings">설정</span></button>
+    <!-- 좁은 화면 서랍의 아래쪽: 상단 바에서 빠진 사용 안내·언어 -->
+    <div class="lnb-foot">
+      <a class="guide-link" href="/guide.html" target="_blank" rel="noopener" data-i18n="guide.link">📖 사용 안내</a>
+      <label class="lang-switch"><span aria-hidden="true">🌐</span>
+        <select class="lang-select" data-lang-select aria-label="Language / 언어">
+          <option value="ko">한국어</option>
+          <option value="en">English</option>
+        </select>
+      </label>
+    </div>
   </nav>
+  <div class="nav-scrim" id="navScrim" hidden></div>
   <main>
     <!-- 픽셀 오피스: 세션 = 캐릭터. 클릭하면 그 세션 대화창(프롬프트·질문 답변·권한 승인). -->
     <section id="office" class="view active">
